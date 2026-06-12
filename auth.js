@@ -7,6 +7,7 @@
 // y viaja como "Authorization: Bearer <token>" en cada request.
 // ============================================================
 
+
 'use strict';
 
 const SESSION_KEY = 'vetfield_session';   // caché de datos del usuario (UI)
@@ -403,13 +404,13 @@ const AuthUI = {
             } else if (plan === 'pro' || plan === 'premium') {
                 const planName = plan === 'pro' ? 'Pro' : 'Premium';
                 planText = `Plan ${planName}`;
-                
+
                 if (sess.planExpiresAt) {
                     const expDate = new Date(sess.planExpiresAt);
                     const now = new Date();
                     const diffTime = expDate - now;
                     const diffDays = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-                    
+
                     descText = `Tu suscripción al Plan ${planName} ha sido cancelada. Conservarás el acceso completo durante los días pagados restantes. Te quedan ${diffDays} días de acceso (expira el ${expDate.toLocaleDateString('es-AR')}). Transcurridos 2 meses de la expiración sin renovación, tus datos cargados se eliminarán automáticamente por inactividad.`;
                     actionHtml = `
                         <a href="https://vetfield.pro/#pricing" target="_blank" class="btn-save" style="margin-top:0; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:0.6rem 1.2rem; font-size:0.85rem; border-radius:12px; background:var(--secondary); text-decoration:none; color:white; font-weight:700;">
@@ -686,11 +687,11 @@ const AuthUI = {
 
     async cancelSubscription() {
         const confirmMsg = "¿Estás seguro de que deseas cancelar tu suscripción?\n\n" +
-                           "Al hacerlo:\n" +
-                           "1. Se suspenderán todos los cobros futuros inmediatamente.\n" +
-                           "2. Conservarás tu acceso Pro/Premium hasta que termine el período de facturación actual.\n" +
-                           "3. Si no vuelves a suscribirte pasados 2 meses de la expiración, tus datos cargados se borrarán automáticamente.\n\n" +
-                           "¿Deseas confirmar la cancelación?";
+            "Al hacerlo:\n" +
+            "1. Se suspenderán todos los cobros futuros inmediatamente.\n" +
+            "2. Conservarás tu acceso Pro/Premium hasta que termine el período de facturación actual.\n" +
+            "3. Si no vuelves a suscribirte pasados 2 meses de la expiración, tus datos cargados se borrarán automáticamente.\n\n" +
+            "¿Deseas confirmar la cancelación?";
         if (!confirm(confirmMsg)) return;
 
         const container = document.getElementById('profile-subscription-action-container');
@@ -706,7 +707,7 @@ const AuthUI = {
                 AuthManager._saveSession(res.user, null);
                 this._syncProfile(res.user);
                 this._syncAvatar(res.user);
-                
+
                 if (typeof showToast === 'function') {
                     showToast('✅ Suscripción cancelada con éxito.');
                 }
