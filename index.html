@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -46,7 +47,9 @@
 
     <style>
         /* ── KPI Range Config Panel ── */
-        .kpi-card { position: relative; }
+        .kpi-card {
+            position: relative;
+        }
 
         .kpi-config-btn {
             position: absolute;
@@ -63,10 +66,12 @@
             font-size: 14px;
             z-index: 2;
         }
+
         .kpi-config-btn:hover {
             color: var(--primary, #1a237e);
-            background: rgba(26,35,126,0.06);
+            background: rgba(26, 35, 126, 0.06);
         }
+
         .kpi-config-btn.active {
             color: var(--primary, #1a237e);
         }
@@ -75,21 +80,34 @@
             display: none;
             position: fixed;
             background: #ffffff;
-            border: 1.5px solid rgba(26,35,126,0.13);
+            border: 1.5px solid rgba(26, 35, 126, 0.13);
             border-radius: 16px;
             padding: 12px 14px 10px;
-            box-shadow: 0 12px 36px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.07);
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.16), 0 2px 8px rgba(0, 0, 0, 0.07);
             z-index: 9999;
             animation: kpiPanelIn 0.15s ease;
             min-width: 280px;
             box-sizing: border-box;
         }
-        html.dark .kpi-range-panel { background: #1c2030; }
-        .kpi-range-panel.open { display: block; }
+
+        html.dark .kpi-range-panel {
+            background: #1c2030;
+        }
+
+        .kpi-range-panel.open {
+            display: block;
+        }
 
         @keyframes kpiPanelIn {
-            from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-            to   { opacity: 1; transform: translateY(0) scale(1); }
+            from {
+                opacity: 0;
+                transform: translateY(-4px) scale(0.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .kpi-range-panel-title {
@@ -100,7 +118,7 @@
             letter-spacing: 0.07em;
             margin-bottom: 9px;
             padding-bottom: 7px;
-            border-bottom: 1px solid rgba(0,0,0,0.07);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.07);
         }
 
         .kpi-range-row {
@@ -109,7 +127,10 @@
             gap: 6px;
             margin-bottom: 5px;
         }
-        .kpi-range-row:last-of-type { margin-bottom: 0; }
+
+        .kpi-range-row:last-of-type {
+            margin-bottom: 0;
+        }
 
         .kpi-range-dot {
             width: 7px;
@@ -117,9 +138,18 @@
             border-radius: 50%;
             flex-shrink: 0;
         }
-        .kpi-range-dot--danger  { background: #dc2626; }
-        .kpi-range-dot--warning { background: #d97706; }
-        .kpi-range-dot--success { background: #16a34a; }
+
+        .kpi-range-dot--danger {
+            background: #dc2626;
+        }
+
+        .kpi-range-dot--warning {
+            background: #d97706;
+        }
+
+        .kpi-range-dot--success {
+            background: #16a34a;
+        }
 
         .kpi-range-label {
             font-size: 0.70rem;
@@ -141,7 +171,8 @@
             padding: 2px 4px;
             border: 1.5px solid #e2e8f0;
             border-radius: 6px;
-            font-size: 16px; /* Evita zoom automático en navegadores móviles (iOS / Safari) */
+            font-size: 16px;
+            /* Evita zoom automático en navegadores móviles (iOS / Safari) */
             font-weight: 700;
             color: var(--text-main, #334155);
             background: var(--input-bg, #f8fafc);
@@ -149,6 +180,7 @@
             transition: border-color 0.15s;
             font-family: inherit;
         }
+
         .kpi-range-input:focus {
             outline: none;
             border-color: var(--primary, #1a237e);
@@ -176,12 +208,16 @@
             transition: opacity 0.15s;
             letter-spacing: 0.02em;
         }
-        .kpi-range-save-btn:hover { opacity: 0.88; }
+
+        .kpi-range-save-btn:hover {
+            opacity: 0.88;
+        }
 
         /* ── Backdrop Overlay para modales de umbrales en Celulares ── */
         .kpi-panel-backdrop {
             display: none;
         }
+
         @media (max-width: 767px) {
             .kpi-panel-backdrop.open {
                 display: block;
@@ -211,53 +247,129 @@
         }
 
         @keyframes kpiFadeIn {
-            from { opacity: 0; }
-            to   { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         @keyframes kpiPanelInMobile {
-            from { opacity: 0; transform: translate(-50%, -46%) scale(0.96); }
-            to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            from {
+                opacity: 0;
+                transform: translate(-50%, -46%) scale(0.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
         }
 
         /* ── KPI Dynamic Color States ── */
         .kpi-card .kpi-icon-wrap,
-        .kpi-card .kpi-value { transition: color 0.3s ease, background-color 0.3s ease; }
+        .kpi-card .kpi-value {
+            transition: color 0.3s ease, background-color 0.3s ease;
+        }
 
         /* Mortalidad — danger */
-        .kpi-card.kpi-danger .kpi-icon-wrap { background: #fef2f2 !important; color: #dc2626 !important; }
-        .kpi-card.kpi-danger .kpi-value     { color: #dc2626 !important; }
+        .kpi-card.kpi-danger .kpi-icon-wrap {
+            background: #fef2f2 !important;
+            color: #dc2626 !important;
+        }
+
+        .kpi-card.kpi-danger .kpi-value {
+            color: #dc2626 !important;
+        }
 
         /* Mortalidad — warning */
-        .kpi-card.kpi-warning .kpi-icon-wrap { background: #fffbeb !important; color: #d97706 !important; }
-        .kpi-card.kpi-warning .kpi-value     { color: #d97706 !important; }
+        .kpi-card.kpi-warning .kpi-icon-wrap {
+            background: #fffbeb !important;
+            color: #d97706 !important;
+        }
+
+        .kpi-card.kpi-warning .kpi-value {
+            color: #d97706 !important;
+        }
 
         /* Mortalidad — normal (sin danger/warning) → verde */
-        #kpi_mortalidad_card:not(.kpi-danger):not(.kpi-warning) .kpi-icon-wrap { background: #f0fdf4 !important; color: #16a34a !important; }
-        #kpi_mortalidad_card:not(.kpi-danger):not(.kpi-warning) .kpi-value     { color: #16a34a !important; }
-        #kpi_mortalidad_card:not(.kpi-danger):not(.kpi-warning)::before        { background: linear-gradient(90deg, #16a34a, #4ade80) !important; }
+        #kpi_mortalidad_card:not(.kpi-danger):not(.kpi-warning) .kpi-icon-wrap {
+            background: #f0fdf4 !important;
+            color: #16a34a !important;
+        }
+
+        #kpi_mortalidad_card:not(.kpi-danger):not(.kpi-warning) .kpi-value {
+            color: #16a34a !important;
+        }
+
+        #kpi_mortalidad_card:not(.kpi-danger):not(.kpi-warning)::before {
+            background: linear-gradient(90deg, #16a34a, #4ade80) !important;
+        }
 
         /* IG Card — Óptimo (verde) */
-        #kpi_ig_card.kpi-state--success .kpi-icon-wrap { background: #f0fdf4 !important; color: #16a34a !important; }
-        #kpi_ig_card.kpi-state--success .kpi-value     { color: #16a34a !important; }
-        #kpi_ig_card.kpi-state--success::before         { background: linear-gradient(90deg, #16a34a, #4ade80) !important; }
+        #kpi_ig_card.kpi-state--success .kpi-icon-wrap {
+            background: #f0fdf4 !important;
+            color: #16a34a !important;
+        }
+
+        #kpi_ig_card.kpi-state--success .kpi-value {
+            color: #16a34a !important;
+        }
+
+        #kpi_ig_card.kpi-state--success::before {
+            background: linear-gradient(90deg, #16a34a, #4ade80) !important;
+        }
 
         /* IG Card — Aceptable (naranja) */
-        #kpi_ig_card.kpi-state--warning .kpi-icon-wrap { background: #fffbeb !important; color: #d97706 !important; }
-        #kpi_ig_card.kpi-state--warning .kpi-value     { color: #d97706 !important; }
-        #kpi_ig_card.kpi-state--warning::before         { background: linear-gradient(90deg, #d97706, #f59e0b) !important; }
+        #kpi_ig_card.kpi-state--warning .kpi-icon-wrap {
+            background: #fffbeb !important;
+            color: #d97706 !important;
+        }
+
+        #kpi_ig_card.kpi-state--warning .kpi-value {
+            color: #d97706 !important;
+        }
+
+        #kpi_ig_card.kpi-state--warning::before {
+            background: linear-gradient(90deg, #d97706, #f59e0b) !important;
+        }
 
         /* IG Card — Bajo (rojo) */
-        #kpi_ig_card.kpi-state--danger .kpi-icon-wrap  { background: #fef2f2 !important; color: #dc2626 !important; }
-        #kpi_ig_card.kpi-state--danger .kpi-value      { color: #dc2626 !important; }
-        #kpi_ig_card.kpi-state--danger::before          { background: linear-gradient(90deg, #dc2626, #ef4444) !important; }
+        #kpi_ig_card.kpi-state--danger .kpi-icon-wrap {
+            background: #fef2f2 !important;
+            color: #dc2626 !important;
+        }
+
+        #kpi_ig_card.kpi-state--danger .kpi-value {
+            color: #dc2626 !important;
+        }
+
+        #kpi_ig_card.kpi-state--danger::before {
+            background: linear-gradient(90deg, #dc2626, #ef4444) !important;
+        }
 
         /* Dark mode overrides para los colores de icon/value */
-        html.dark .kpi-card.kpi-danger .kpi-value     { color: #f87171 !important; }
-        html.dark .kpi-card.kpi-warning .kpi-value    { color: #fbbf24 !important; }
-        html.dark #kpi_ig_card.kpi-state--success .kpi-value { color: #4ade80 !important; }
-        html.dark #kpi_ig_card.kpi-state--warning .kpi-value { color: #fbbf24 !important; }
-        html.dark #kpi_ig_card.kpi-state--danger .kpi-value  { color: #f87171 !important; }
+        html.dark .kpi-card.kpi-danger .kpi-value {
+            color: #f87171 !important;
+        }
+
+        html.dark .kpi-card.kpi-warning .kpi-value {
+            color: #fbbf24 !important;
+        }
+
+        html.dark #kpi_ig_card.kpi-state--success .kpi-value {
+            color: #4ade80 !important;
+        }
+
+        html.dark #kpi_ig_card.kpi-state--warning .kpi-value {
+            color: #fbbf24 !important;
+        }
+
+        html.dark #kpi_ig_card.kpi-state--danger .kpi-value {
+            color: #f87171 !important;
+        }
 
         /* ── Estilos adicionales para nuevos componentes auth ── */
 
@@ -794,8 +906,7 @@
                         <div class="kpi-sub" id="kpi_ig_sub">mg/dL promedio</div>
                     </div>
                     <!-- Botón configurar rangos -->
-                    <button class="kpi-config-btn" id="kpi_ig_cfg_btn"
-                        onclick="toggleKpiPanel('kpi_ig_panel', this)"
+                    <button class="kpi-config-btn" id="kpi_ig_cfg_btn" onclick="toggleKpiPanel('kpi_ig_panel', this)"
                         title="Configurar umbrales de calidad">⚙️</button>
                 </div>
                 <!-- KPI 4: Tasa de Recuperación -->
@@ -820,16 +931,16 @@
                     <span class="kpi-range-dot kpi-range-dot--danger"></span>
                     <span class="kpi-range-label">Alto Riesgo</span>
                     <span class="kpi-range-desc">mayor a</span>
-                    <input class="kpi-range-input" type="number" id="kpi_mort_thr_high"
-                        min="0" max="100" step="0.5" value="5">
+                    <input class="kpi-range-input" type="number" id="kpi_mort_thr_high" min="0" max="100" step="0.5"
+                        value="5">
                     <span class="kpi-range-unit">%</span>
                 </div>
                 <div class="kpi-range-row">
                     <span class="kpi-range-dot kpi-range-dot--warning"></span>
                     <span class="kpi-range-label">Moderado</span>
                     <span class="kpi-range-desc">mayor a</span>
-                    <input class="kpi-range-input" type="number" id="kpi_mort_thr_mid"
-                        min="0" max="100" step="0.5" value="3">
+                    <input class="kpi-range-input" type="number" id="kpi_mort_thr_mid" min="0" max="100" step="0.5"
+                        value="3">
                     <span class="kpi-range-unit">%</span>
                 </div>
                 <div class="kpi-range-row">
@@ -846,16 +957,16 @@
                     <span class="kpi-range-dot kpi-range-dot--success"></span>
                     <span class="kpi-range-label">Óptimo</span>
                     <span class="kpi-range-desc">mayor o igual a</span>
-                    <input class="kpi-range-input" type="number" id="kpi_ig_thr_high"
-                        min="0" max="100" step="0.5" value="15">
+                    <input class="kpi-range-input" type="number" id="kpi_ig_thr_high" min="0" max="100" step="0.5"
+                        value="15">
                     <span class="kpi-range-unit">mg/dL</span>
                 </div>
                 <div class="kpi-range-row">
                     <span class="kpi-range-dot kpi-range-dot--warning"></span>
                     <span class="kpi-range-label">Aceptable</span>
                     <span class="kpi-range-desc">mayor o igual a</span>
-                    <input class="kpi-range-input" type="number" id="kpi_ig_thr_mid"
-                        min="0" max="100" step="0.5" value="10">
+                    <input class="kpi-range-input" type="number" id="kpi_ig_thr_mid" min="0" max="100" step="0.5"
+                        value="10">
                     <span class="kpi-range-unit">mg/dL</span>
                 </div>
                 <div class="kpi-range-row">
@@ -1352,8 +1463,7 @@
                         <i data-lucide="x" style="width: 20px; color: var(--text-secondary);"></i>
                     </button>
                 </div>
-                <div id="modalBody"
-                    style="display: flex; flex-direction: column; gap: 0.25rem; padding-right: 5px;">
+                <div id="modalBody" style="display: flex; flex-direction: column; gap: 0.25rem; padding-right: 5px;">
                     <!-- Content injected via JS -->
                 </div>
                 <div class="modal-actions" style="display:flex; flex-direction: column; gap:0.75rem; margin-top:2rem;">
@@ -1662,20 +1772,19 @@
             <div class="card glass" style="margin-top:0;">
                 <span class="section-label">Soporte y Consultas</span>
                 <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1.25rem; line-height:1.5;">
-                    ¿Tenés dudas o necesitás ayuda? Contactanos directamente por WhatsApp y te respondemos a la brevedad.
+                    ¿Tenés dudas o necesitás ayuda? Contactanos directamente por WhatsApp y te respondemos a la
+                    brevedad.
                 </p>
-                <a
-                    id="btn-whatsapp-support"
+                <a id="btn-whatsapp-support"
                     href="https://wa.me/5493564331711?text=Hola%2C%20tengo%20una%20consulta%20sobre%20VETFIELD%20PRO."
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="btn-save"
+                    target="_blank" rel="noopener noreferrer" class="btn-save"
                     style="display:flex; align-items:center; justify-content:center; gap:10px; background:#25d366; border:none; color:#fff; text-decoration:none; border-radius:14px; padding:14px 20px; font-weight:700; font-size:0.95rem; transition: filter 0.2s, transform 0.15s; cursor:pointer;"
                     onmouseover="this.style.filter='brightness(1.1)';this.style.transform='translateY(-1px)'"
-                    onmouseout="this.style.filter='brightness(1)';this.style.transform='translateY(0)'"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    onmouseout="this.style.filter='brightness(1)';this.style.transform='translateY(0)'">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+                        fill="currentColor" style="flex-shrink:0;">
+                        <path
+                            d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                     </svg>
                     Contactar por WhatsApp
                 </a>
