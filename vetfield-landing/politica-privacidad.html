@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidad — vetfield.pro</title>
+  <meta name="description"
+    content="Política de Privacidad de vetfield.pro. Conocé cómo protegemos y administramos tus datos de registro de campo." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            indigo: {
+              950: '#0d1240',
+              900: '#131a5e',
+              800: '#1a237e',
+              700: '#283593',
+              600: '#3949ab',
+              500: '#5c6bc0',
+              400: '#7986cb',
+              200: '#c5cae9',
+              100: '#e8eaf6',
+            },
+            forest: {
+              900: '#1b5e20',
+              800: '#2e7d32',
+              700: '#388e3c',
+              600: '#43a047',
+              500: '#4caf50',
+              400: '#66bb6a',
+              200: '#c8e6c9',
+            }
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    /* ── Scrollbar ─────────────────────────────────────── */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0d1240;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #2e7d32;
+      border-radius: 3px;
+    }
+
+    /* ── Glassmorphism ──────────────────────────────────── */
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    /* ── Gradient text ──────────────────────────────────── */
+    .grad-text {
+      background: linear-gradient(135deg, #66bb6a 0%, #4caf50 35%, #c8e6c9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Grid overlay ───────────────────────────────────── */
+    .grid-overlay {
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* ── Buttons ────────────────────────────────────────── */
+    .btn-primary {
+      background: linear-gradient(135deg, #2e7d32, #43a047);
+      box-shadow: 0 0 28px rgba(46, 125, 50, 0.5), 0 4px 16px rgba(0, 0, 0, 0.35);
+      transition: box-shadow 0.3s ease, transform 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 50px rgba(46, 125, 50, 0.7), 0 8px 28px rgba(0, 0, 0, 0.4);
+      transform: translateY(-2px);
+    }
+
+    /* ── Blobs ──────────────────────────────────────────── */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 0.13;
+      pointer-events: none;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Navbar background ─────────────────────────────── */
+    .nav-opaque {
+      background: rgba(13, 18, 64, 0.97) !important;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+  </style>
+</head>
+
+<body class="bg-indigo-950 text-slate-100 font-sans antialiased">
+
+  <!-- ========================================================
+       NAVBAR
+  ======================================================== -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 py-4 nav-opaque">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+
+      <!-- Logo -->
+      <a href="/" id="nav-logo" class="flex items-center gap-3 group">
+        <img src="/logoternero.png" alt="Logo vetfield.pro — cabeza de ternero"
+          class="w-9 h-9 object-contain group-hover:scale-105 transition-transform" />
+        <span class="text-[1.15rem] font-bold tracking-tight leading-none">
+          <span class="text-white">vetfield</span><span class="text-forest-400">.pro</span>
+        </span>
+      </a>
+
+      <!-- Desktop nav -->
+      <div class="hidden md:flex items-center gap-7" role="navigation" aria-label="Navegación principal">
+        <a href="/#features" class="text-sm text-slate-400 hover:text-white transition-colors">Funciones</a>
+        <a href="/#pricing" class="text-sm text-slate-400 hover:text-white transition-colors">Precios</a>
+        <a href="/#faq" class="text-sm text-slate-400 hover:text-white transition-colors">FAQ</a>
+      </div>
+
+      <!-- CTA -->
+      <div class="flex items-center gap-3">
+        <a href="/" class="hidden sm:block text-sm text-slate-400 hover:text-white transition-colors">Inicio</a>
+        <a href="/#pricing" id="nav-cta" class="btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+          Probar gratis
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========================================================
+       CONTENT
+  ======================================================== -->
+  <section class="relative min-h-screen pt-32 pb-24 overflow-hidden"
+    style="background: radial-gradient(ellipse 70% 60% at 70% 50%, rgba(26, 35, 126, 0.35) 0%, transparent 70%), linear-gradient(160deg, #090e2f 0%, #0d1240 100%);">
+
+    <!-- Grid overlay -->
+    <div class="absolute inset-0 grid-overlay opacity-80" aria-hidden="true"></div>
+
+    <!-- Blobs -->
+    <div class="blob w-[500px] h-[500px] bg-indigo-800 top-[-50px] right-[-100px]" aria-hidden="true"></div>
+    <div class="blob w-[300px] h-[300px] bg-forest-800 bottom-[-50px] left-[-100px]" aria-hidden="true"></div>
+
+    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 z-10 reveal">
+      <div class="glass rounded-3xl p-6 sm:p-10 border border-white/08">
+
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-2 leading-tight">
+          Política de Privacidad
+        </h1>
+        <p class="text-slate-500 text-sm mb-8">Última actualización: 24 de mayo de 2026</p>
+
+        <div class="space-y-6 text-slate-300 text-sm sm:text-base leading-relaxed">
+
+          <p>
+            En <strong class="text-white">vetfield.pro</strong>, valoramos tu privacidad y nos comprometemos a proteger
+            los datos personales que recopilás a través de nuestra aplicación y sitio web. Esta Política de Privacidad
+            detalla cómo recopilamos, usamos, almacenamos y protegemos tu información de conformidad con las normativas
+            vigentes de protección de datos personales.
+          </p>
+
+          <hr class="border-white/10" />
+
+          <div>
+            <h2 class="text-lg font-bold text-white mb-2">1. Información que recopilamos</h2>
+            <p class="mb-3">
+              Para brindarte el servicio de forma óptima, recopilamos los siguientes tipos de datos:
+            </p>
+            <ul class="list-disc list-inside space-y-2 pl-2">
+              <li><strong>Datos de tu Cuenta:</strong> Nombre, dirección de correo electrónico (a través de Google
+                Sign-In) e información básica del perfil para autenticar tu acceso.</li>
+              <li><strong>Datos Operativos:</strong> Información sobre productores, establecimientos, registros de
+                terneros (RP, sexo, estado de ombligo), mediciones de inmunoglobulinas (Ig) y datos de
+                supervivencia/mortalidad.</li>
+              <li><strong>Datos Técnicos:</strong> Información sobre el dispositivo, navegador, dirección IP y sistema
+                operativo utilizados, requeridos para el soporte y la sincronización offline.</li>
+            </ul>
+          </div>
+
+          <div>
+            <h2 class="text-lg font-bold text-white mb-2">2. Base Legal y Uso de la Información</h2>
+            <p class="mb-3">
+              La base legal para el tratamiento de tus datos es la ejecución de los Términos y Condiciones del servicio
+              que aceptas al registrarte. Utilizamos la información recopilada exclusivamente para los siguientes fines:
+            </p>
+            <ul class="list-disc list-inside space-y-2 pl-2">
+              <li>Proveer, operar y mantener la aplicación y sus servicios asociados.</li>
+              <li>Posibilitar la sincronización offline-first de tus registros cuando recuperes la conexión a internet.
+              </li>
+              <li>Generar dashboards estadísticos sobre promedios de inmunoglobulinas y porcentajes de mortalidad de tu
+                establecimiento.</li>
+              <li>Brindar soporte técnico y responder a tus consultas de manera efectiva.</li>
+            </ul>
+          </div>
+
+          <div>
+            <h2 class="text-lg font-bold text-white mb-2">3. Almacenamiento, Seguridad y Transferencia de Datos</h2>
+            <p>
+              vetfield.pro utiliza un modelo "offline-first". Esto significa que los registros se guardan primero
+              localmente en el almacenamiento web de tu propio dispositivo. Al sincronizar con la nube, estos datos se
+              transmiten de forma cifrada mediante protocolos HTTPS y se almacenan en servidores seguros (pueden
+              contratarse servicios de infraestructura en la nube de proveedores líderes internacionales que garantizan
+              niveles adecuados de protección). Implementamos de manera constante medidas técnicas y organizativas de
+              seguridad para proteger tu información contra cualquier acceso no autorizado, pérdida, alteración o
+              divulgación.
+            </p>
+            <p>Los datos recolectados se incorporan a las bases de datos de vetfield.pro, las cuales se
+              encuentran debidamente registradas y protegidas.
+            </p>
+          </div>
+
+          <div>
+            <h2 class="text-lg font-bold text-white mb-2">4. Compartir Información con Terceros</h2>
+            <p>
+              No vendemos, alquilamos ni comercializamos tus datos personales ni los registros operativos de tu
+              establecimiento con terceras partes. Tu información solo podrá ser revelada en cumplimiento de
+              obligaciones legales, para responder a requerimientos de autoridades competentes, o para integrar
+              servicios tecnológicos indispensables (como la autenticación de usuarios de Google), garantizando que
+              estos cumplan con altos estándares de privacidad y seguridad de datos.
+            </p>
+            <p>El uso de la información recibida de las APIs de Google se ajustará a la Política de datos del usuario de
+              los servicios de API de Google, incluidos sus requisitos de uso limitado.
+            </p>
+          </div>
+
+          <div>
+            <h2 class="text-lg font-bold text-white mb-2">5. Tus Derechos (Acceso, Rectificación y Supresión)</h2>
+            <p>
+              Tenés pleno derecho a acceder, corregir, actualizar o solicitar la eliminación de tu información personal
+              y los datos de tus establecimientos asociados en cualquier momento desde la configuración de tu cuenta o
+              contactándonos a través de nuestros canales oficiales de soporte.Te garantizamos el ejercicio gratuito de
+              estos derechos en los plazos legales establecidos.
+            </p>
+            <blockquote>
+              El titular de los datos personales tiene la facultad de ejercer el derecho de acceso a los mismos en forma
+              gratuita a intervalos no inferiores a seis meses, salvo que se acredite un interés legítimo al efecto
+              conforme lo establecido en el artículo 14, inciso 3 de la Ley Nº 25.326. La AGENCIA DE ACCESO A LA
+              INFORMACIÓN PÚBLICA, en su carácter de Órgano de Control de la Ley Nº 25.326, tiene la atribución de
+              atender las denuncias y reclamos que se interpongan con relación al incumplimiento de las normas sobre
+              protección de datos personales.
+            </blockquote>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-white mb-2">6. Cambios en esta Política</h2>
+            <p>
+              Podemos actualizar nuestra Política de Privacidad de forma periódica. Te notificaremos sobre cualquier
+              cambio publicando la nueva versión en esta misma página. Te recomendamos revisarla con regularidad.
+            </p>
+          </div>
+
+          <div>
+            <h2 class="text-lg font-bold text-white mb-2">Contacto</h2>
+            <p>
+              Si tenés alguna pregunta sobre nuestra Política de Privacidad, no dudes en escribirnos directamente por
+              WhatsApp al <strong class="text-white">+54 9 3564 331711</strong> o por correo electrónico a <strong
+                class="text-white">info@vetfield.pro</strong>.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       FOOTER
+  ======================================================== -->
+  <footer class="bg-indigo-950 border-t border-white/05 pt-12 pb-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+
+        <!-- Brand -->
+        <div class="col-span-2 md:col-span-1">
+          <a href="/" class="flex items-center gap-2.5 mb-4">
+            <img src="/logoternero.png" alt="Logo vetfield.pro" class="w-8 h-8 object-contain" />
+            <span class="text-base font-bold">
+              <span class="text-white">vetfield</span><span class="text-forest-400">.pro</span>
+            </span>
+          </a>
+          <p class="text-slate-500 text-xs leading-relaxed mb-5">
+            Software de gestión de guacheras y crianza de terneros para veterinarios de campo. Hecho en Argentina.
+          </p>
+          <div class="flex items-center gap-3">
+            <a href="https://www.instagram.com/vetfield.pro/" target="_blank" rel="noopener noreferrer"
+              aria-label="Instagram" id="footer-ig"
+              class="w-8 h-8 glass rounded-lg flex items-center justify-center hover:border-forest-700 transition-colors">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+              </svg>
+            </a>
+            <a href="#" aria-label="TikTok" id="footer-tt"
+              class="w-8 h-8 glass rounded-lg flex items-center justify-center hover:border-forest-700 transition-colors">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.23.86.17 1.75.28 2.63.29v3.9c-1.3-.01-2.6-.18-3.82-.69-.17 2.24-.94 4.41-2.23 6.25-1.53 2.1-3.86 3.51-6.43 3.91-2.9.43-5.91-.45-8.08-2.45C-1.8 13.56-1.99 9.38.8 6.9c1.9-1.74 4.54-2.54 7.07-2.18l.05 4.09c-1.32-.23-2.73.08-3.75.95-.98.81-1.37 2.15-1.01 3.37.31 1.13 1.25 1.99 2.39 2.22 1.48.27 3.08-.43 3.69-1.83.21-.52.28-1.08.27-1.63V0h3.11z" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Producto -->
+        <div>
+          <h4 class="text-white text-xs font-semibold uppercase tracking-wider mb-4">Producto</h4>
+          <ul class="space-y-2.5">
+            <li><a href="/#features" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Funciones</a>
+            </li>
+            <li><a href="/#pricing" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Precios</a>
+            </li>
+            <li><a href="/#faq" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">FAQ</a></li>
+          </ul>
+        </div>
+
+        <!-- Compañía -->
+        <div>
+          <h4 class="text-white text-xs font-semibold uppercase tracking-wider mb-4">Compañía</h4>
+          <ul class="space-y-2.5">
+            <li><a href="/quienes-somos" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Quiénes
+                somos</a></li>
+            <li><a href="/contacto" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Contacto</a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Legal -->
+        <div>
+          <h4 class="text-white text-xs font-semibold uppercase tracking-wider mb-4">Legal</h4>
+          <ul class="space-y-2.5">
+            <li><a href="/politica-privacidad"
+                class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Política de Privacidad</a></li>
+            <li><a href="/terminos-servicio"
+                class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Términos de Servicio</a></li>
+            <li><a href="/politica-reembolsos"
+                class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Política de Reembolsos</a></li>
+            <li><a href="/cookies" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Cookies</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="border-t border-white/05 pt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p class="text-slate-700 text-xs">&copy; <span id="footer-year"></span> vetfield.pro — Todos los derechos
+          reservados.</p>
+        <p class="text-slate-700 text-xs">Hecho con café y barro en Argentina.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================
+       JAVASCRIPT
+  ======================================================== -->
+  <script>
+    // Copyright year
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+    // Reveal on scroll (IntersectionObserver)
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08 });
+
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  </script>
+
+</body>
+
+</html>

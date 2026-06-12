@@ -1,0 +1,1779 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>VETFIELD PRO — Sistema Veterinario de Campo</title>
+    <meta name="description"
+        content="Sistema profesional de auditoría veterinaria para control de guacheras. Registro multidispositivo con sincronización en la nube.">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"
+        media="print" onload="this.media='all'">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@0.378.0" defer></script>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="logoternero.png">
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"
+        defer></script>
+    <!-- SheetJS (XLSX) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+    <!-- JSZip -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+    <!-- Google Identity Services SDK (para botón "Continuar con Google") -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <!-- Tailwind CDN eliminado: estilos migrados a styles.css -->
+    <!-- Chart.js for Dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
+    <!-- Estilos -->
+    <link rel="stylesheet" href="styles.css?v=67">
+    <!-- Módulo de Voz (Ocultado temporalmente) -->
+    <!-- <link rel="stylesheet" href="voice.css?v=49"> -->
+
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
+
+    <style>
+        /* ── KPI Range Config Panel ── */
+        .kpi-card { position: relative; }
+
+        .kpi-config-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary, #94a3b8);
+            padding: 4px;
+            border-radius: 6px;
+            line-height: 1;
+            transition: color 0.2s, background 0.15s;
+            font-size: 14px;
+            z-index: 2;
+        }
+        .kpi-config-btn:hover {
+            color: var(--primary, #1a237e);
+            background: rgba(26,35,126,0.06);
+        }
+        .kpi-config-btn.active {
+            color: var(--primary, #1a237e);
+        }
+
+        .kpi-range-panel {
+            display: none;
+            position: fixed;
+            background: #ffffff;
+            border: 1.5px solid rgba(26,35,126,0.13);
+            border-radius: 16px;
+            padding: 12px 14px 10px;
+            box-shadow: 0 12px 36px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.07);
+            z-index: 9999;
+            animation: kpiPanelIn 0.15s ease;
+            min-width: 280px;
+            box-sizing: border-box;
+        }
+        html.dark .kpi-range-panel { background: #1c2030; }
+        .kpi-range-panel.open { display: block; }
+
+        @keyframes kpiPanelIn {
+            from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .kpi-range-panel-title {
+            font-size: 0.62rem;
+            font-weight: 800;
+            color: var(--primary, #1a237e);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 9px;
+            padding-bottom: 7px;
+            border-bottom: 1px solid rgba(0,0,0,0.07);
+        }
+
+        .kpi-range-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 5px;
+        }
+        .kpi-range-row:last-of-type { margin-bottom: 0; }
+
+        .kpi-range-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .kpi-range-dot--danger  { background: #dc2626; }
+        .kpi-range-dot--warning { background: #d97706; }
+        .kpi-range-dot--success { background: #16a34a; }
+
+        .kpi-range-label {
+            font-size: 0.70rem;
+            font-weight: 700;
+            color: var(--text-main, #334155);
+            width: 62px;
+            flex-shrink: 0;
+        }
+
+        .kpi-range-desc {
+            font-size: 0.63rem;
+            color: var(--text-secondary, #94a3b8);
+            flex: 1;
+            white-space: nowrap;
+        }
+
+        .kpi-range-input {
+            width: 52px;
+            padding: 2px 4px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 16px; /* Evita zoom automático en navegadores móviles (iOS / Safari) */
+            font-weight: 700;
+            color: var(--text-main, #334155);
+            background: var(--input-bg, #f8fafc);
+            text-align: center;
+            transition: border-color 0.15s;
+            font-family: inherit;
+        }
+        .kpi-range-input:focus {
+            outline: none;
+            border-color: var(--primary, #1a237e);
+        }
+
+        .kpi-range-unit {
+            font-size: 0.63rem;
+            color: var(--text-secondary, #94a3b8);
+            flex-shrink: 0;
+            width: 32px;
+        }
+
+        .kpi-range-save-btn {
+            width: 100%;
+            margin-top: 9px;
+            padding: 5px 0;
+            background: var(--primary, #1a237e);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.70rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: opacity 0.15s;
+            letter-spacing: 0.02em;
+        }
+        .kpi-range-save-btn:hover { opacity: 0.88; }
+
+        /* ── Backdrop Overlay para modales de umbrales en Celulares ── */
+        .kpi-panel-backdrop {
+            display: none;
+        }
+        @media (max-width: 767px) {
+            .kpi-panel-backdrop.open {
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(15, 23, 42, 0.4);
+                backdrop-filter: blur(4px);
+                -webkit-backdrop-filter: blur(4px);
+                z-index: 9998;
+                animation: kpiFadeIn 0.2s ease;
+            }
+
+            .kpi-range-panel {
+                position: fixed !important;
+                top: 50% !important;
+                left: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                width: calc(100% - 32px) !important;
+                max-width: 320px !important;
+                margin: 0 !important;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.05) !important;
+                animation: kpiPanelInMobile 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+            }
+        }
+
+        @keyframes kpiFadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        @keyframes kpiPanelInMobile {
+            from { opacity: 0; transform: translate(-50%, -46%) scale(0.96); }
+            to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* ── KPI Dynamic Color States ── */
+        .kpi-card .kpi-icon-wrap,
+        .kpi-card .kpi-value { transition: color 0.3s ease, background-color 0.3s ease; }
+
+        /* Mortalidad — danger */
+        .kpi-card.kpi-danger .kpi-icon-wrap { background: #fef2f2 !important; color: #dc2626 !important; }
+        .kpi-card.kpi-danger .kpi-value     { color: #dc2626 !important; }
+
+        /* Mortalidad — warning */
+        .kpi-card.kpi-warning .kpi-icon-wrap { background: #fffbeb !important; color: #d97706 !important; }
+        .kpi-card.kpi-warning .kpi-value     { color: #d97706 !important; }
+
+        /* Mortalidad — normal (sin danger/warning) → verde */
+        #kpi_mortalidad_card:not(.kpi-danger):not(.kpi-warning) .kpi-icon-wrap { background: #f0fdf4 !important; color: #16a34a !important; }
+        #kpi_mortalidad_card:not(.kpi-danger):not(.kpi-warning) .kpi-value     { color: #16a34a !important; }
+        #kpi_mortalidad_card:not(.kpi-danger):not(.kpi-warning)::before        { background: linear-gradient(90deg, #16a34a, #4ade80) !important; }
+
+        /* IG Card — Óptimo (verde) */
+        #kpi_ig_card.kpi-state--success .kpi-icon-wrap { background: #f0fdf4 !important; color: #16a34a !important; }
+        #kpi_ig_card.kpi-state--success .kpi-value     { color: #16a34a !important; }
+        #kpi_ig_card.kpi-state--success::before         { background: linear-gradient(90deg, #16a34a, #4ade80) !important; }
+
+        /* IG Card — Aceptable (naranja) */
+        #kpi_ig_card.kpi-state--warning .kpi-icon-wrap { background: #fffbeb !important; color: #d97706 !important; }
+        #kpi_ig_card.kpi-state--warning .kpi-value     { color: #d97706 !important; }
+        #kpi_ig_card.kpi-state--warning::before         { background: linear-gradient(90deg, #d97706, #f59e0b) !important; }
+
+        /* IG Card — Bajo (rojo) */
+        #kpi_ig_card.kpi-state--danger .kpi-icon-wrap  { background: #fef2f2 !important; color: #dc2626 !important; }
+        #kpi_ig_card.kpi-state--danger .kpi-value      { color: #dc2626 !important; }
+        #kpi_ig_card.kpi-state--danger::before          { background: linear-gradient(90deg, #dc2626, #ef4444) !important; }
+
+        /* Dark mode overrides para los colores de icon/value */
+        html.dark .kpi-card.kpi-danger .kpi-value     { color: #f87171 !important; }
+        html.dark .kpi-card.kpi-warning .kpi-value    { color: #fbbf24 !important; }
+        html.dark #kpi_ig_card.kpi-state--success .kpi-value { color: #4ade80 !important; }
+        html.dark #kpi_ig_card.kpi-state--warning .kpi-value { color: #fbbf24 !important; }
+        html.dark #kpi_ig_card.kpi-state--danger .kpi-value  { color: #f87171 !important; }
+
+        /* ── Estilos adicionales para nuevos componentes auth ── */
+
+        /* Banner de éxito (registro exitoso, cuenta confirmada, etc.) */
+        #auth-success-banner {
+            display: none;
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            color: #166534;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            border-left: 4px solid #22c55e;
+            line-height: 1.5;
+        }
+
+        /* Botón "Continuar con Google" */
+        .btn-google {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 12px 20px;
+            background: #fff;
+            color: #374151;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 4px;
+            font-family: inherit;
+        }
+
+        .btn-google:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .btn-google svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Divisor OR */
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 16px 0;
+            color: var(--text-secondary, #9ca3af);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e5e7eb;
+        }
+
+        /* Link "¿Olvidé mi contraseña?" */
+        .auth-forgot-link {
+            display: block;
+            text-align: right;
+            font-size: 0.8rem;
+            color: var(--primary, #1a237e);
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: -4px;
+            margin-bottom: 8px;
+            text-decoration: none;
+        }
+
+        .auth-forgot-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Link "Volver al login" */
+        .auth-back-link {
+            display: block;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary, #9ca3af);
+            cursor: pointer;
+            margin-top: 12px;
+            text-decoration: none;
+        }
+
+        .auth-back-link:hover {
+            color: var(--primary, #1a237e);
+        }
+
+        /* Spinner dentro de botones */
+        .auth-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Shake animation para login fallido */
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-6px);
+            }
+
+            75% {
+                transform: translateX(6px);
+            }
+        }
+
+        .shake {
+            animation: shake 0.4s ease;
+        }
+    </style>
+
+    <!-- Auth Module (carga primero) -->
+
+    <script src="auth.js?v=51" defer></script>
+</head>
+
+<body>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- AUTH SCREEN                                           -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div id="auth-screen" style="display:none;">
+        <div class="auth-card" style="position: relative;">
+
+            <!-- Botón Dark Mode Login -->
+            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Alternar Modo Oscuro"
+                style="position:absolute; top:15px; right:15px; background:transparent; border:none; color:var(--text-main, #1a237e); cursor:pointer; opacity:0.8; padding:5px; transition: all 0.2s; display: flex; align-items: center; justify-content: center;">
+                <!-- Se renderiza via JS -->
+            </button>
+
+            <!-- Logo -->
+            <div class="auth-logo">
+                <img src="logoternero.png" alt="VETFIELD PRO Logo"
+                    style="width:40px;height:40px;flex-shrink:0;object-fit:contain;">
+                <div>
+                    <div class="auth-logo-title">VETFIELD <span style="font-weight:400;opacity:0.5;">PRO</span></div>
+                    <div class="auth-logo-sub">Sistema Veterinario de Campo</div>
+                </div>
+            </div>
+
+            <!-- Banner de éxito (confirmación, reset, etc.) -->
+            <div id="auth-success-banner"></div>
+
+            <!-- Tabs de Login / Registro -->
+            <div class="auth-tabs">
+                <button class="auth-tab-btn active" data-tab="login" type="button">Iniciar Sesión</button>
+                <button class="auth-tab-btn" data-tab="register" type="button">Crear Cuenta</button>
+            </div>
+
+            <!-- ── FORMULARIO: INICIAR SESIÓN ───────────────── -->
+            <form id="login-form" class="auth-form active" novalidate>
+
+                <div class="auth-field-group">
+                    <label for="login-email">Correo Electrónico</label>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                        </svg>
+                        <input type="email" id="login-email" placeholder="vet@campo.com" autocomplete="email" required>
+                    </div>
+                </div>
+
+                <div class="auth-field-group">
+                    <label for="login-password">Contraseña</label>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <input type="password" id="login-password" placeholder="••••••••"
+                            autocomplete="current-password" required>
+                        <button type="button" class="auth-eye-btn" onclick="authToggleEye('login-password', this)"
+                            aria-label="Mostrar contraseña">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                width="18" height="18">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Link olvidé mi contraseña -->
+                <a id="link-forgot" class="auth-forgot-link" href="#" tabindex="0">
+                    ¿Olvidaste tu contraseña?
+                </a>
+
+                <p id="login-error" class="auth-error-msg"></p>
+                <button type="submit" id="btn-login" class="btn-auth-primary">Iniciar Sesión</button>
+
+                <!-- Divisor / Google -->
+                <div class="auth-divider">o</div>
+
+                <!-- ── Google Sign-In ─────────────────────────────────────
+                     El 'data-client_id' debe coincidir con GOOGLE_CLIENT_ID en auth.js
+                     Se inicializa programáticamente en AuthUI._initGoogleAuth() ── 
+                    <div id="g_id_onload"
+                        data-client_id="545046898268-ukkvsriqfnm6769s44phtpm9qonrubnk.apps.googleusercontent.com"
+                        data-callback="handleGoogleSignIn"
+                        data-auto_prompt="false">
+                </div>-->
+
+                <!-- Contenedor para el botón oficial de Google (se renderiza vía JS) -->
+                <div id="btn-google-container"
+                    style="display:flex;justify-content:center;margin-top:10px;min-height:44px;"></div>
+
+
+            </form>
+
+            <!-- ── FORMULARIO: CREAR CUENTA ──────────────────── -->
+            <form id="register-form" class="auth-form" novalidate autocomplete="off">
+
+                <!-- HONEYPOT anti-bot -->
+                <div class="hp-trap" aria-hidden="true">
+                    <label for="hp-field">Website</label>
+                    <input type="text" id="hp-field" name="website" tabindex="-1" autocomplete="off">
+                </div>
+
+                <div class="auth-field-group">
+                    <label for="reg-name">Nombre Completo</label>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        <input type="text" id="reg-name" placeholder="Dr. Juan González" autocomplete="name" required>
+                    </div>
+                </div>
+
+                <div class="auth-field-group">
+                    <label for="reg-email">Correo Electrónico</label>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                        </svg>
+                        <input type="email" id="reg-email" placeholder="vet@campo.com" autocomplete="off" required>
+                    </div>
+                </div>
+
+                <div class="auth-field-group">
+                    <label for="reg-password">Contraseña</label>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <input type="password" id="reg-password" placeholder="Mín. 8 chars, 1 mayúscula, 1 número"
+                            autocomplete="new-password" required>
+                        <button type="button" class="auth-eye-btn" onclick="authToggleEye('reg-password', this)"
+                            aria-label="Mostrar contraseña">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                width="18" height="18">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="pwd-strength-bar" style="display:none;"></div>
+                </div>
+
+                <div class="auth-field-group">
+                    <label for="reg-confirm">Confirmar Contraseña</label>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                        <input type="password" id="reg-confirm" placeholder="Repite tu contraseña"
+                            autocomplete="new-password" required>
+                    </div>
+                    <p id="confirm-error" class="auth-error-msg" style="margin-top:6px;"></p>
+                </div>
+
+                <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:4px;">
+                    📬 Recibirás un email para confirmar tu cuenta antes de poder ingresar.
+                </p>
+                <p id="register-error" class="auth-error-msg"></p>
+                <button type="submit" id="btn-register" class="btn-auth-primary">Crear Cuenta</button>
+
+            </form>
+
+            <!-- ── FORMULARIO: OLVIDÉ MI CONTRASEÑA ─────────── -->
+            <form id="forgot-form" class="auth-form" novalidate>
+                <div style="text-align:center;margin-bottom:1.25rem;">
+                    <div style="font-size:2.5rem;">🔑</div>
+                    <h2 style="font-size:1.2rem;font-weight:700;color:var(--primary);margin:8px 0 4px;">Recuperar
+                        Contraseña</h2>
+                    <p style="font-size:0.85rem;color:var(--text-secondary);">Ingresá tu email y te enviaremos un link
+                        para crear una nueva contraseña.</p>
+                </div>
+
+                <div class="auth-field-group">
+                    <label for="forgot-email">Correo Electrónico</label>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                        </svg>
+                        <input type="email" id="forgot-email" placeholder="vet@campo.com" autocomplete="email" required>
+                    </div>
+                </div>
+
+                <p id="forgot-error" class="auth-error-msg"></p>
+                <button type="submit" id="btn-forgot" class="btn-auth-primary">Enviar Link de Recuperación</button>
+                <a id="link-back-to-login" class="auth-back-link" href="#">← Volver al inicio de sesión</a>
+            </form>
+
+            <!-- ── FORMULARIO: RESETEAR CONTRASEÑA ──────────── -->
+            <!-- (Activado por auth.js cuando detecta ?reset_token= en la URL) -->
+            <form id="reset-form" class="auth-form" novalidate>
+                <div style="text-align:center;margin-bottom:1.25rem;">
+                    <div style="font-size:2.5rem;">🔒</div>
+                    <h2 style="font-size:1.2rem;font-weight:700;color:var(--primary);margin:8px 0 4px;">Nueva Contraseña
+                    </h2>
+                    <p style="font-size:0.85rem;color:var(--text-secondary);">Creá tu nueva contraseña segura.</p>
+                </div>
+
+                <div class="auth-field-group">
+                    <label for="reset-password">Nueva Contraseña</label>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <input type="password" id="reset-password" placeholder="Mín. 8 chars, 1 mayúscula, 1 número"
+                            autocomplete="new-password" required>
+                        <button type="button" class="auth-eye-btn" onclick="authToggleEye('reset-password', this)"
+                            aria-label="Ver contraseña">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                width="18" height="18">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="auth-field-group">
+                    <label for="reset-confirm">Confirmar Contraseña</label>
+                    <div class="auth-input-wrap">
+                        <svg class="auth-input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                        <input type="password" id="reset-confirm" placeholder="Repetí la contraseña"
+                            autocomplete="new-password" required>
+                    </div>
+                </div>
+
+                <p id="reset-error" class="auth-error-msg"></p>
+                <button type="submit" id="btn-reset" class="btn-auth-primary">Cambiar Contraseña</button>
+            </form>
+
+        </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- MAIN APP (visible solo cuando hay sesión activa)     -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div id="main-app" style="display:none;">
+
+        <header>
+            <div class="header-title">
+                <img src="logoternero.png" alt="VETFIELD PRO" class="logo-png" style="object-fit:contain;">
+                <span>VETFIELD <span style="font-weight: 400; opacity: 0.6;">PRO</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div id="syncStatus" class="sync-badge online">Sincronizado</div>
+                <button class="header-avatar-btn theme-toggle-btn" onclick="toggleTheme()" title="Alternar Modo Oscuro"
+                    style="background:transparent;border:none;color:var(--text-color);cursor:pointer;opacity:0.8;display:flex;align-items:center;justify-content:center;padding:5px;">
+                    <!-- Se renderiza via JS -->
+                </button>
+                <button class="header-avatar-btn"
+                    onclick="switchView('perfil', document.querySelector('[data-nav=perfil]'))" title="Mi Perfil">
+                    <img id="header-user-avatar" class="header-avatar-img" src="profile_avatar.png" alt="Avatar">
+                </button>
+            </div>
+        </header>
+
+        <!-- VISTA: INICIO — Dashboard Analítico -->
+        <section id="view-inicio" class="view-section active">
+
+            <!-- ── SYNC CARD ── -->
+            <div class="card glass sync-action-card">
+                <div class="section-label">Pendiente de Sincronización</div>
+                <h2 style="font-size:1.3rem;margin-bottom:0.4rem;"><span id="pendingCount">0</span> Registros Pendientes
+                </h2>
+                <p style="font-size:0.82rem;opacity:0.8;margin-bottom:1.25rem;">Tus datos están asegurados localmente
+                    pero necesitan copia en la nube.</p>
+                <button id="btn-sync-cloud" class="btn-sync" onclick="syncData()">
+                    <i data-lucide="upload-cloud"></i> Sincronizar con la Nube
+                </button>
+            </div>
+
+            <!-- ── FILTERS PANEL ── -->
+            <div class="db-section-header"
+                style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <h2 class="db-section-title" style="margin-bottom: 0;">
+                        <span class="db-title-icon">📊</span> Panel de Control Analítico
+                    </h2>
+                    <p class="db-section-sub">Guachera · Auditoría Veterinaria en Tiempo Real</p>
+                </div>
+                <button class="btn-sync" onclick="exportDashboardPDF(this)"
+                    style="margin: 0; display: flex; align-items: center; gap: 6px; padding: 8px 16px;">
+                    <i data-lucide="download" style="width: 18px; height: 18px;"></i> Descargar PDF
+                </button>
+            </div>
+
+            <div class="db-filters-panel card glass">
+                <div class="db-filters-header">
+                    <span class="db-filters-label"><i data-lucide="sliders"
+                            style="width:14px;vertical-align:middle;"></i> Filtros Dinámicos</span>
+                    <div class="db-quick-btns">
+                        <button data-dash-quick="semana" class="db-quick-btn">7d</button>
+                        <button data-dash-quick="mes" class="db-quick-btn">30d</button>
+                        <button data-dash-quick="trimestre" class="db-quick-btn">90d</button>
+                        <button data-dash-quick="ano" class="db-quick-btn">1A</button>
+                    </div>
+                </div>
+                <div class="db-filters-grid">
+                    <div class="db-filter-group">
+                        <label>Desde</label>
+                        <input type="date" id="dash_f_desde">
+                    </div>
+                    <div class="db-filter-group">
+                        <label>Hasta</label>
+                        <input type="date" id="dash_f_hasta">
+                    </div>
+                    <div class="db-filter-group">
+                        <label>Productor</label>
+                        <select id="dash_f_productor">
+                            <option value="">Todos los Productores</option>
+                        </select>
+                    </div>
+                    <div class="db-filter-group">
+                        <label>Establecimiento</label>
+                        <select id="dash_f_establecimiento">
+                            <option value="">Todos los Establecimientos</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── KPIs ── -->
+            <!-- Hidden legacy KPI IDs for compatibility with app.js -->
+            <input type="hidden" id="db_filter_fecha">
+            <select id="db_filter_productor" style="display:none;">
+                <option value="">Todos</option>
+            </select>
+            <select id="db_filter_establecimiento" style="display:none;">
+                <option value="">Todos</option>
+            </select>
+            <span id="m_total" style="display:none;"></span>
+            <span id="m_mortalidad" style="display:none;"></span>
+            <span id="m_ig_avg" style="display:none;"></span>
+            <span id="m_total_trend" style="display:none;"></span>
+            <span id="m_mortalidad_trend" style="display:none;"></span>
+
+            <div class="kpi-grid">
+                <!-- KPI 1: Total Evaluados -->
+                <div class="kpi-card kpi-card--blue stagger-1">
+                    <div class="kpi-icon-wrap kpi-icon--blue"><i data-lucide="users"
+                            style="width:22px;height:22px;"></i></div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">Total Evaluados</div>
+                        <div class="kpi-value" id="kpi_total">—</div>
+                        <div class="kpi-sub" id="kpi_total_sub">Cargando...</div>
+                    </div>
+                </div>
+                <!-- KPI 2: Tasa de Mortalidad -->
+                <div class="kpi-card stagger-2" id="kpi_mortalidad_card">
+                    <div class="kpi-icon-wrap kpi-icon--red"><i data-lucide="heart-pulse"
+                            style="width:22px;height:22px;"></i></div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">Tasa de Mortalidad</div>
+                        <div class="kpi-value" id="kpi_mortalidad">—</div>
+                        <div class="kpi-sub"><span class="kpi-badge" id="kpi_mortalidad_badge">...</span></div>
+                    </div>
+                    <!-- Botón configurar rangos -->
+                    <button class="kpi-config-btn" id="kpi_mort_cfg_btn"
+                        onclick="toggleKpiPanel('kpi_mort_panel', this)"
+                        title="Configurar umbrales de alerta">⚙️</button>
+                </div>
+                <!-- KPI 3: Promedio I.G. -->
+                <div class="kpi-card kpi-card--green stagger-3" id="kpi_ig_card">
+                    <div class="kpi-icon-wrap kpi-icon--green"><i data-lucide="droplets"
+                            style="width:22px;height:22px;"></i></div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">Promedio I.G. Calostro</div>
+                        <div class="kpi-value" id="kpi_ig">—</div>
+                        <div class="kpi-sub" id="kpi_ig_sub">mg/dL promedio</div>
+                    </div>
+                    <!-- Botón configurar rangos -->
+                    <button class="kpi-config-btn" id="kpi_ig_cfg_btn"
+                        onclick="toggleKpiPanel('kpi_ig_panel', this)"
+                        title="Configurar umbrales de calidad">⚙️</button>
+                </div>
+                <!-- KPI 4: Tasa de Recuperación -->
+                <div class="kpi-card kpi-card--purple stagger-4">
+                    <div class="kpi-icon-wrap kpi-icon--purple"><i data-lucide="arrow-up-right"
+                            style="width:22px;height:22px;"></i></div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">Tasa de Supervivencia</div>
+                        <div class="kpi-value" id="kpi_recuperacion">—</div>
+                        <div class="kpi-sub" id="kpi_recuperacion_sub">en terapia</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backdrop overlay para modales de KPIs en celulares -->
+            <div id="kpi_panel_backdrop" class="kpi-panel-backdrop"></div>
+
+            <!-- ── KPI Range Panels (flotantes, fuera del grid para evitar overflow:hidden) ── -->
+            <div class="kpi-range-panel" id="kpi_mort_panel">
+                <div class="kpi-range-panel-title">🎚️ Umbrales de Alerta — Mortalidad</div>
+                <div class="kpi-range-row">
+                    <span class="kpi-range-dot kpi-range-dot--danger"></span>
+                    <span class="kpi-range-label">Alto Riesgo</span>
+                    <span class="kpi-range-desc">mayor a</span>
+                    <input class="kpi-range-input" type="number" id="kpi_mort_thr_high"
+                        min="0" max="100" step="0.5" value="5">
+                    <span class="kpi-range-unit">%</span>
+                </div>
+                <div class="kpi-range-row">
+                    <span class="kpi-range-dot kpi-range-dot--warning"></span>
+                    <span class="kpi-range-label">Moderado</span>
+                    <span class="kpi-range-desc">mayor a</span>
+                    <input class="kpi-range-input" type="number" id="kpi_mort_thr_mid"
+                        min="0" max="100" step="0.5" value="3">
+                    <span class="kpi-range-unit">%</span>
+                </div>
+                <div class="kpi-range-row">
+                    <span class="kpi-range-dot kpi-range-dot--success"></span>
+                    <span class="kpi-range-label">Normal</span>
+                    <span class="kpi-range-desc">hasta ese valor</span>
+                </div>
+                <button class="kpi-range-save-btn" onclick="saveKpiRanges('mort')">Aplicar</button>
+            </div>
+
+            <div class="kpi-range-panel" id="kpi_ig_panel">
+                <div class="kpi-range-panel-title">🎚️ Umbrales de Calidad — I.G. Calostro</div>
+                <div class="kpi-range-row">
+                    <span class="kpi-range-dot kpi-range-dot--success"></span>
+                    <span class="kpi-range-label">Óptimo</span>
+                    <span class="kpi-range-desc">mayor o igual a</span>
+                    <input class="kpi-range-input" type="number" id="kpi_ig_thr_high"
+                        min="0" max="100" step="0.5" value="15">
+                    <span class="kpi-range-unit">mg/dL</span>
+                </div>
+                <div class="kpi-range-row">
+                    <span class="kpi-range-dot kpi-range-dot--warning"></span>
+                    <span class="kpi-range-label">Aceptable</span>
+                    <span class="kpi-range-desc">mayor o igual a</span>
+                    <input class="kpi-range-input" type="number" id="kpi_ig_thr_mid"
+                        min="0" max="100" step="0.5" value="10">
+                    <span class="kpi-range-unit">mg/dL</span>
+                </div>
+                <div class="kpi-range-row">
+                    <span class="kpi-range-dot kpi-range-dot--danger"></span>
+                    <span class="kpi-range-label">Bajo</span>
+                    <span class="kpi-range-desc">por debajo del anterior</span>
+                </div>
+                <button class="kpi-range-save-btn" onclick="saveKpiRanges('ig')">Aplicar</button>
+            </div>
+
+            <!-- ── CHARTS SORTABLE CONTAINER ── -->
+            <div id="charts-sortable">
+
+                <!-- BLOQUE: Tendencia + Ubicación -->
+                <div class="chart-block" data-chart-id="block_tendencia_ubicacion">
+
+                    <div class="db-row db-row--60-40">
+                        <div class="db-chart-card card glass">
+                            <div class="db-chart-header">
+                                <div style="flex:1;min-width:0;">
+                                    <div class="db-chart-title" data-title-key="title_tendencia" contenteditable="false"
+                                        title="Doble clic para editar título">📈 Tendencia Temporal de Mortalidad</div>
+                                    <div class="db-chart-sub">Evolución semanal de la tasa de mortalidad</div>
+                                </div>
+                                <button class="chart-edit-title-btn" title="Editar título"
+                                    onclick="dashEditTitle(this)"><i data-lucide="edit-3"
+                                        class="icon-edit"></i></button>
+                            </div>
+                            <div class="db-chart-wrap" style="height:220px;">
+                                <canvas id="chart_tendencia"></canvas>
+                            </div>
+                        </div>
+                        <div class="db-chart-card card glass">
+                            <div class="db-chart-header">
+                                <div style="flex:1;min-width:0;">
+                                    <div class="db-chart-title" data-title-key="title_ubicacion" contenteditable="false"
+                                        title="Doble clic para editar título">🎯 Mortalidad por Ubicación</div>
+                                    <div class="db-chart-sub">Distribución por lugar de deceso</div>
+                                </div>
+                                <button class="chart-edit-title-btn" title="Editar título"
+                                    onclick="dashEditTitle(this)"><i data-lucide="edit-3"
+                                        class="icon-edit"></i></button>
+                            </div>
+                            <div class="db-chart-wrap" style="height:220px;">
+                                <canvas id="chart_ubicacion"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BLOQUE: Causas de Muerte -->
+                <div class="chart-block" data-chart-id="block_causas">
+
+                    <div class="db-chart-card card glass">
+                        <div class="db-chart-header">
+                            <div style="flex:1;min-width:0;">
+                                <div class="db-chart-title" data-title-key="title_causas" contenteditable="false"
+                                    title="Doble clic para editar título">☠️ Causas de Muerte — Frecuencia por
+                                    Diagnóstico</div>
+                                <div class="db-chart-sub">Infecciones · Digestivos · Factores de Manejo</div>
+                            </div>
+                            <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
+                                    data-lucide="edit-3" class="icon-edit"></i></button>
+                        </div>
+                        <div class="db-chart-wrap" style="height:260px;">
+                            <canvas id="chart_causas"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BLOQUE: Calostro + Madre -->
+                <div class="chart-block" data-chart-id="block_calostro_madre">
+
+                    <div class="db-row db-row--50-50">
+                        <div class="db-chart-card card glass">
+                            <div class="db-chart-header">
+                                <div style="flex:1;min-width:0;">
+                                    <div class="db-chart-title" data-title-key="title_calostro" contenteditable="false"
+                                        title="Doble clic para editar título">🍼 Correlación I.G. Calostro vs
+                                        Supervivencia</div>
+                                    <div class="db-chart-sub">Cada punto = un ternero evaluado</div>
+                                </div>
+                                <button class="chart-edit-title-btn" title="Editar título"
+                                    onclick="dashEditTitle(this)"><i data-lucide="edit-3"
+                                        class="icon-edit"></i></button>
+                            </div>
+                            <div class="db-chart-wrap" style="height:230px;">
+                                <canvas id="chart_calostro"></canvas>
+                            </div>
+                        </div>
+                        <div class="db-chart-card card glass">
+                            <div class="db-chart-header">
+                                <div style="flex:1;min-width:0;">
+                                    <div class="db-chart-title" data-title-key="title_madre" contenteditable="false"
+                                        title="Doble clic para editar título">🐄 Desempeño por Tipo de Madre</div>
+                                    <div class="db-chart-sub">Vacas vs Vaquillonas — vivos y fallecidos</div>
+                                </div>
+                                <button class="chart-edit-title-btn" title="Editar título"
+                                    onclick="dashEditTitle(this)"><i data-lucide="edit-3"
+                                        class="icon-edit"></i></button>
+                            </div>
+                            <div class="db-chart-wrap" style="height:230px;">
+                                <canvas id="chart_madre"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BLOQUE: Ombligos -->
+                <div class="chart-block" data-chart-id="block_ombligos">
+
+                    <div class="db-chart-card card glass">
+                        <div class="db-chart-header">
+                            <div style="flex:1;min-width:0;">
+                                <div class="db-chart-title" data-title-key="title_ombligos" contenteditable="false"
+                                    title="Doble clic para editar título">🔵 Salud de Ombligos</div>
+                                <div class="db-chart-sub">Estado sanitario al alta</div>
+                            </div>
+                            <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
+                                    data-lucide="edit-3" class="icon-edit"></i></button>
+                        </div>
+                        <div class="db-chart-wrap" style="height:220px;">
+                            <canvas id="chart_ombligos"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BLOQUE: Ranking -->
+                <div class="chart-block" data-chart-id="block_ranking">
+
+                    <div class="db-chart-card card glass">
+                        <div class="db-chart-header">
+                            <div style="flex:1;min-width:0;">
+                                <div class="db-chart-title" data-title-key="title_ranking" contenteditable="false"
+                                    title="Doble clic para editar título">🏆 Ranking de Establecimientos por Incidencia
+                                </div>
+                                <div class="db-chart-sub">Priorización para acción veterinaria inmediata</div>
+                            </div>
+                            <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
+                                    data-lucide="edit-3" class="icon-edit"></i></button>
+                        </div>
+                        <div class="table-container" style="margin-top:1rem;">
+                            <table class="ranking-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Establecimiento</th>
+                                        <th>Total</th>
+                                        <th>Incidencia</th>
+                                        <th>Tasa</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ranking_tbody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BLOQUE: Sexo -->
+                <div class="chart-block" data-chart-id="block_sexo">
+
+                    <div class="db-chart-card card glass">
+                        <div class="db-chart-header">
+                            <div style="flex:1;min-width:0;">
+                                <div class="db-chart-title" data-title-key="title_sexo" contenteditable="false"
+                                    title="Doble clic para editar título">⚤ Mortalidad por Sexo</div>
+                                <div class="db-chart-sub">Comparativa de supervivencia Machos vs Hembras</div>
+                            </div>
+                            <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
+                                    data-lucide="edit-3" class="icon-edit"></i></button>
+                        </div>
+                        <div class="sexo-stats">
+                            <div class="sexo-stat-item">
+                                <div class="sexo-stat-label" style="color:#1a237e;">♂ Machos</div>
+                                <div class="sexo-stat-val" id="sexo_machos_total">—</div>
+                                <div class="sexo-stat-sub" id="sexo_machos_tasa">—</div>
+                            </div>
+                            <div class="sexo-stat-item">
+                                <div class="sexo-stat-label" style="color:#db2777;">♀ Hembras</div>
+                                <div class="sexo-stat-val" id="sexo_hembras_total">—</div>
+                                <div class="sexo-stat-sub" id="sexo_hembras_tasa">—</div>
+                            </div>
+                        </div>
+                        <div class="db-chart-wrap" style="height:200px;">
+                            <canvas id="chart_sexo"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /#charts-sortable -->
+
+        </section>
+
+        <!-- VISTA: NUEVA ENTRADA -->
+        <section id="view-entrada" class="view-section">
+            <h1 style="font-size: 1.8rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">Nueva Entrada
+            </h1>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 2rem;">Complete el informe técnico
+                de campo para el paciente actual.</p>
+
+            <form id="entryForm">
+                <div class="card glass">
+                    <span class="section-label">Información General</span>
+                    <div class="form-group">
+                        <label>Productor</label>
+                        <div style="position: relative;">
+                            <input type="text" id="f_productor" list="productor-list"
+                                placeholder="Escriba o seleccione..." required>
+                            <datalist id="productor-list"></datalist>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Fecha</label>
+                            <input type="date" id="f_fecha" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Establecimiento</label>
+                            <div style="position: relative;">
+                                <input type="text" id="f_establecimiento" list="establecimiento-list"
+                                    placeholder="Opcional">
+                                <datalist id="establecimiento-list"></datalist>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card glass">
+                    <span class="section-label">Datos del Ternero</span>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>R.P. Ternero</label>
+                            <input type="text" id="f_rp_ternero" placeholder="ID Code">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Nivel I.G. Ternero (Decimal)</label>
+                        <input type="number" step="0.1" id="f_ig_ternero" placeholder="0.0">
+                    </div>
+                    <div class="form-group">
+                        <label>Sexo Ternero</label>
+                        <div class="segmented-control" id="f_sexo">
+                            <button type="button" class="segmented-btn active"
+                                onclick="setSegmented(this, 'Macho')">Macho</button>
+                            <button type="button" class="segmented-btn"
+                                onclick="setSegmented(this, 'Hembra')">Hembra</button>
+                        </div>
+                        <input type="hidden" id="f_sexo_val" value="Macho">
+                    </div>
+                    <div class="form-group">
+                        <label>Estado del Ombligo</label>
+                        <div class="segmented-control" id="f_ombligo">
+                            <button type="button" class="segmented-btn active"
+                                onclick="setSegmented(this, 'Bueno')">Bueno</button>
+                            <button type="button" class="segmented-btn"
+                                onclick="setSegmented(this, 'Regular')">Regular</button>
+                            <button type="button" class="segmented-btn"
+                                onclick="setSegmented(this, 'Malo')">Malo</button>
+                        </div>
+                        <input type="hidden" id="f_ombligo_val" value="Bueno">
+                    </div>
+                </div>
+
+                <div class="card glass">
+                    <span class="section-label">Datos de la Madre</span>
+                    <div class="form-group">
+                        <label>Tipo de Madre</label>
+                        <select id="f_tipo_madre">
+                            <option>Vaca</option>
+                            <option>Vaquillona</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>R.P. Madre</label>
+                        <input type="text" id="f_rp_madre" placeholder="ID de la Madre">
+                    </div>
+                    <div class="form-group">
+                        <label>I.G. Calostro Madre</label>
+                        <div style="position: relative;">
+                            <input type="number" step="0.1" id="f_ig_calostro" placeholder="0.0">
+                            <span
+                                style="position: absolute; right: 1rem; top: 0.85rem; color: var(--text-secondary); font-size: 0.8rem;">mg/dL</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card glass">
+                    <span class="section-label">Estado de Supervivencia</span>
+                    <label class="radio-option">
+                        <input type="radio" name="survival" value="Vivo" checked onchange="toggleCausa(false)">
+                        <span>Vivo</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="survival" value="Muerto en Establecimiento"
+                            onchange="toggleCausa(true)">
+                        <span>Muerto en Establecimiento</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="survival" value="Muerto en Guachería" onchange="toggleCausa(true)">
+                        <span>Muerto en Guachería</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="survival" value="Muerto en Terapia" onchange="toggleCausa(true)">
+                        <span>Muerto en Terapia</span>
+                    </label>
+
+                    <div id="causaGroup" class="form-group hidden" style="margin-top: 1.5rem;">
+                        <label>Causa de Muerte <span
+                                style="background: #fee2e2; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem;">OBLIGATORIO
+                                SI MURIÓ</span></label>
+
+                        <div class="causa-segmented">
+                            <button type="button" class="segmented-btn"
+                                onclick="selectCausaCategory(this, 'Enfermedades e Infecciones')">Enfermedades e
+                                Infecciones</button>
+                            <button type="button" class="segmented-btn"
+                                onclick="selectCausaCategory(this, 'Problemas Digestivos y Metabólicos')">Problemas
+                                Digestivos y Metabólicos</button>
+                            <button type="button" class="segmented-btn"
+                                onclick="selectCausaCategory(this, 'Factores Externos y de Manejo')">Factores Externos y
+                                de Manejo</button>
+                            <button type="button" class="segmented-btn"
+                                onclick="selectCausaCategory(this, 'Otra Causa')">Otra Causa</button>
+                        </div>
+
+                        <div id="subCausaGroup" class="hidden">
+                            <label>Causa Específica</label>
+                            <select id="f_causa_especifica">
+                                <option value="">Primero seleccione una categoría arriba...</option>
+                            </select>
+                        </div>
+
+                        <div id="customCausaGroup" class="hidden" style="margin-top: 1rem;">
+                            <label>Especifique la Causa</label>
+                            <input type="text" id="f_causa_especifica_custom"
+                                placeholder="Escriba la causa de muerte...">
+                        </div>
+                        <input type="hidden" id="f_causa_categoria_val" value="">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-save">
+                    <i data-lucide="save"></i>
+                    Guardar Registro
+                </button>
+            </form>
+        </section>
+
+        <!-- VISTA: REPORTES -->
+        <section id="view-reportes" class="view-section">
+            <div class="report-header">
+                <h1 style="font-size: 1.8rem; font-weight: 700; color: var(--primary);">Reportes y Visualización</h1>
+                <p id="reportContext">Mostrando 0 registros activos</p>
+            </div>
+
+            <button class="btn-sync" style="background: var(--primary); margin-bottom: 1.5rem;" onclick="generatePDF()">
+                <i data-lucide="file-text"></i>
+                Descargar Informe PDF
+            </button>
+
+            <!-- Advanced Filters -->
+            <div class="rf-panel glass">
+                <div class="rf-header">
+                    <div class="rf-header-left">
+                        <span class="rf-label">Filtros Rápidos</span>
+                        <button id="btn-load-filter" onclick="loadReportFilter()" class="rf-fav-btn hidden"
+                            title="Cargar favorito">
+                            <i data-lucide="star" style="width:14px;height:14px;"></i>
+                            Activo
+                        </button>
+                    </div>
+                    <button id="btn-save-filter" onclick="saveReportFilter()" class="rf-save-btn">
+                        <i data-lucide="bookmark" style="width:14px;height:14px;"></i>
+                        Guardar Filtro
+                    </button>
+                </div>
+
+                <!-- 1. Fila Superior: Productor & Establecimiento -->
+                <div class="rf-grid rf-grid--2">
+                    <div class="rf-input-wrap">
+                        <i data-lucide="users" class="rf-input-icon"></i>
+                        <select id="filterProductor" onchange="filterTable()" class="rf-select rf-select--icon">
+                            <option value="">Todos los Productores</option>
+                        </select>
+                    </div>
+                    <div class="rf-input-wrap">
+                        <i data-lucide="search" class="rf-input-icon"></i>
+                        <input type="text" id="searchEstablecimiento" list="establecimiento-filter-list"
+                            placeholder="Buscar Establecimiento..." oninput="filterTable()"
+                            class="rf-input rf-input--icon">
+                        <datalist id="establecimiento-filter-list"></datalist>
+                    </div>
+                </div>
+
+                <!-- 2. Fila Media: Rango de Fechas -->
+                <div class="rf-date-row">
+                    <div class="rf-date-range">
+                        <div class="rf-input-wrap" style="flex:1;">
+                            <i data-lucide="calendar" class="rf-input-icon"></i>
+                            <input type="date" id="filterDateFrom" onchange="filterTable()"
+                                class="rf-input rf-input--icon">
+                        </div>
+                        <span class="rf-date-sep">A</span>
+                        <div class="rf-input-wrap" style="flex:1;">
+                            <input type="date" id="filterDateTo" onchange="filterTable()" class="rf-input">
+                        </div>
+                    </div>
+                    <div class="rf-quick-dates">
+                        <button onclick="setQuickDate('hoy')" class="rf-quick-btn">Hoy</button>
+                        <button onclick="setQuickDate('semana')" class="rf-quick-btn">Semana</button>
+                        <button onclick="setQuickDate('mes')" class="rf-quick-btn">Mes</button>
+                    </div>
+                </div>
+
+                <!-- 3. Fila Inferior: Clínica -->
+                <div class="rf-grid rf-grid--3">
+                    <div class="rf-input-wrap">
+                        <i data-lucide="activity" class="rf-input-icon"></i>
+                        <select id="filterEstado" onchange="filterTable()" class="rf-select rf-select--icon">
+                            <option value="">Estado: Todos</option>
+                            <option value="Vivo">Vivos</option>
+                            <option value="Muerto">Muertos (Cualquiera)</option>
+                        </select>
+                    </div>
+                    <div class="rf-input-wrap">
+                        <i data-lucide="tag" class="rf-input-icon"></i>
+                        <select id="filterCategoriaMadre" onchange="filterTable()" class="rf-select rf-select--icon">
+                            <option value="">Madre: Cualquiera</option>
+                            <option value="Vaca">Vaca</option>
+                            <option value="Vaquillona">Vaquillona</option>
+                        </select>
+                    </div>
+                    <div class="rf-input-wrap">
+                        <i data-lucide="shield-alert" class="rf-input-icon"></i>
+                        <select id="filterRiesgoSanitario" onchange="filterTable()" class="rf-select rf-select--icon">
+                            <option value="">Riesgo Sanitario: Todos</option>
+                            <option value="Alto">Alto Riesgo (I.G. &lt;= 10 o Ombligo M/R)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Footer: Limpiar -->
+                <div class="rf-footer">
+                    <button onclick="clearFilters()" class="rf-clear-btn">
+                        <i data-lucide="filter-x" style="width:14px;height:14px;"></i>
+                        Limpiar Filtros
+                    </button>
+                </div>
+            </div>
+
+            <div class="offline-banner">
+                <div>
+                    <div style="font-size: 0.65rem; text-transform: uppercase; font-weight: 700; opacity: 0.8;">Estado
+                        del Sistema</div>
+                    <div style="font-size: 1.2rem; font-weight: 700;">Modo Offline</div>
+                    <div style="font-size: 0.8rem; display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                        <i data-lucide="hard-drive" style="width: 14px;"></i> Almacenamiento local activo
+                    </div>
+                </div>
+                <i data-lucide="database" style="width: 48px; height: 48px; opacity: 0.2;"></i>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Productor / Establecimiento</th>
+                            <th>R.P. Ternero</th>
+                            <th>I.G. / Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody">
+                        <!-- Dinámico -->
+                    </tbody>
+                </table>
+            </div>
+
+
+        </section>
+
+        <!-- MODAL: DETALLES -->
+        <div id="detailModal" class="modal-overlay" onclick="closeModal(event)">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+                    <div>
+                        <h2 id="modalTitle" style="color: var(--primary); font-size: 1.5rem;">Detalles del Ternero</h2>
+                        <p id="modalSubtitle" style="color: var(--text-secondary); font-size: 0.9rem;"></p>
+                    </div>
+                    <button onclick="closeModal()"
+                        style="background: var(--bg-body); border: none; padding: 10px; border-radius: 12px; cursor: pointer;">
+                        <i data-lucide="x" style="width: 20px; color: var(--text-secondary);"></i>
+                    </button>
+                </div>
+                <div id="modalBody"
+                    style="display: flex; flex-direction: column; gap: 0.25rem; padding-right: 5px;">
+                    <!-- Content injected via JS -->
+                </div>
+                <div class="modal-actions" style="display:flex; flex-direction: column; gap:0.75rem; margin-top:2rem;">
+                    <button id="modal-save-btn" onclick="saveDetail()" class="btn-auth-primary" style="margin-top: 0;">
+                        Guardar Cambios
+                    </button>
+                    <button id="modal-delete-btn" onclick="deleteDetail()" class="btn-danger" style="margin-top: 0;">
+                        Eliminar Registro
+                    </button>
+                    <button onclick="closeModal()" class="btn-auth-primary"
+                        style="background: transparent; color: var(--text-secondary); border: 2px solid #e2e8f0; margin-top: 0; box-shadow: none;">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: EXPORTAR DATOS -->
+        <div id="exportModal" class="modal-overlay" onclick="closeExportModal(event)">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+                    <div>
+                        <h2 style="color: var(--primary); font-size: 1.5rem;">Exportar Datos</h2>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">Elige el formato de descarga para
+                            tus registros.</p>
+                    </div>
+                    <button onclick="closeExportModal()"
+                        style="background: var(--bg-body); border: none; padding: 10px; border-radius: 12px; cursor: pointer;">
+                        <i data-lucide="x" style="width: 20px; color: var(--text-secondary);"></i>
+                    </button>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+                    <!-- Option 1: JSON -->
+                    <label class="export-option-card"
+                        style="display: flex; border: 2.5px solid var(--input-border); border-radius: 16px; padding: 16px; cursor: pointer; transition: all 0.2s; align-items: flex-start; gap: 12px; position: relative;">
+                        <input type="radio" name="exportFormat" value="json" checked
+                            style="width: 20px; height: 20px; margin-top: 3px; cursor: pointer; flex-shrink: 0; accent-color: var(--primary);">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">Respaldo del
+                                Sistema (.json)</div>
+                            <div
+                                style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.4;">
+                                Ideal para resguardar tus datos y restaurarlos más adelante dentro de la plataforma. (No
+                                apto para leer en Excel).
+                            </div>
+                        </div>
+                    </label>
+
+                    <!-- Option 2: Excel / CSV -->
+                    <label class="export-option-card"
+                        style="display: flex; border: 2.5px solid var(--input-border); border-radius: 16px; padding: 16px; cursor: pointer; transition: all 0.2s; align-items: flex-start; gap: 12px; position: relative;">
+                        <input type="radio" name="exportFormat" value="xlsx"
+                            style="width: 20px; height: 20px; margin-top: 3px; cursor: pointer; flex-shrink: 0; accent-color: var(--primary);">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">Reporte de Datos
+                                (.xlsx / .csv)</div>
+                            <div
+                                style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.4;">
+                                Ideal para abrir en Excel. Descarga tablas legibles con la información de tus clientes,
+                                mascotas e historiales clínicos.
+                            </div>
+                        </div>
+                    </label>
+
+                    <!-- Option 3: ZIP -->
+                    <label class="export-option-card"
+                        style="display: flex; border: 2.5px solid var(--input-border); border-radius: 16px; padding: 16px; cursor: pointer; transition: all 0.2s; align-items: flex-start; gap: 12px; position: relative;">
+                        <input type="radio" name="exportFormat" value="zip"
+                            style="width: 20px; height: 20px; margin-top: 3px; cursor: pointer; flex-shrink: 0; accent-color: var(--primary);">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">Expedientes
+                                Completos (.zip)</div>
+                            <div
+                                style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.4;">
+                                Descarga un archivo comprimido con los historiales médicos en formato legible y los
+                                archivos/imágenes adjuntos.
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <div style="display: flex; gap: 1rem;">
+                    <button onclick="closeExportModal()" class="btn-auth-primary"
+                        style="background: transparent; color: var(--text-secondary); border: 2px solid #e2e8f0; margin-top: 0; box-shadow: none; flex: 1;">
+                        Cancelar
+                    </button>
+                    <button id="btn-confirm-export" onclick="confirmExport(this)" class="btn-auth-primary"
+                        style="margin-top: 0; flex: 1; height: 50px;">
+                        Descargar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: IMPORTAR EXCEL -->
+        <div id="importExcelModal" class="modal-overlay" onclick="closeImportExcelModal(event)">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 550px;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;">
+                    <div>
+                        <h2 style="color: var(--primary); font-size: 1.5rem;">Importar desde Excel (.xlsx / .csv)</h2>
+                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">Sube tus registros
+                            históricos de forma masiva utilizando una planilla.</p>
+                    </div>
+                    <button onclick="closeImportExcelModal()"
+                        style="background: var(--bg-body); border: none; padding: 10px; border-radius: 12px; cursor: pointer;">
+                        <i data-lucide="x" style="width: 20px; color: var(--text-secondary);"></i>
+                    </button>
+                </div>
+
+                <div
+                    style="background: rgba(26,35,126,0.04); border: 1px solid rgba(26,35,126,0.15); border-radius: 16px; padding: 15px; margin-bottom: 1.5rem; font-size: 0.8rem; line-height: 1.45; color: var(--text-main);">
+                    <div
+                        style="font-weight: 700; color: var(--primary); margin-bottom: 8px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="info" style="width:16px;height:16px;"></i> Instrucciones de formato de columnas:
+                    </div>
+                    <ul
+                        style="margin-left: 15px; list-style-type: disc; display: flex; flex-direction: column; gap: 4px;">
+                        <li><strong>Productor</strong> y <strong>Fecha (AAAA-MM-DD)</strong> son obligatorios en cada
+                            fila.</li>
+                        <li><strong>Establecimiento</strong>, <strong>R.P. Ternero</strong> y <strong>R.P.
+                                Madre</strong> son opcionales.</li>
+                        <li><strong>I.G. Ternero</strong> e <strong>I.G. Calostro Madre</strong> deben ser valores
+                            numéricos (ej. 8.5, 23.4).</li>
+                        <li>Campos de opción (ej. Sexo, Ombligo, Madre, Estado) se normalizarán automáticamente.</li>
+                    </ul>
+                    <div style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <span>Usa nuestra plantilla modelo para evitar errores:</span>
+                        <button onclick="downloadExcelTemplate()" class="btn-save"
+                            style="width: auto; margin-top: 0; padding: 6px 12px; font-size: 0.75rem; border-radius: 8px; background: var(--primary); color: white; border: none; display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="download" style="width: 14px; height: 14px;"></i> Descargar Plantilla
+                        </button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.75rem;">
+                    <label
+                        style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; color: var(--text-main);">Selecciona
+                        el archivo completo:</label>
+                    <input type="file" id="excel-import-file" accept=".xlsx, .xls, .csv" style="display: none;"
+                        onchange="handleImportExcelFile(event)">
+                    <div onclick="document.getElementById('excel-import-file').click()"
+                        style="border: 2px dashed var(--input-border); border-radius: 16px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--input-bg);"
+                        onmouseover="this.style.borderColor='var(--primary)'"
+                        onmouseout="this.style.borderColor='var(--input-border)'">
+                        <i data-lucide="file-spreadsheet"
+                            style="width: 48px; height: 48px; color: var(--text-secondary); margin: 0 auto 10px auto; display: block;"></i>
+                        <span id="excel-file-name"
+                            style="font-size: 0.9rem; font-weight: 600; color: var(--text-main); display: block;">Haga
+                            clic para seleccionar planilla (.xlsx / .csv)</span>
+                        <span
+                            style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; display: block;">Soporta
+                            formatos Excel standard y CSV delimitados por comas</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem;">
+                    <button onclick="closeImportExcelModal()" class="btn-auth-primary"
+                        style="background: transparent; color: var(--text-secondary); border: 2px solid #e2e8f0; margin-top: 0; box-shadow: none; flex: 1;">
+                        Cancelar
+                    </button>
+                    <button id="btn-confirm-import-excel" onclick="confirmImportExcel(this)" class="btn-auth-primary"
+                        style="margin-top: 0; flex: 1; height: 50px;" disabled>
+                        Subir y Procesar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VISTA: PERFIL -->
+        <section id="view-perfil" class="view-section">
+
+            <!-- Hero -->
+            <div class="profile-hero" id="profile-hero-bg">
+                <label for="upload-banner" class="edit-image-btn edit-banner-btn" title="Cambiar portada">
+                    <i data-lucide="camera" style="width:18px;height:18px;"></i>
+                </label>
+                <input type="file" id="upload-banner" accept="image/*" style="display:none"
+                    onchange="handleImageUpload(event, 'banner')">
+
+                <div class="profile-avatar-ring" style="position:relative;">
+                    <img id="profile-avatar-img" src="profile_avatar.png" alt="Avatar de usuario">
+                    <label for="upload-avatar" class="edit-image-btn edit-avatar-btn" title="Cambiar avatar">
+                        <i data-lucide="camera" style="width:16px;height:16px;"></i>
+                    </label>
+                    <input type="file" id="upload-avatar" accept="image/*" style="display:none"
+                        onchange="handleImageUpload(event, 'avatar')">
+                </div>
+                <div class="profile-hero-name" id="profile-display-name">—</div>
+                <div class="profile-hero-email" id="profile-display-email">—</div>
+                <div class="profile-hero-badge" id="profile-display-role">Veterinario de Campo</div>
+            </div>
+
+            <!-- Info -->
+            <div class="card glass" style="margin-bottom:1.25rem;">
+                <span class="section-label">Información de la Cuenta</span>
+                <div class="profile-info-row">
+                    <span class="profile-info-key">Miembro desde</span>
+                    <span class="profile-info-val" id="profile-display-date">—</span>
+                </div>
+                <div class="profile-info-row">
+                    <span class="profile-info-key">Rol</span>
+                    <span class="profile-info-val">Veterinario de Campo</span>
+                </div>
+                <div class="profile-info-row" style="border-bottom:none;">
+                    <span class="profile-info-key">Registros en BD</span>
+                    <span class="profile-info-val" id="profile-records-count">—</span>
+                </div>
+            </div>
+
+            <!-- Plan y Suscripción -->
+            <div class="card glass" style="margin-bottom:1.25rem;">
+                <span class="section-label">Plan y Suscripción</span>
+                <div class="profile-info-row">
+                    <span class="profile-info-key">Plan Actual</span>
+                    <span class="profile-info-val" id="profile-display-plan"
+                        style="text-transform: capitalize; font-weight: bold; color: var(--primary);">Plan Inicio</span>
+                </div>
+                <div class="profile-info-row"
+                    style="border-bottom:none; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px; padding: 1rem 0 0.5rem 0;">
+                    <div style="flex:1; min-width:200px;">
+                        <span class="profile-info-key" style="display:block; margin-bottom:4px;">Acciones de
+                            Suscripción</span>
+                        <p style="font-size:0.8rem; color:var(--text-secondary); line-height:1.4; margin:0;"
+                            id="profile-subscription-desc">
+                            Estás utilizando la versión gratuita de vetfield.pro. Mejorá tu plan para obtener
+                            productores y registros ilimitados.
+                        </p>
+                    </div>
+                    <div id="profile-subscription-action-container" style="flex-shrink:0;">
+                        <!-- Botón dinámico generado por JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edición -->
+            <div class="card glass">
+                <span class="section-label">Editar Datos Personales</span>
+                <form id="profile-edit-form" novalidate autocomplete="off">
+                    <div class="form-group">
+                        <label for="edit-name">Nombre Completo</label>
+                        <input type="text" id="edit-name" placeholder="Tu nombre completo" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-email">Correo Electrónico</label>
+                        <input type="email" id="edit-email" placeholder="tu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-new-password">Nueva Contraseña <span
+                                style="font-size:0.7rem;font-weight:400;color:var(--text-secondary);">(dejar vacío para
+                                no cambiar)</span></label>
+                        <input type="password" id="edit-new-password" placeholder="Mín. 8 chars, 1 mayúscula, 1 número"
+                            autocomplete="new-password">
+                        <div id="profile-pwd-strength" style="display:none;"></div>
+                    </div>
+                    <p id="profile-error" class="auth-error-msg"></p>
+                    <button type="submit" id="btn-save-profile" class="btn-save">
+                        <i data-lucide="save"></i>
+                        Guardar Cambios
+                    </button>
+                </form>
+            </div>
+
+            <!-- Copias de Seguridad -->
+            <div class="card glass" style="margin-top:0;">
+                <span class="section-label">Copias de Seguridad</span>
+                <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1.25rem; line-height:1.5;">
+                    Resguarda tus registros veterinarios descargando una copia completa, o restaura tus datos desde un
+                    archivo exportado anteriormente.
+                </p>
+
+                <div class="profile-backup-actions">
+                    <button id="btn-export-backup" onclick="exportBackup(this)" class="btn-save"
+                        style="background:var(--secondary); margin-top:0; border:none; color:#fff; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <i data-lucide="download" style="width:18px; height:18px;"></i>
+                        Descargar Respaldo
+                    </button>
+
+                    <input type="file" id="import-backup-file" accept=".json" style="display:none"
+                        onchange="handleImportBackup(event)">
+
+                    <button id="btn-import-backup" onclick="document.getElementById('import-backup-file').click()"
+                        class="btn-save"
+                        style="background:transparent; color:var(--text-color); border:2.5px solid var(--secondary); margin-top:0; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <i data-lucide="upload" style="width:18px; height:18px;"></i>
+                        Subir / Restaurar Respaldo (.json)
+                    </button>
+
+                    <button id="btn-import-excel" onclick="openImportExcelModal()" class="btn-save"
+                        style="background:transparent; color:var(--text-color); border:2.5px solid var(--primary); margin-top:0; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <i data-lucide="file-spreadsheet" style="width:18px; height:18px;"></i>
+                        Importar desde Excel (.xlsx / .csv)
+                    </button>
+                </div>
+
+                <div
+                    style="margin-top:1.25rem; padding:12px; border-radius:12px; background:rgba(26,35,126,0.05); border:1px dashed rgba(26,35,126,0.2); font-size:0.8rem; color:var(--text-secondary); line-height:1.5;">
+                    <strong>Respaldos automáticos en servidor:</strong> El servidor de Vet Field Pro realiza copias de
+                    seguridad automáticas diarias de la base de datos completa y archivos en su panel de administración.
+                </div>
+            </div>
+
+            <!-- Soporte / Contacto -->
+            <div class="card glass" style="margin-top:0;">
+                <span class="section-label">Soporte y Consultas</span>
+                <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1.25rem; line-height:1.5;">
+                    ¿Tenés dudas o necesitás ayuda? Contactanos directamente por WhatsApp y te respondemos a la brevedad.
+                </p>
+                <a
+                    id="btn-whatsapp-support"
+                    href="https://wa.me/5493564331711?text=Hola%2C%20tengo%20una%20consulta%20sobre%20VETFIELD%20PRO."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn-save"
+                    style="display:flex; align-items:center; justify-content:center; gap:10px; background:#25d366; border:none; color:#fff; text-decoration:none; border-radius:14px; padding:14px 20px; font-weight:700; font-size:0.95rem; transition: filter 0.2s, transform 0.15s; cursor:pointer;"
+                    onmouseover="this.style.filter='brightness(1.1)';this.style.transform='translateY(-1px)'"
+                    onmouseout="this.style.filter='brightness(1)';this.style.transform='translateY(0)'"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                    Contactar por WhatsApp
+                </a>
+            </div>
+
+            <!-- Cerrar sesión -->
+            <div class="card glass profile-logout-card" style="margin-top:0;">
+                <button id="btn-logout" class="btn-danger">Cerrar Sesión</button>
+            </div>
+
+        </section>
+
+        <!-- VISTA: VOZ -->
+        <section id="view-voz" class="view-section">
+            <!-- El contenido se renderiza dinámicamente desde voice.js -->
+        </section>
+
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-nav="inicio" onclick="switchView('inicio', this)">
+                <div class="nav-icon"><i data-lucide="layout-grid"></i></div>
+                <span>Panel</span>
+            </button>
+            <button class="nav-item" data-nav="entrada" onclick="switchView('entrada', this)">
+                <div class="nav-icon"><i data-lucide="plus-circle"></i></div>
+                <span>Nueva Entrada</span>
+            </button>
+            <!-- Ocultado temporalmente
+            <button class="nav-item" data-nav="voz" onclick="switchView('voz', this)">
+                <div class="nav-icon"><i data-lucide="mic"></i></div>
+                <span>Voz</span>
+            </button>
+            -->
+            <button class="nav-item" data-nav="reportes" onclick="switchView('reportes', this)">
+                <div class="nav-icon"><i data-lucide="bar-chart-3"></i></div>
+                <span>Reportes</span>
+            </button>
+            <button class="nav-item" data-nav="perfil" onclick="switchView('perfil', this)">
+                <div class="nav-icon"><i data-lucide="user-circle"></i></div>
+                <span>Perfil</span>
+            </button>
+        </nav>
+
+    </div><!-- /#main-app -->
+
+    <!-- Theme Toggle Script -->
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            renderThemeIcons(isDark);
+        }
+
+        function renderThemeIcons(isDark) {
+            const icon = isDark
+                ? '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
+                : '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+            document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
+                btn.innerHTML = icon;
+            });
+        }
+
+        // Inicializar íconos de tema y todos los iconos Lucide al cargar
+        document.addEventListener('DOMContentLoaded', () => {
+            const isDark = document.documentElement.classList.contains('dark');
+            renderThemeIcons(isDark);
+            // Delay generoso para asegurar que lucide.js cargó (red lenta o sin caché)
+            setTimeout(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, 500);
+        });
+    </script>
+
+    <!-- SortableJS para Drag & Drop en móviles y desktop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <!-- Dashboard Module -->
+    <script src="dashboard.js?v=68" defer></script>
+    <!-- App Script -->
+    <script src="app.js?v=62" defer></script>
+    <!-- Voice Module (Ocultado temporalmente) -->
+    <!-- <script src="voice.js?v=62" defer></script> -->
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js?v=68')
+                    .then(registration => {
+                        console.log('[VETFIELD] ServiceWorker registrado. Scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('[VETFIELD] Registro del ServiceWorker falló:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+
+</html>

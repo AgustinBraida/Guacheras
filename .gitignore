@@ -1,0 +1,17 @@
+# ── Credenciales — NUNCA subir al repositorio ──────────────────
+api/db_config.php
+.env
+
+# ── Rate-limit cache (archivos temporales PHP) ──────────────────
+*.rl.json
+
+# ── Sistema operativo ───────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDEs ────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user

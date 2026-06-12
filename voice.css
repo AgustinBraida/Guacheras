@@ -1,0 +1,884 @@
+/* ================================================================
+   VETFIELD PRO — voice.css
+   Módulo de Registro por Voz — Estilos independientes
+   Usa las mismas variables CSS del design system principal.
+   NO modifica ninguna regla existente en styles.css.
+   ================================================================ */
+
+/* ── Layout principal de la sección ────────────────────────── */
+#view-voz {
+    display: none;
+    padding: 1.5rem 1.25rem 2rem;
+    animation: fadeIn 0.4s ease-out;
+    min-height: calc(100vh - 130px);
+}
+
+#view-voz.active {
+    display: block;
+}
+
+/* ── Header editorial ─────────────────────────────────────── */
+.voice-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-top: 0.5rem;
+}
+
+.voice-eyebrow {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 0.4rem;
+}
+
+.voice-title {
+    font-size: 2rem;
+    font-weight: 300;
+    color: var(--text-main);
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+}
+
+.voice-title strong {
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.voice-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    line-height: 1.5;
+}
+
+/* ── Contexto activo (Productor / Establecimiento sticky) ─── */
+.voice-context-bar {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 1rem;
+    padding: 0.85rem 1.1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: var(--shadow-soft);
+    transition: all 0.3s ease;
+}
+
+.voice-context-bar.is-empty {
+    opacity: 0.55;
+    border-style: dashed;
+}
+
+.voice-context-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #eef0ff;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+html.dark .voice-context-icon {
+    background: rgba(57, 73, 171, 0.2);
+    color: #93c5fd;
+}
+
+.voice-context-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.voice-context-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 1px;
+}
+
+.voice-context-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.voice-context-clear {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+    flex-shrink: 0;
+}
+
+.voice-context-clear:hover {
+    color: #ef4444;
+}
+
+/* ── Arena central del botón ─────────────────────────────── */
+.voice-arena {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 1.5rem;
+    gap: 1.5rem;
+}
+
+/* ── Botón circular principal ─────────────────────────────── */
+.voice-btn-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Aro de pulso exterior */
+.voice-btn-wrap::before {
+    content: '';
+    position: absolute;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: transparent;
+    border: 2px solid transparent;
+    transition: all 0.4s ease;
+    pointer-events: none;
+}
+
+.voice-btn-wrap.listening::before {
+    border-color: rgba(107, 142, 90, 0.3);
+    animation: voice-ring 2s ease-in-out infinite;
+}
+
+@keyframes voice-ring {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+
+    50% {
+        transform: scale(1.12);
+        opacity: 0.4;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+}
+
+/* Botón círculo */
+.voice-btn {
+    width: 136px;
+    height: 136px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition:
+        background 0.35s ease,
+        box-shadow 0.35s ease,
+        transform 0.18s ease;
+    position: relative;
+    z-index: 1;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+
+    /* Estado reposo: azul corporativo VetField */
+    background: #1a237e;
+    color: #ffffff;
+    box-shadow:
+        0 6px 20px rgba(26, 35, 126, 0.35),
+        0 2px 6px rgba(26, 35, 126, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+html.dark .voice-btn {
+    background: #3949ab;
+    color: #ffffff;
+    box-shadow:
+        0 6px 20px rgba(57, 73, 171, 0.45),
+        0 2px 6px rgba(57, 73, 171, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.voice-btn:hover:not(:disabled) {
+    background: #12197a;
+    transform: scale(1.05);
+    box-shadow:
+        0 12px 32px rgba(26, 35, 126, 0.45),
+        0 4px 12px rgba(26, 35, 126, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.voice-btn:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+/* Estado ESCUCHANDO: verde seco */
+.voice-btn.listening {
+    background: #6b8e5a;
+    color: #ffffff;
+    box-shadow:
+        0 8px 24px rgba(107, 142, 90, 0.4),
+        0 3px 8px rgba(107, 142, 90, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    animation: voice-pulse 1.8s ease-in-out infinite;
+}
+
+html.dark .voice-btn.listening {
+    background: #5a7a4a;
+    box-shadow:
+        0 8px 24px rgba(90, 122, 74, 0.45),
+        0 3px 8px rgba(90, 122, 74, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Estado PROCESANDO: terracota */
+.voice-btn.processing {
+    background: #b5715a;
+    color: #ffffff;
+    box-shadow:
+        0 8px 24px rgba(181, 113, 90, 0.4),
+        0 3px 8px rgba(181, 113, 90, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+html.dark .voice-btn.processing {
+    background: #9a5c45;
+}
+
+.voice-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* Pulsación micro-interacción */
+@keyframes voice-pulse {
+    0% {
+        box-shadow: 0 8px 24px rgba(107, 142, 90, 0.4), 0 3px 8px rgba(107, 142, 90, 0.25), 0 0 0 0 rgba(107, 142, 90, 0.35);
+    }
+
+    50% {
+        box-shadow: 0 8px 24px rgba(107, 142, 90, 0.4), 0 3px 8px rgba(107, 142, 90, 0.25), 0 0 0 14px rgba(107, 142, 90, 0);
+    }
+
+    100% {
+        box-shadow: 0 8px 24px rgba(107, 142, 90, 0.4), 0 3px 8px rgba(107, 142, 90, 0.25), 0 0 0 0 rgba(107, 142, 90, 0);
+    }
+}
+
+/* Icono dentro del botón */
+.voice-btn-icon {
+    width: 36px;
+    height: 36px;
+    transition: transform 0.25s ease;
+}
+
+.voice-btn.listening .voice-btn-icon {
+    animation: voice-icon-bounce 1.8s ease-in-out infinite;
+}
+
+@keyframes voice-icon-bounce {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.12);
+    }
+}
+
+.voice-btn-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    opacity: 0.85;
+}
+
+/* ── Estado del botón: texto descriptivo ───────────────────── */
+.voice-status-text {
+    font-size: 0.82rem;
+    /* Contraste mejorado: slate-700 para cumplir WCAG AA */
+    color: #374151;
+    text-align: center;
+    height: 1.2rem;
+    transition: all 0.3s ease;
+    font-style: italic;
+}
+
+html.dark .voice-status-text {
+    color: #9ca3af;
+}
+
+/* ── Visualizador de ondas de audio ────────────────────────── */
+.voice-waveform {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 28px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.voice-waveform.active {
+    opacity: 1;
+}
+
+.voice-wave-bar {
+    width: 3px;
+    border-radius: 99px;
+    background: #6b8e5a;
+    animation: none;
+    height: 4px;
+    transition: height 0.1s ease;
+}
+
+.voice-waveform.active .voice-wave-bar:nth-child(1) {
+    animation: wave-bar 1.1s ease-in-out 0.0s infinite;
+}
+
+.voice-waveform.active .voice-wave-bar:nth-child(2) {
+    animation: wave-bar 1.1s ease-in-out 0.1s infinite;
+}
+
+.voice-waveform.active .voice-wave-bar:nth-child(3) {
+    animation: wave-bar 1.1s ease-in-out 0.2s infinite;
+}
+
+.voice-waveform.active .voice-wave-bar:nth-child(4) {
+    animation: wave-bar 1.1s ease-in-out 0.15s infinite;
+}
+
+.voice-waveform.active .voice-wave-bar:nth-child(5) {
+    animation: wave-bar 1.1s ease-in-out 0.05s infinite;
+}
+
+.voice-waveform.active .voice-wave-bar:nth-child(6) {
+    animation: wave-bar 1.1s ease-in-out 0.25s infinite;
+}
+
+.voice-waveform.active .voice-wave-bar:nth-child(7) {
+    animation: wave-bar 1.1s ease-in-out 0.12s infinite;
+}
+
+@keyframes wave-bar {
+
+    0%,
+    100% {
+        height: 4px;
+    }
+
+    30% {
+        height: 20px;
+    }
+
+    60% {
+        height: 10px;
+    }
+}
+
+/* ── Caja de transcripción en tiempo real ────────────────────── */
+.voice-transcript-section {
+    margin-top: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.voice-transcript-box {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    padding: 1.25rem;
+    min-height: 80px;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    line-height: 1.65;
+    position: relative;
+    box-shadow: var(--shadow-soft);
+    transition: border-color 0.3s;
+}
+
+.voice-transcript-box.listening {
+    border-color: rgba(107, 142, 90, 0.5);
+    box-shadow: 0 0 0 3px rgba(107, 142, 90, 0.1), var(--shadow-soft);
+}
+
+.voice-transcript-placeholder {
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 0.88rem;
+    position: absolute;
+    inset: 1.25rem;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.voice-transcript-placeholder.hidden {
+    display: none;
+}
+
+.voice-transcript-text {
+    position: relative;
+    z-index: 1;
+    min-height: 1rem;
+    word-break: break-word;
+}
+
+/* Cursor parpadeante al final del texto en tiempo real */
+.voice-transcript-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background: #6b8e5a;
+    border-radius: 1px;
+    vertical-align: text-bottom;
+    margin-left: 2px;
+    animation: cursor-blink 1s step-end infinite;
+}
+
+.voice-transcript-cursor.hidden {
+    display: none;
+}
+
+@keyframes cursor-blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+}
+
+/* ── Tarjeta de confirmación (Summary Card) ──────────────────── */
+.voice-summary-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-deep);
+    margin-bottom: 1.25rem;
+    animation: slideInUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: none;
+}
+
+.voice-summary-card.visible {
+    display: block;
+}
+
+.voice-summary-header {
+    padding: 1rem 1.25rem 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.voice-summary-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+}
+
+.voice-summary-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 99px;
+    background: #eef2ff;
+    color: var(--primary);
+    letter-spacing: 0.04em;
+}
+
+html.dark .voice-summary-badge {
+    background: rgba(57, 73, 171, 0.2);
+    color: #93c5fd;
+}
+
+.voice-summary-fields {
+    padding: 0.5rem 0;
+}
+
+/* Fila de campo mapeado */
+.voice-field-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    align-items: start;
+    padding: 0.65rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    gap: 0.75rem;
+    transition: background 0.15s;
+}
+
+.voice-field-row:last-child {
+    border-bottom: none;
+}
+
+.voice-field-row:hover {
+    background: rgba(0, 0, 0, 0.015);
+}
+
+html.dark .voice-field-row:hover {
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.voice-field-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    padding-top: 0.6rem;
+    line-height: 1.3;
+}
+
+.voice-field-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--input-border);
+    background: var(--input-bg);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.voice-field-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.1);
+}
+
+.voice-field-input.detected {
+    border-color: rgba(107, 142, 90, 0.6);
+    background: rgba(107, 142, 90, 0.04);
+}
+
+html.dark .voice-field-input.detected {
+    background: rgba(107, 142, 90, 0.08);
+}
+
+.voice-field-input select,
+.voice-field-select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--input-border);
+    background: var(--input-bg);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    cursor: pointer;
+}
+
+/* ── Acciones de la tarjeta de confirmación ─────────────────── */
+.voice-summary-actions {
+    padding: 1rem 1.25rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.voice-btn-confirm {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+    background: #6b8e5a;
+    color: #ffffff;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.2s, transform 0.15s;
+    touch-action: manipulation;
+}
+
+.voice-btn-confirm:hover {
+    background: #5a7a4a;
+}
+
+.voice-btn-confirm:active {
+    transform: scale(0.98);
+}
+
+.voice-btn-confirm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.voice-btn-discard {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border-color);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 0.88rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: border-color 0.2s, color 0.2s, transform 0.15s;
+    touch-action: manipulation;
+}
+
+.voice-btn-discard:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+.voice-btn-discard:active {
+    transform: scale(0.98);
+}
+
+/* ── Badge de sincronización offline ──────────────────────── */
+.voice-offline-queue {
+    background: #fff4e5;
+    border: 1px solid #fcd34d;
+    border-radius: var(--radius-lg);
+    padding: 0.85rem 1.1rem;
+    margin-bottom: 1.25rem;
+    display: none;
+    align-items: center;
+    gap: 0.75rem;
+    animation: slideInUp 0.3s ease;
+}
+
+.voice-offline-queue.visible {
+    display: flex;
+}
+
+html.dark .voice-offline-queue {
+    background: #2d1a00;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.voice-offline-icon {
+    color: #b45309;
+    flex-shrink: 0;
+    display: flex;
+}
+
+html.dark .voice-offline-icon {
+    color: #fbbf24;
+}
+
+.voice-offline-text {
+    flex: 1;
+}
+
+.voice-offline-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #b45309;
+    margin-bottom: 1px;
+}
+
+html.dark .voice-offline-title {
+    color: #fbbf24;
+}
+
+.voice-offline-sub {
+    font-size: 0.72rem;
+    color: #92400e;
+}
+
+html.dark .voice-offline-sub {
+    color: #d97706;
+}
+
+.voice-offline-count {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #b45309;
+    background: rgba(180, 83, 9, 0.1);
+    border-radius: 8px;
+    padding: 4px 10px;
+    flex-shrink: 0;
+}
+
+html.dark .voice-offline-count {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.15);
+}
+
+/* ── Nota de ayuda / tips ─────────────────────────────────── */
+.voice-tips {
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+.voice-tip-text {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.voice-tip-text strong {
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+/* ── Compatibilidad: ajuste del grid del nav cuando hay 5 ítems ── */
+nav.bottom-nav {
+    grid-template-columns: repeat(5, 1fr) !important;
+}
+
+/* ── Responsive: pantallas muy pequeñas ───────────────────── */
+@media (max-width: 360px) {
+    .voice-btn {
+        width: 116px;
+        height: 116px;
+    }
+
+    .voice-btn-wrap::before {
+        width: 140px;
+        height: 140px;
+    }
+
+    .voice-title {
+        font-size: 1.7rem;
+    }
+
+    .voice-field-row {
+        grid-template-columns: 110px 1fr;
+    }
+}
+
+/* ── Toast de voz (reutiliza el sistema de toast del core) ── */
+/* No es necesario crear uno nuevo; showToast() ya existe en app.js */
+
+/* ── Guía de Dictado ──────────────────────────────────────── */
+.voice-guide-container {
+    /* Card elevada con borde fino y sombra visible */
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 1.25rem 1rem;
+    margin: 1.5rem auto 1rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e5e7eb;
+    max-width: 470px;
+    text-align: left;
+}
+
+html.dark .voice-guide-container {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(30, 30, 30, 0.6);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+.voice-guide-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 0.75rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+}
+
+.voice-guide-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.voice-guide-list li {
+    font-size: 0.85rem;
+    /* Texto oscurecido a slate-700 para mejor legibilidad */
+    color: #374151;
+    line-height: 1.4;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+html.dark .voice-guide-list li {
+    color: #d1d5db;
+}
+
+.voice-guide-list li strong {
+    color: var(--text-main);
+    font-weight: 600;
+    min-width: 65px;
+    display: inline-block;
+}
+
+.voice-guide-list li em {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    font-style: normal;
+}
+
+.guide-tag {
+    /* Acento azul claro para guiar la vista del productor */
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-size: 0.72rem;
+    font-weight: 800;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 1px;
+    box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.15);
+}
+
+html.dark .guide-tag {
+    background: rgba(29, 78, 216, 0.25);
+    color: #93c5fd;
+    box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.15);
+}

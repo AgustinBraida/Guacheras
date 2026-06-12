@@ -1,0 +1,87 @@
+# ============================================================
+# VETFIELD PRO — .htaccess (raiz)
+# ============================================================
+
+Options -Indexes -MultiViews
+
+# ── Evitar que el Service Worker se quede cacheado en CDN o Navegador ──
+<Files "sw.js">
+    <IfModule mod_headers.c>
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </IfModule>
+</Files>
+
+# ── Forzar HTTPS ─────────────────────────────────────────────
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Quitar barra inclinada al final (trailing slash) si no es un directorio
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)/$ /$1 [R=301,L]
+
+# ── Servir la landing en la raiz (sin cambiar la URL del browser) ──
+RewriteRule ^$ /vetfield-landing/index.html [L]
+
+# ── Redirecciones externas (301) para forzar URLs limpias ──
+# 1. Redirigir petición a vetfield-landing/index.html a la raíz
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^vetfield-landing/index\.html$ / [R=301,L,NC]
+
+# 2. Redirigir /vetfield-landing/algo.html a /algo (limpio)
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^vetfield-landing/(.+)\.html$ /$1 [R=301,L,NC]
+
+# 3. Redirigir /vetfield-landing/algo a /algo (limpio) sin afectar imágenes u otros assets reales
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteCond %{REQUEST_URI} !^/vetfield-landing/brothers\.png$ [NC]
+RewriteRule ^vetfield-landing/(.+)$ /$1 [R=301,L,NC]
+
+# 4. Redirigir /index.html a /index
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^index\.html$ /index [R=301,L,NC]
+
+# 5. Redirigir cualquier /algo.html en la raíz a /algo
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^(.+)\.html$ /$1 [R=301,L,NC]
+
+# ── Reglas de Reescritura Interna (detrás de escena) ──
+# Si la petición es /algo y existe /algo.html en la raíz, servirlo (ej. /index -> /index.html)
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+RewriteRule ^([^/]+)$ /$1.html [L,NC]
+
+# Si la petición es /algo y existe /vetfield-landing/algo.html, servirlo
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{DOCUMENT_ROOT}/vetfield-landing/$1.html -f
+RewriteRule ^([^/]+)$ /vetfield-landing/$1.html [L,NC]
+
+# ── Bloquear acceso a /vendor y /.git ────────────────────────
+RedirectMatch 404 ^/vendor(/.*)?$
+RedirectMatch 404 ^/\.git(/.*)?$
+
+# ── Bloquear archivos ocultos (.env, .gitignore, etc.) ───────
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# ── Bloquear extensiones sensibles ───────────────────────────
+<FilesMatch "\.(sql|log|env|sh|py|lock|example)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# ── Security Headers para el frontend HTML/CSS/JS ────────────
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "microphone=(self), camera=(), geolocation=()"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com https://cdn.tailwindcss.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' https://vetfield.pro https://www.vetfield.pro data: blob: https://lh3.googleusercontent.com; connect-src 'self' https://vetfield.pro https://www.vetfield.pro https://fonts.googleapis.com https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://accounts.google.com https://cdn.tailwindcss.com; media-src 'self' blob:; frame-src https://accounts.google.com; frame-ancestors 'none';"
+    Header unset X-Powered-By
+    Header unset Server
+</IfModule>

@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Reembolsos y Devoluciones — vetfield.pro</title>
+  <meta name="description"
+    content="Política de Reembolsos y Devoluciones de vetfield.pro. Conocé en qué casos aplican devoluciones, cómo solicitarlas y los plazos de procesamiento." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            indigo: {
+              950: '#0d1240',
+              900: '#131a5e',
+              800: '#1a237e',
+              700: '#283593',
+              600: '#3949ab',
+              500: '#5c6bc0',
+              400: '#7986cb',
+              200: '#c5cae9',
+              100: '#e8eaf6',
+            },
+            forest: {
+              900: '#1b5e20',
+              800: '#2e7d32',
+              700: '#388e3c',
+              600: '#43a047',
+              500: '#4caf50',
+              400: '#66bb6a',
+              200: '#c8e6c9',
+            }
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    /* ── Scrollbar ─────────────────────────────────────── */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0d1240;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #2e7d32;
+      border-radius: 3px;
+    }
+
+    /* ── Glassmorphism ──────────────────────────────────── */
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    /* ── Gradient text ──────────────────────────────────── */
+    .grad-text {
+      background: linear-gradient(135deg, #66bb6a 0%, #4caf50 35%, #c8e6c9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Grid overlay ───────────────────────────────────── */
+    .grid-overlay {
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* ── Buttons ────────────────────────────────────────── */
+    .btn-primary {
+      background: linear-gradient(135deg, #2e7d32, #43a047);
+      box-shadow: 0 0 28px rgba(46, 125, 50, 0.5), 0 4px 16px rgba(0, 0, 0, 0.35);
+      transition: box-shadow 0.3s ease, transform 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 50px rgba(46, 125, 50, 0.7), 0 8px 28px rgba(0, 0, 0, 0.4);
+      transform: translateY(-2px);
+    }
+
+    /* ── Blobs ──────────────────────────────────────────── */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 0.13;
+      pointer-events: none;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Alert box ──────────────────────────────────────── */
+    .alert-info {
+      background: rgba(26, 35, 126, 0.25);
+      border-left: 3px solid #7986cb;
+      border-radius: 0 12px 12px 0;
+    }
+
+    .alert-success {
+      background: rgba(46, 125, 50, 0.15);
+      border-left: 3px solid #66bb6a;
+      border-radius: 0 12px 12px 0;
+    }
+
+    .alert-warning {
+      background: rgba(146, 64, 14, 0.15);
+      border-left: 3px solid #f59e0b;
+      border-radius: 0 12px 12px 0;
+    }
+
+    /* ── Table ──────────────────────────────────────────── */
+    .refund-table th {
+      background: rgba(26, 35, 126, 0.3);
+      color: #c5cae9;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 12px 16px;
+    }
+
+    .refund-table td {
+      padding: 12px 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 0.875rem;
+      color: #cbd5e1;
+      vertical-align: top;
+    }
+
+    .refund-table tr:hover td {
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .badge-yes {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(46, 125, 50, 0.2);
+      color: #66bb6a;
+      border: 1px solid rgba(102, 187, 106, 0.3);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge-no {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(185, 28, 28, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(248, 113, 113, 0.25);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge-partial {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(146, 64, 14, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.25);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* ── Navbar background ─────────────────────────────── */
+    .nav-opaque {
+      background: rgba(13, 18, 64, 0.97) !important;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+  </style>
+</head>
+
+<body class="bg-indigo-950 text-slate-100 font-sans antialiased">
+
+  <!-- ========================================================
+       NAVBAR
+  ======================================================= -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 py-4 nav-opaque">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+
+      <!-- Logo -->
+      <a href="/" id="nav-logo" class="flex items-center gap-3 group">
+        <img src="/logoternero.png" alt="Logo vetfield.pro — cabeza de ternero"
+          class="w-9 h-9 object-contain group-hover:scale-105 transition-transform" />
+        <span class="text-[1.15rem] font-bold tracking-tight leading-none">
+          <span class="text-white">vetfield</span><span class="text-forest-400">.pro</span>
+        </span>
+      </a>
+
+      <!-- Desktop nav -->
+      <div class="hidden md:flex items-center gap-7" role="navigation" aria-label="Navegación principal">
+        <a href="/#features" class="text-sm text-slate-400 hover:text-white transition-colors">Funciones</a>
+        <a href="/#pricing" class="text-sm text-slate-400 hover:text-white transition-colors">Precios</a>
+        <a href="/#faq" class="text-sm text-slate-400 hover:text-white transition-colors">FAQ</a>
+      </div>
+
+      <!-- CTA -->
+      <div class="flex items-center gap-3">
+        <a href="/" class="hidden sm:block text-sm text-slate-400 hover:text-white transition-colors">Inicio</a>
+        <a href="/#pricing" id="nav-cta" class="btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+          Probar gratis
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========================================================
+       CONTENT
+  ======================================================== -->
+  <section class="relative min-h-screen pt-32 pb-24 overflow-hidden"
+    style="background: radial-gradient(ellipse 70% 60% at 70% 50%, rgba(26, 35, 126, 0.35) 0%, transparent 70%), linear-gradient(160deg, #090e2f 0%, #0d1240 100%);">
+
+    <!-- Grid overlay -->
+    <div class="absolute inset-0 grid-overlay opacity-80" aria-hidden="true"></div>
+
+    <!-- Blobs -->
+    <div class="blob w-[500px] h-[500px] bg-indigo-800 top-[-50px] right-[-100px]" aria-hidden="true"></div>
+    <div class="blob w-[300px] h-[300px] bg-forest-800 bottom-[-50px] left-[-100px]" aria-hidden="true"></div>
+
+    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 z-10 reveal">
+      <div class="glass rounded-3xl p-6 sm:p-10 border border-white/08">
+
+        <!-- Header -->
+        <div class="flex items-start gap-4 mb-2">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 mt-1"
+            style="background: rgba(46, 125, 50, 0.18); border: 1px solid rgba(102, 187, 106, 0.25);">
+            <svg class="w-6 h-6 text-forest-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white leading-tight">
+              Política de Reembolsos<br />
+              <span class="grad-text">y Devoluciones</span>
+            </h1>
+            <p class="text-slate-500 text-sm mt-2">Última actualización: 26 de mayo de 2026</p>
+          </div>
+        </div>
+
+        <hr class="border-white/10 mt-8 mb-8" />
+
+        <div class="space-y-8 text-slate-300 text-sm sm:text-base leading-relaxed">
+
+          <!-- Intro -->
+          <p>
+            En <strong class="text-white">vetfield.pro</strong> queremos que cada veterinario de campo esté conforme
+            con el servicio antes de comprometerse económicamente. Esta política detalla con total transparencia en qué
+            casos corresponde una devolución, cómo solicitarla y qué plazos aplicamos.
+          </p>
+
+          <div class="alert-info px-5 py-4">
+            <p class="text-indigo-200 text-sm">
+              <strong class="text-white">Nota importante:</strong> Los pagos en vetfield.pro son procesados por
+              <strong class="text-white">Mercado Pago</strong>. Esto significa que en tu estado de cuenta bancario
+              verás el cargo a nombre de Mercado Pago, y ante cualquier reclamación de cargo no reconocido podés
+              contactarnos directamente o gestionar la disputa desde tu cuenta de Mercado Pago.
+            </p>
+          </div>
+
+          <hr class="border-white/10" />
+
+          <!-- Seccion 1 -->
+          <div>
+            <h2 class="text-lg font-bold text-white mb-3">1. Resumen de la Política por Plan</h2>
+            <p class="mb-5 text-slate-400">
+              La siguiente tabla resume las condiciones de reembolso según el tipo de plan y modalidad de pago
+              contratada:
+            </p>
+            <div class="overflow-x-auto rounded-2xl" style="border: 1px solid rgba(255,255,255,0.08);">
+              <table class="refund-table w-full">
+                <thead>
+                  <tr>
+                    <th class="text-left rounded-tl-2xl">Plan / Modalidad</th>
+                    <th class="text-left">Reembolso</th>
+                    <th class="text-left rounded-tr-2xl">Condición</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong class="text-white">Plan Inicio (gratuito)</strong></td>
+                    <td><span class="badge-no">No aplica</span></td>
+                    <td>No hay cargo económico. No hay nada que reembolsar.</td>
+                  </tr>
+                  <tr>
+                    <td><strong class="text-white">Plan Pro o Premium — mensual</strong><br><span class="text-slate-500 text-xs">Período de prueba (14 días)</span></td>
+                    <td><span class="badge-yes">Reembolso total</span></td>
+                    <td>Si cancelás dentro de los 14 días desde el primer cobro, devolvemos el 100% del importe abonado.</td>
+                  </tr>
+                  <tr>
+                    <td><strong class="text-white">Plan Pro o Premium — mensual</strong><br><span class="text-slate-500 text-xs">Fuera del período de prueba</span></td>
+                    <td><span class="badge-partial">Evaluación caso a caso</span></td>
+                    <td>Podés cancelar en cualquier momento sin penalidad. El acceso se mantiene hasta el fin del período ya pago. No hay reembolso proporcional por días no utilizados, salvo falla técnica grave imputable a vetfield.pro.</td>
+                  </tr>
+                  <tr>
+                    <td><strong class="text-white">Plan Pro o Premium — anual</strong></td>
+                    <td><span class="badge-no">No reembolsable</span></td>
+                    <td>El pago anual incluye un descuento significativo a cambio de un compromiso de 12 meses. No se realizan devoluciones parciales por meses no utilizados. Recomendamos evaluar el servicio con la versión mensual antes de contratar el plan anual.</td>
+                  </tr>
+                  <tr>
+                    <td><strong class="text-white">Cobro duplicado o error técnico</strong></td>
+                    <td><span class="badge-yes">Reembolso total</span></td>
+                    <td>Si detectamos o verificamos un cobro incorrecto, procesamos la devolución completa dentro de los 5 días hábiles.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <hr class="border-white/10" />
+
+          <!-- Seccion 2 -->
+          <div>
+            <h2 class="text-lg font-bold text-white mb-3">2. Período de Prueba de 14 Días</h2>
+            <p class="mb-3">
+              Al suscribirte a cualquier plan de pago (Pro o Premium), tenés <strong class="text-white">14 días
+              calendario</strong> para evaluar el servicio sin riesgo. Durante ese período, si por cualquier motivo
+              el servicio no cumple con tus expectativas, podés solicitar el reembolso completo del primer cobro
+              realizado.
+            </p>
+            <div class="alert-success px-5 py-4">
+              <p class="text-forest-200 text-sm">
+                <strong class="text-forest-400">Como reclamar el reembolso del período de prueba:</strong> Escribinos
+                dentro de los 14 días desde el primer cobro al correo
+                <strong class="text-white">info@vetfield.pro</strong> o por WhatsApp al
+                <strong class="text-white">+54 9 3564 331711</strong> indicando tu email de registro y el motivo
+                (cualquier motivo es válido durante la prueba).
+              </p>
+            </div>
+          </div>
+
+          <hr class="border-white/10" />
+
+          <!-- Seccion 3 -->
+          <div>
+            <h2 class="text-lg font-bold text-white mb-3">3. Casos de Reembolso por Falla Técnica</h2>
+            <p class="mb-3">
+              Fuera del período de prueba, reconocemos el derecho a reembolso parcial o total en los siguientes
+              supuestos imputables exclusivamente a vetfield.pro:
+            </p>
+            <ul class="list-disc list-inside space-y-3 pl-2">
+              <li>
+                <strong>Interrupción prolongada del servicio:</strong> Si la plataforma no estuvo disponible durante
+                más de 72 horas continuas en un período de facturación y eso impidió el uso del servicio contratado,
+                corresponde un crédito o reembolso proporcional a los días afectados.
+              </li>
+              <li>
+                <strong>Pérdida de datos verificada:</strong> Si como consecuencia de un error interno de nuestros
+                servidores se perdieron registros que habían sido sincronizados correctamente con la nube, y no pudimos
+                restaurarlos desde las copias de seguridad, el caso será evaluado individualmente.
+              </li>
+              <li>
+                <strong>Cobro no autorizado o duplicado:</strong> Cualquier cargo no reconocido o duplicado será
+                reembolsado en su totalidad una vez verificado con Mercado Pago.
+              </li>
+            </ul>
+            <p class="mt-3 text-slate-500 text-sm">
+              Nota: La pérdida de datos generada por daño físico al dispositivo del usuario, falta de sincronización
+              manual, o uso de la aplicación en condiciones fuera de su diseño (dispositivos muy antiguos, etc.) no es
+              imputable a vetfield.pro y no da derecho a reembolso.
+            </p>
+          </div>
+
+          <hr class="border-white/10" />
+
+          <!-- Seccion 4 -->
+          <div>
+            <h2 class="text-lg font-bold text-white mb-3">4. Cómo Solicitar un Reembolso</h2>
+            <p class="mb-5">
+              El proceso es simple y sin burocracia. Seguí estos pasos:
+            </p>
+            <div class="space-y-4">
+              <div class="flex gap-4 items-start">
+                <div class="w-8 h-8 rounded-full border-2 border-forest-700 text-forest-400 font-bold text-sm flex items-center justify-center flex-shrink-0 mt-0.5">1</div>
+                <div>
+                  <p class="text-white font-semibold mb-1">Contactanos por email o WhatsApp</p>
+                  <p class="text-slate-400 text-sm">
+                    Escribí a <strong class="text-white">info@vetfield.pro</strong> o al
+                    <strong class="text-white">+54 9 3564 331711</strong> con el asunto "Solicitud de reembolso".
+                  </p>
+                </div>
+              </div>
+              <div class="flex gap-4 items-start">
+                <div class="w-8 h-8 rounded-full border-2 border-forest-700 text-forest-400 font-bold text-sm flex items-center justify-center flex-shrink-0 mt-0.5">2</div>
+                <div>
+                  <p class="text-white font-semibold mb-1">Indicá tu email de registro y el motivo</p>
+                  <p class="text-slate-400 text-sm">
+                    No necesitás justificación extensa si estás dentro del período de prueba de 14 días. Para otros
+                    casos, describí brevemente el inconveniente.
+                  </p>
+                </div>
+              </div>
+              <div class="flex gap-4 items-start">
+                <div class="w-8 h-8 rounded-full border-2 border-forest-700 text-forest-400 font-bold text-sm flex items-center justify-center flex-shrink-0 mt-0.5">3</div>
+                <div>
+                  <p class="text-white font-semibold mb-1">Procesamos tu solicitud en 48 horas hábiles</p>
+                  <p class="text-slate-400 text-sm">
+                    Si el reembolso aplica, lo procesamos a través de Mercado Pago. El importe aparece en tu tarjeta o cuenta
+                    original según los tiempos de tu banco (generalmente entre 5 y 10 días hábiles).
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr class="border-white/10" />
+
+          <!-- Seccion 5 -->
+          <div>
+            <h2 class="text-lg font-bold text-white mb-3">5. Cancelación del Servicio</h2>
+            <p class="mb-3">
+              Podés cancelar tu suscripción en cualquier momento desde la sección
+              <strong class="text-white">Mi Cuenta &gt; Suscripción</strong> dentro de la aplicación, o contactándonos
+              directamente. La cancelación no genera cargos adicionales.
+            </p>
+            <ul class="list-disc list-inside space-y-2 pl-2">
+              <li>
+                <strong>Plan mensual:</strong> Al cancelar, el acceso a las funciones del plan se mantiene activo hasta
+                el fin del período de facturación ya abonado. No se realizan cobros adicionales a partir del siguiente
+                ciclo.
+              </li>
+              <li>
+                <strong>Plan anual:</strong> Al cancelar, el acceso se mantiene hasta el vencimiento de los 12 meses
+                abonados. No hay reembolso proporcional por los meses restantes, conforme a lo descripto en la sección 1.
+              </li>
+              <li>
+                <strong>Plan Inicio (gratuito):</strong> Podés eliminar tu cuenta en cualquier momento sin
+                consecuencias económicas. Tus datos serán eliminados de nuestros servidores dentro de los 30 días
+                posteriores a la solicitud.
+              </li>
+            </ul>
+          </div>
+
+          <hr class="border-white/10" />
+
+          <!-- Seccion 6 -->
+          <div>
+            <h2 class="text-lg font-bold text-white mb-3">6. Contracargos (Chargebacks)</h2>
+            <p>
+              Si iniciás un contracargo con tu banco o tarjeta sin habernos contactado previamente, la cuenta asociada
+              podrá ser suspendida durante el proceso de investigación. Te
+              pedimos que siempre nos contactes primero: en la gran mayoría de los casos resolvemos el problema
+              directamente y de forma más rápida que a través del banco.
+            </p>
+          </div>
+
+          <hr class="border-white/10" />
+
+          <!-- Seccion 7 -->
+          <div>
+            <h2 class="text-lg font-bold text-white mb-3">7. Cambios en esta Política</h2>
+            <p>
+              Podemos actualizar esta Política de Reembolsos de forma periódica. La fecha de última actualización
+              indicada al inicio de esta página reflejará siempre la versión vigente. Te notificaremos por email ante
+              cambios sustanciales que puedan afectar suscripciones activas.
+            </p>
+          </div>
+
+          <hr class="border-white/10" />
+
+          <!-- Contacto -->
+          <div>
+            <h2 class="text-lg font-bold text-white mb-3">Contacto</h2>
+            <p class="mb-4">
+              Para cualquier consulta sobre reembolsos, cancelaciones o facturación, contactanos por:
+            </p>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div class="glass rounded-2xl p-4 flex items-start gap-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style="background: rgba(46, 125, 50, 0.18);">
+                  <svg class="w-4 h-4 text-forest-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-slate-400 text-xs mb-0.5">Email</p>
+                  <p class="text-white font-semibold text-sm">info@vetfield.pro</p>
+                </div>
+              </div>
+              <div class="glass rounded-2xl p-4 flex items-start gap-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style="background: rgba(46, 125, 50, 0.18);">
+                  <svg class="w-4 h-4 text-forest-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path
+                      d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-slate-400 text-xs mb-0.5">WhatsApp</p>
+                  <p class="text-white font-semibold text-sm">+54 9 3564 331711</p>
+                </div>
+              </div>
+            </div>
+            <p class="text-slate-500 text-xs mt-4">
+              Tiempo de respuesta habitual: menos de 24 horas hábiles en dias de semana.
+            </p>
+          </div>
+
+          <!-- Warning final -->
+          <div class="alert-warning px-5 py-4 mt-2">
+            <p class="text-amber-200 text-sm">
+              <strong class="text-amber-400">Recomendacion:</strong> Antes de contratar cualquier plan de pago anual,
+              te sugerimos probar el servicio durante al menos un ciclo mensual para asegurarte de que se adapta a tu
+              flujo de trabajo en el campo. El plan anual existe para ahorrarte dinero, no para atraparte.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       FOOTER
+  ======================================================== -->
+  <footer class="bg-indigo-950 border-t border-white/05 pt-12 pb-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+
+        <!-- Brand -->
+        <div class="col-span-2 md:col-span-1">
+          <a href="/" class="flex items-center gap-2.5 mb-4">
+            <img src="/logoternero.png" alt="Logo vetfield.pro" class="w-8 h-8 object-contain" />
+            <span class="text-base font-bold">
+              <span class="text-white">vetfield</span><span class="text-forest-400">.pro</span>
+            </span>
+          </a>
+          <p class="text-slate-500 text-xs leading-relaxed mb-5">
+            Software de gestión de guacheras y crianza de terneros para veterinarios de campo. Hecho en Argentina.
+          </p>
+          <div class="flex items-center gap-3">
+            <a href="https://www.instagram.com/vetfield.pro/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" id="footer-ig"
+              class="w-8 h-8 glass rounded-lg flex items-center justify-center hover:border-forest-700 transition-colors">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+              </svg>
+            </a>
+            <a href="#" aria-label="TikTok" id="footer-tt"
+              class="w-8 h-8 glass rounded-lg flex items-center justify-center hover:border-forest-700 transition-colors">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.23.86.17 1.75.28 2.63.29v3.9c-1.3-.01-2.6-.18-3.82-.69-.17 2.24-.94 4.41-2.23 6.25-1.53 2.1-3.86 3.51-6.43 3.91-2.9.43-5.91-.45-8.08-2.45C-1.8 13.56-1.99 9.38.8 6.9c1.9-1.74 4.54-2.54 7.07-2.18l.05 4.09c-1.32-.23-2.73.08-3.75.95-.98.81-1.37 2.15-1.01 3.37.31 1.13 1.25 1.99 2.39 2.22 1.48.27 3.08-.43 3.69-1.83.21-.52.28-1.08.27-1.63V0h3.11z" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Producto -->
+        <div>
+          <h4 class="text-white text-xs font-semibold uppercase tracking-wider mb-4">Producto</h4>
+          <ul class="space-y-2.5">
+            <li><a href="/#features" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Funciones</a></li>
+            <li><a href="/#pricing" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Precios</a></li>
+            <li><a href="/#faq" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">FAQ</a></li>
+          </ul>
+        </div>
+
+        <!-- Compañía -->
+        <div>
+          <h4 class="text-white text-xs font-semibold uppercase tracking-wider mb-4">Compañía</h4>
+          <ul class="space-y-2.5">
+            <li><a href="/quienes-somos" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Quiénes somos</a></li>
+            <li><a href="/contacto" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Contacto</a></li>
+          </ul>
+        </div>
+
+        <!-- Legal -->
+        <div>
+          <h4 class="text-white text-xs font-semibold uppercase tracking-wider mb-4">Legal</h4>
+          <ul class="space-y-2.5">
+            <li><a href="/politica-privacidad" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Política de Privacidad</a></li>
+            <li><a href="/terminos-servicio" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Términos de Servicio</a></li>
+            <li><a href="/politica-reembolsos" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Política de Reembolsos</a></li>
+            <li><a href="/cookies" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Cookies</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="border-t border-white/05 pt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p class="text-slate-700 text-xs">&copy; <span id="footer-year"></span> vetfield.pro — Todos los derechos reservados.</p>
+        <p class="text-slate-700 text-xs">Hecho con café y barro en Argentina.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================
+       JAVASCRIPT
+  ======================================================== -->
+  <script>
+    // Copyright year
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+    // Reveal on scroll (IntersectionObserver)
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08 });
+
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  </script>
+
+</body>
+
+</html>

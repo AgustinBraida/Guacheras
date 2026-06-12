@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contacto — vetfield.pro</title>
+  <meta name="description"
+    content="Ponete en contacto con el equipo de vetfield.pro. Mandanos un mensaje directo por WhatsApp para resolver tus dudas." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            indigo: {
+              950: '#0d1240',
+              900: '#131a5e',
+              800: '#1a237e',
+              700: '#283593',
+              600: '#3949ab',
+              500: '#5c6bc0',
+              400: '#7986cb',
+              200: '#c5cae9',
+              100: '#e8eaf6',
+            },
+            forest: {
+              900: '#1b5e20',
+              800: '#2e7d32',
+              700: '#388e3c',
+              600: '#43a047',
+              500: '#4caf50',
+              400: '#66bb6a',
+              200: '#c8e6c9',
+            },
+            earth: {
+              900: '#3e2000',
+              800: '#502400',
+              700: '#6d3a0f',
+              500: '#8d5524',
+              300: '#c68642',
+            }
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    /* ── Scrollbar ─────────────────────────────────────── */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0d1240;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #2e7d32;
+      border-radius: 3px;
+    }
+
+    /* ── Glassmorphism ──────────────────────────────────── */
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    /* ── Gradient text ──────────────────────────────────── */
+    .grad-text {
+      background: linear-gradient(135deg, #66bb6a 0%, #4caf50 35%, #c8e6c9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Buttons ────────────────────────────────────────── */
+    .btn-primary {
+      background: linear-gradient(135deg, #2e7d32, #43a047);
+      box-shadow: 0 0 28px rgba(46, 125, 50, 0.5), 0 4px 16px rgba(0, 0, 0, 0.35);
+      transition: box-shadow 0.3s ease, transform 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 50px rgba(46, 125, 50, 0.7), 0 8px 28px rgba(0, 0, 0, 0.4);
+      transform: translateY(-2px);
+    }
+
+    /* ── Grid overlay ───────────────────────────────────── */
+    .grid-overlay {
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* ── Floating anim ──────────────────────────────────── */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-14px); }
+    }
+
+    .animate-float {
+      animation: float 7s ease-in-out infinite;
+    }
+
+    /* ── Blobs ──────────────────────────────────────────── */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 0.13;
+      pointer-events: none;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Navbar background ─────────────────────────────── */
+    .nav-opaque {
+      background: rgba(13, 18, 64, 0.97) !important;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+  </style>
+</head>
+
+<body class="bg-indigo-950 text-slate-100 font-sans antialiased">
+
+  <!-- ========================================================
+       NAVBAR
+  ======================================================== -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 py-4 nav-opaque">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+
+      <!-- Logo -->
+      <a href="/" id="nav-logo" class="flex items-center gap-3 group">
+        <img src="/logoternero.png" alt="Logo vetfield.pro — cabeza de ternero"
+          class="w-9 h-9 object-contain group-hover:scale-105 transition-transform" />
+        <span class="text-[1.15rem] font-bold tracking-tight leading-none">
+          <span class="text-white">vetfield</span><span class="text-forest-400">.pro</span>
+        </span>
+      </a>
+
+      <!-- Desktop nav -->
+      <div class="hidden md:flex items-center gap-7" role="navigation" aria-label="Navegación principal">
+        <a href="/#features" class="text-sm text-slate-400 hover:text-white transition-colors">Funciones</a>
+        <a href="/#pricing" class="text-sm text-slate-400 hover:text-white transition-colors">Precios</a>
+        <a href="/#faq" class="text-sm text-slate-400 hover:text-white transition-colors">FAQ</a>
+      </div>
+
+      <!-- CTA -->
+      <div class="flex items-center gap-3">
+        <a href="/" class="hidden sm:block text-sm text-slate-400 hover:text-white transition-colors">Inicio</a>
+        <a href="/#pricing" id="nav-cta" class="btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+          Probar gratis
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========================================================
+       CONTACT SECTION
+  ======================================================== -->
+  <section class="relative min-h-screen flex items-center overflow-hidden pt-28 pb-16"
+    style="background: radial-gradient(ellipse 70% 60% at 70% 50%, rgba(46, 125, 50, 0.15) 0%, transparent 70%), linear-gradient(160deg, #090e2f 0%, #0d1240 50%, #091a10 100%);">
+    
+    <!-- Grid overlay -->
+    <div class="absolute inset-0 grid-overlay opacity-80" aria-hidden="true"></div>
+
+    <!-- Blobs -->
+    <div class="blob w-[500px] h-[500px] bg-indigo-800 top-[-50px] right-[-100px]" aria-hidden="true"></div>
+    <div class="blob w-[400px] h-[400px] bg-forest-800 bottom-[-100px] left-[-150px]" aria-hidden="true"></div>
+
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full z-10">
+      <div class="grid lg:grid-cols-12 gap-12 items-center">
+        
+        <!-- LEFT COLUMN: Info -->
+        <div class="lg:col-span-5 text-center lg:text-left reveal">
+          <div class="inline-flex items-center gap-2 rounded-full bg-forest-900/30 border border-forest-700/30 px-4 py-1.5 mb-6">
+            <span class="text-forest-400 text-xs font-semibold tracking-wide uppercase">Contacto directo</span>
+          </div>
+          
+          <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-6 leading-tight">
+            ¿Tenés dudas?<br />
+            <span class="grad-text">Hablemos por WhatsApp</span>
+          </h1>
+
+          <p class="text-slate-400 text-lg mb-8 max-w-xl mx-auto lg:mx-0">
+            Completá el formulario con tus datos y la consulta. Al hacer clic en enviar, se abrirá tu aplicación de WhatsApp con el mensaje pre-armado para enviárnoslo directamente.
+          </p>
+
+
+        </div>
+
+        <!-- RIGHT COLUMN: Form -->
+        <div class="lg:col-span-7 flex justify-center reveal">
+          <div class="w-full max-w-lg glass rounded-2xl p-6 sm:p-8 border border-white/08 relative">
+            <h2 class="text-xl sm:text-2xl font-bold text-white mb-6">Enviar Mensaje</h2>
+            
+            <form id="contact-form" class="space-y-5">
+              <div>
+                <label for="name" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Nombre Completo</label>
+                <input type="text" id="name" required placeholder="Ej. Juan Pérez"
+                  class="w-full bg-white/5 rounded-xl border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-forest-500 transition-colors placeholder:text-slate-600" />
+              </div>
+
+              <div>
+                <label for="subject" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Asunto / Motivo</label>
+                <select id="subject" required
+                  class="w-full bg-[#0d1240]/80 rounded-xl border border-white/10 px-4 py-3 text-sm text-slate-300 focus:outline-none focus:border-forest-500 transition-colors">
+                  <option value="Consulta General" selected>Consulta General</option>
+                  <option value="Soporte Técnico">Soporte Técnico</option>
+                  <option value="Contratar Plan Pro o Premium">Contratar Plan Pro o Premium</option>
+                  <option value="Sugerencia de Función">Sugerencia de Función</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="message" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Mensaje</label>
+                <textarea id="message" required rows="4" placeholder="Escribí tu consulta acá..."
+                  class="w-full bg-white/5 rounded-xl border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-forest-500 transition-colors placeholder:text-slate-600 resize-none"></textarea>
+              </div>
+
+              <button type="submit"
+                class="w-full btn-primary text-white font-bold text-sm py-4 px-6 rounded-xl flex items-center justify-center gap-3">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.859-4.42 9.863-9.864.002-2.638-1.023-5.118-2.884-6.98-1.862-1.862-4.343-2.887-6.984-2.888-5.442 0-9.866 4.42-9.871 9.866-.002 1.802.484 3.563 1.409 5.12L1.93 21.054l6.717-1.899z" />
+                </svg>
+                Enviar a WhatsApp
+              </button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       FOOTER
+  ======================================================== -->
+  <footer class="bg-indigo-950 border-t border-white/05 pt-12 pb-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+
+        <!-- Brand -->
+        <div class="col-span-2 md:col-span-1">
+          <a href="/" class="flex items-center gap-2.5 mb-4">
+            <img src="/logoternero.png" alt="Logo vetfield.pro" class="w-8 h-8 object-contain" />
+            <span class="text-base font-bold">
+              <span class="text-white">vetfield</span><span class="text-forest-400">.pro</span>
+            </span>
+          </a>
+          <p class="text-slate-500 text-xs leading-relaxed mb-5">
+            Software de gestión de guacheras y crianza de terneros para veterinarios de campo. Hecho en Argentina.
+          </p>
+          <div class="flex items-center gap-3">
+            <a href="https://www.instagram.com/vetfield.pro/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" id="footer-ig"
+              class="w-8 h-8 glass rounded-lg flex items-center justify-center hover:border-forest-700 transition-colors">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+              </svg>
+            </a>
+            <a href="#" aria-label="TikTok" id="footer-tt"
+              class="w-8 h-8 glass rounded-lg flex items-center justify-center hover:border-forest-700 transition-colors">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.23.86.17 1.75.28 2.63.29v3.9c-1.3-.01-2.6-.18-3.82-.69-.17 2.24-.94 4.41-2.23 6.25-1.53 2.1-3.86 3.51-6.43 3.91-2.9.43-5.91-.45-8.08-2.45C-1.8 13.56-1.99 9.38.8 6.9c1.9-1.74 4.54-2.54 7.07-2.18l.05 4.09c-1.32-.23-2.73.08-3.75.95-.98.81-1.37 2.15-1.01 3.37.31 1.13 1.25 1.99 2.39 2.22 1.48.27 3.08-.43 3.69-1.83.21-.52.28-1.08.27-1.63V0h3.11z" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Producto -->
+        <div>
+          <h4 class="text-white text-xs font-semibold uppercase tracking-wider mb-4">Producto</h4>
+          <ul class="space-y-2.5">
+            <li><a href="/#features" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Funciones</a></li>
+            <li><a href="/#pricing" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Precios</a></li>
+            <li><a href="/#faq" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">FAQ</a></li>
+          </ul>
+        </div>
+
+        <!-- Compañía -->
+        <div>
+          <h4 class="text-white text-xs font-semibold uppercase tracking-wider mb-4">Compañía</h4>
+          <ul class="space-y-2.5">
+            <li><a href="/quienes-somos" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Quiénes somos</a></li>
+            <li><a href="/contacto" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Contacto</a></li>
+          </ul>
+        </div>
+
+        <!-- Legal -->
+        <div>
+          <h4 class="text-white text-xs font-semibold uppercase tracking-wider mb-4">Legal</h4>
+          <ul class="space-y-2.5">
+            <li><a href="/politica-privacidad" id="footer-privacy" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Política de Privacidad</a></li>
+            <li><a href="/terminos-servicio" id="footer-terms" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Términos de Servicio</a></li>
+            <li><a href="/cookies" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Cookies</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="border-t border-white/05 pt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p class="text-slate-700 text-xs">&copy; <span id="footer-year"></span> vetfield.pro — Todos los derechos reservados.</p>
+        <p class="text-slate-700 text-xs">Hecho con café y barro en Argentina.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================
+       JAVASCRIPT
+  ======================================================== -->
+  <script>
+    // Copyright year
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+    // Reveal on scroll (IntersectionObserver)
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08 });
+
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+    // Form logic to WhatsApp
+    document.getElementById('contact-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const subject = document.getElementById('subject').value;
+      const message = document.getElementById('message').value;
+
+      const formattedText = `Hola Vetfield. Me contacto desde la web.\n\n*Nombre:* ${name}\n*Motivo:* ${subject}\n\n*Mensaje:* ${message}`;
+      const encodedText = encodeURIComponent(formattedText);
+      const whatsappUrl = `https://wa.me/5493564331711?text=${encodedText}`;
+
+      window.open(whatsappUrl, '_blank');
+    });
+  </script>
+
+</body>
+
+</html>

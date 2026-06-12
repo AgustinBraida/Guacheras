@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>vetfield.pro — Control de Guacheras para Veterinarios de Campo</title>
+  <meta name="description"
+    content="Registrá terneros, seguí mortalidad, medí Ig del calostro y sincronizá con la nube aunque estés sin señal. La herramienta del veterinario de campo." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            indigo: {
+              950: '#0d1240',
+              900: '#131a5e',
+              800: '#1a237e',
+              700: '#283593',
+              600: '#3949ab',
+              500: '#5c6bc0',
+              400: '#7986cb',
+              200: '#c5cae9',
+              100: '#e8eaf6',
+            },
+            forest: {
+              900: '#1b5e20',
+              800: '#2e7d32',
+              700: '#388e3c',
+              600: '#43a047',
+              500: '#4caf50',
+              400: '#66bb6a',
+              200: '#c8e6c9',
+            },
+            earth: {
+              900: '#3e2000',
+              800: '#502400',
+              700: '#6d3a0f',
+              500: '#8d5524',
+              300: '#c68642',
+            }
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    /* ── Scrollbar ─────────────────────────────────────── */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0d1240;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #2e7d32;
+      border-radius: 3px;
+    }
+
+    /* ── Glassmorphism ──────────────────────────────────── */
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    .glass-light {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(26, 35, 126, 0.1);
+    }
+
+    /* ── Gradient text ──────────────────────────────────── */
+    .grad-text {
+      background: linear-gradient(135deg, #66bb6a 0%, #4caf50 35%, #c8e6c9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .grad-text-indigo {
+      background: linear-gradient(135deg, #7986cb 0%, #5c6bc0 50%, #c5cae9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Buttons ────────────────────────────────────────── */
+    .btn-primary {
+      background: linear-gradient(135deg, #2e7d32, #43a047);
+      box-shadow: 0 0 28px rgba(46, 125, 50, 0.5), 0 4px 16px rgba(0, 0, 0, 0.35);
+      transition: box-shadow 0.3s ease, transform 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 50px rgba(46, 125, 50, 0.7), 0 8px 28px rgba(0, 0, 0, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      border: 1.5px solid rgba(101, 117, 203, 0.5);
+      transition: background 0.25s, border-color 0.25s, transform 0.2s;
+    }
+
+    .btn-outline:hover {
+      background: rgba(92, 107, 192, 0.12);
+      border-color: rgba(101, 117, 203, 0.8);
+      transform: translateY(-1px);
+    }
+
+    /* ── Cards ──────────────────────────────────────────── */
+    .feature-card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 24px 70px rgba(46, 125, 50, 0.14);
+      border-color: rgba(46, 125, 50, 0.35) !important;
+    }
+
+    /* ── Navbar scroll ──────────────────────────────────── */
+    .nav-opaque {
+      background: rgba(13, 18, 64, 0.97) !important;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    /* ── Floating anim ──────────────────────────────────── */
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-14px);
+      }
+    }
+
+    .animate-float {
+      animation: float 7s ease-in-out infinite;
+    }
+
+    /* ── Blobs ──────────────────────────────────────────── */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 0.13;
+      pointer-events: none;
+    }
+
+    /* ── Pricing popular ring ───────────────────────────── */
+    .plan-popular {
+      background: linear-gradient(160deg, #1a2b5e 0%, #0f1e45 100%);
+      border: 1.5px solid rgba(102, 187, 106, 0.45);
+      box-shadow: 0 0 60px rgba(46, 125, 50, 0.18), inset 0 0 40px rgba(92, 107, 192, 0.06);
+    }
+
+    /* ── FAQ ────────────────────────────────────────────── */
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.42s ease, padding 0.3s ease;
+    }
+
+    .faq-answer.open {
+      max-height: 340px;
+    }
+
+    .faq-icon {
+      transition: transform 0.3s ease;
+    }
+
+    .faq-icon.rotated {
+      transform: rotate(45deg);
+    }
+
+    /* ── Hero background ────────────────────────────────── */
+    .hero-bg {
+      background:
+        radial-gradient(ellipse 70% 60% at 70% 50%, rgba(26, 35, 126, 0.45) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 50% at 10% 80%, rgba(46, 125, 50, 0.18) 0%, transparent 60%),
+        linear-gradient(160deg, #090e2f 0%, #0d1240 50%, #0a1f10 100%);
+    }
+
+    /* ── Stat badge ─────────────────────────────────────── */
+    .stat-pill {
+      background: rgba(46, 125, 50, 0.12);
+      border: 1px solid rgba(46, 125, 50, 0.28);
+    }
+
+    /* ── Offline badge ──────────────────────────────────── */
+    .offline-badge {
+      background: linear-gradient(90deg, rgba(46, 125, 50, 0.15), rgba(26, 35, 126, 0.15));
+      border: 1px solid rgba(102, 187, 106, 0.3);
+    }
+
+    /* ── Grid overlay ───────────────────────────────────── */
+    .grid-overlay {
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* ── Reveal on scroll ───────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Billing Toggle ─────────────────────────────────── */
+    .billing-toggle-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 2.5rem;
+    }
+
+    .billing-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #94a3b8;
+      transition: color 0.25s ease;
+      cursor: default;
+      user-select: none;
+    }
+
+    .billing-label.active {
+      color: #e2e8f0;
+    }
+
+    .billing-switch {
+      position: relative;
+      width: 52px;
+      height: 28px;
+      cursor: pointer;
+    }
+
+    .billing-switch input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .billing-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: rgba(26, 35, 126, 0.55);
+      border: 1.5px solid rgba(92, 107, 192, 0.35);
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .billing-switch input:checked~.billing-track {
+      background: linear-gradient(135deg, #2e7d32, #43a047);
+      border-color: rgba(102, 187, 106, 0.5);
+      box-shadow: 0 0 18px rgba(46, 125, 50, 0.45);
+    }
+
+    .billing-thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+      transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .billing-switch input:checked~.billing-track .billing-thumb {
+      transform: translateX(24px);
+    }
+
+    .billing-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(46, 125, 50, 0.18);
+      border: 1px solid rgba(102, 187, 106, 0.35);
+      color: #66bb6a;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 999px;
+      transition: opacity 0.3s ease;
+    }
+
+    /* ── Price animation ────────────────────────────────── */
+    .price-amount {
+      display: inline-block;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .price-amount.animating {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    /* ── Tour Modal ─────────────────────────────────────── */
+    @keyframes progress {
+      0% {
+        transform: translateX(-100%);
+      }
+
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    @keyframes fadeInSlide {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .tour-slide:not(.hidden) {
+      animation: fadeInSlide 0.35s ease-out forwards;
+    }
+  </style>
+</head>
+
+<body class="bg-indigo-950 text-slate-100 font-sans antialiased">
+
+  <!-- ========================================================
+       NAVBAR
+  ======================================================== -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-4">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+
+      <!-- Logo -->
+      <a href="#" id="nav-logo" class="flex items-center gap-3 group">
+        <img src="../logoternero.png" alt="Logo vetfield.pro — cabeza de ternero"
+          class="w-9 h-9 object-contain group-hover:scale-105 transition-transform" />
+        <span class="text-[1.15rem] font-bold tracking-tight leading-none">
+          <span class="text-white">vetfield</span><span class="text-forest-400">.pro</span>
+        </span>
+      </a>
+
+      <!-- Desktop nav -->
+      <div class="hidden md:flex items-center gap-7" role="navigation" aria-label="Navegación principal">
+        <a href="#features" class="text-sm text-slate-400 hover:text-white transition-colors">Funciones</a>
+        <a href="#pricing" class="text-sm text-slate-400 hover:text-white transition-colors">Precios</a>
+        <a href="#faq" class="text-sm text-slate-400 hover:text-white transition-colors">FAQ</a>
+      </div>
+      <!-- CTA -->
+      <div class="flex items-center gap-3">
+        <a href="/index?tab=login"
+          class="text-xs sm:text-sm text-slate-300 hover:text-white transition-all px-4 py-2 border border-slate-500/30 hover:border-slate-400/60 rounded-xl bg-white/5 backdrop-blur hover:bg-white/10 font-semibold">Iniciar
+          sesión</a>
+        <a href="#pricing" id="nav-cta"
+          class="hidden sm:inline-block btn-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl">
+          Probar gratis
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========================================================
+       HERO
+  ======================================================== -->
+  <section id="hero" class="hero-bg relative min-h-screen flex items-center overflow-hidden">
+
+    <!-- Grid overlay -->
+    <div class="absolute inset-0 grid-overlay opacity-100" aria-hidden="true"></div>
+
+    <!-- Blobs -->
+    <div class="blob w-[600px] h-[600px] bg-indigo-800 top-[-100px] right-[-150px]"
+      style="animation: float 9s ease-in-out infinite;" aria-hidden="true"></div>
+    <div class="blob w-[350px] h-[350px] bg-forest-800 bottom-[-50px] left-[-100px]"
+      style="animation: float 11s ease-in-out infinite; animation-delay:-4s;" aria-hidden="true"></div>
+
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
+      <div class="grid lg:grid-cols-2 gap-14 items-center">
+
+        <!-- LEFT: copy -->
+        <div class="text-center lg:text-left">
+
+          <!-- Badge -->
+          <div class="inline-flex items-center gap-2 offline-badge rounded-full px-4 py-1.5 mb-6">
+            <span class="w-1.5 h-1.5 rounded-full bg-forest-400 animate-pulse"></span>
+            <span class="text-forest-300 text-xs font-semibold tracking-wide">Funciona sin señal en el campo</span>
+          </div>
+
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.08] tracking-tight mb-6">
+            El cuaderno de campo<br />
+            <span class="grad-text">que no se moja,</span><br />
+            no se pierde<br />
+            <span class="text-slate-300 text-3xl sm:text-4xl font-semibold">y siempre está sincronizado.</span>
+          </h1>
+
+          <p class="text-slate-400 text-lg sm:text-xl leading-relaxed mb-8 max-w-xl mx-auto lg:mx-0">
+            Registrás terneros en el establecimiento, medís Ig del calostro, seguís mortalidad
+            y tenés todo disponible en la nube cuando volvés al pueblo.
+            Hecho para veterinarios que trabajan en el campo.
+          </p>
+
+          <!-- CTAs -->
+          <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10">
+            <a href="#pricing" id="hero-cta-primary"
+              class="btn-primary text-white font-bold text-base px-8 py-4 rounded-xl inline-flex items-center justify-center gap-2">
+              Empezar Gratis
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </a>
+            <a href="javascript:void(0)" id="hero-cta-secondary" onclick="openTourModal()"
+              class="btn-outline glass text-white font-semibold text-base px-8 py-4 rounded-xl inline-flex items-center justify-center gap-2">
+              <svg class="w-4 h-4 text-forest-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Ver cómo funciona
+            </a>
+          </div>
+
+          <!-- Stats -->
+          <div class="flex flex-wrap items-center gap-x-6 gap-y-3 justify-center lg:justify-start">
+            <div class="stat-pill rounded-full px-3 py-1 text-xs text-forest-300 font-medium">Sin conexión a internet
+            </div>
+            <div class="stat-pill rounded-full px-3 py-1 text-xs text-forest-300 font-medium">Datos sincronizados en la
+              nube</div>
+          </div>
+        </div>
+
+        <!-- RIGHT: app mockup -->
+        <div class="flex items-center justify-center lg:justify-end">
+          <div class="relative w-full max-w-sm animate-float">
+            <!-- Glow -->
+            <div class="absolute inset-0 rounded-3xl blur-3xl scale-90 opacity-40"
+              style="background: radial-gradient(ellipse, #2e7d32, #1a237e, transparent);" aria-hidden="true"></div>
+
+            <!-- Inline app mockup (always shown, no image needed) -->
+            <div class="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl"
+              style="background: #0d1240;">
+
+              <!-- Status bar -->
+              <div class="flex items-center justify-between px-4 py-2 border-b border-white/5"
+                style="background: #090e2f;">
+                <span class="text-[10px] text-slate-500 font-mono">vetfield.pro</span>
+                <div class="flex items-center gap-1.5">
+                  <div class="w-1.5 h-1.5 rounded-full bg-forest-400"></div>
+                  <span class="text-[10px] text-forest-400 font-semibold">Sincronizado</span>
+                </div>
+              </div>
+
+              <!-- Form body -->
+              <div class="p-5 space-y-3">
+                <div>
+                  <p class="text-[10px] text-indigo-300 font-semibold uppercase tracking-widest mb-0.5">Productor</p>
+                  <div class="bg-white/5 rounded-xl px-3 py-2.5 text-xs text-white border border-white/08">Martinez,
+                    Juan Carlos</div>
+                </div>
+                <div>
+                  <p class="text-[10px] text-indigo-300 font-semibold uppercase tracking-widest mb-0.5">Establecimiento
+                  </p>
+                  <div class="bg-white/5 rounded-xl px-3 py-2.5 text-xs text-white border border-white/08">La Esperanza
+                    — Lote 4</div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <p class="text-[10px] text-indigo-300 font-semibold uppercase tracking-widest mb-0.5">R.P. Ternero
+                    </p>
+                    <div class="bg-white/5 rounded-xl px-3 py-2.5 text-xs text-white border border-white/08">ARG-4821
+                    </div>
+                  </div>
+                  <div>
+                    <p class="text-[10px] text-indigo-300 font-semibold uppercase tracking-widest mb-0.5">Ig Calostro
+                      (%)</p>
+                    <div
+                      class="bg-white/5 rounded-xl px-3 py-2.5 text-xs text-forest-400 font-bold border border-forest-800">
+                      22.4%</div>
+                  </div>
+                </div>
+                <!-- Segmented: Sexo -->
+                <div>
+                  <p class="text-[10px] text-indigo-300 font-semibold uppercase tracking-widest mb-1">Sexo</p>
+                  <div class="grid grid-cols-2 gap-1.5">
+                    <div class="rounded-xl py-2 text-center text-xs font-bold text-white" style="background:#1a237e;">
+                      Macho</div>
+                    <div class="rounded-xl py-2 text-center text-xs text-slate-500 bg-white/5">Hembra</div>
+                  </div>
+                </div>
+                <!-- Segmented: Ombligo -->
+                <div>
+                  <p class="text-[10px] text-indigo-300 font-semibold uppercase tracking-widest mb-1">Estado Ombligo</p>
+                  <div class="grid grid-cols-3 gap-1.5">
+                    <div class="rounded-xl py-2 text-center text-[10px] font-bold text-white"
+                      style="background:#2e7d32;">Bueno</div>
+                    <div class="rounded-xl py-2 text-center text-[10px] text-slate-500 bg-white/5">Regular</div>
+                    <div class="rounded-xl py-2 text-center text-[10px] text-slate-500 bg-white/5">Malo</div>
+                  </div>
+                </div>
+                <!-- Supervivencia -->
+                <div>
+                  <p class="text-[10px] text-indigo-300 font-semibold uppercase tracking-widest mb-1">Estado</p>
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-forest-500 flex-shrink-0"></div>
+                    <span class="text-xs text-forest-400 font-semibold">Vivo</span>
+                  </div>
+                </div>
+                <!-- Save button -->
+                <div class="pt-1">
+                  <div class="w-full rounded-xl py-3 text-center text-sm font-bold text-white btn-primary">
+                    Guardar Registro
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom nav -->
+              <div class="flex items-center border-t border-white/05" style="background: #090e2f;">
+                <div class="flex-1 flex flex-col items-center py-3 gap-1">
+                  <svg class="w-4 h-4 text-forest-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                  </svg>
+                  <span class="text-[9px] text-forest-400">Inicio</span>
+                </div>
+                <div class="flex-1 flex flex-col items-center py-3 gap-1">
+                  <svg class="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span class="text-[9px] text-slate-600">Entrada</span>
+                </div>
+                <div class="flex-1 flex flex-col items-center py-3 gap-1">
+                  <svg class="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6M4 20h16" />
+                  </svg>
+                  <span class="text-[9px] text-slate-600">Reportes</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Wave bottom -->
+    <div class="absolute bottom-0 left-0 right-0" aria-hidden="true">
+      <svg viewBox="0 0 1440 72" fill="none" preserveAspectRatio="none" class="w-full h-10 sm:h-16">
+        <path d="M0 72L1440 72L1440 32C1200 68 960 0 720 36C480 72 240 4 0 36Z" fill="#0d1240" />
+      </svg>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       PROBLEM / CONTEXT STRIP
+  ======================================================== -->
+  <section class="bg-indigo-950 py-16 border-b border-white/05">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+      <p class="text-slate-300 text-lg sm:text-xl leading-relaxed max-w-3xl mx-auto">
+        "Anoto en papel, después paso a Excel, después la planilla se borra o se moja."
+        <br />
+        <span class="text-slate-500 text-base">Eso se terminó.</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       FEATURES
+  ======================================================== -->
+  <section id="features" class="bg-indigo-950 py-24">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="text-center mb-16 reveal">
+        <div class="inline-flex items-center gap-2 stat-pill rounded-full px-4 py-1.5 mb-4">
+          <span class="text-forest-400 text-xs font-semibold tracking-widest uppercase">Funciones</span>
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-white mb-4">
+          Diseñado para el veterinario<br />
+          <span class="grad-text">que trabaja en el campo, no en una oficina</span>
+        </h2>
+        <p class="text-slate-400 text-lg max-w-2xl mx-auto">
+          Cada función fue pensada para condiciones de campo: guantes, sol, barro y sin wifi.
+        </p>
+      </div>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- 1: Registro de terneros -->
+        <div class="feature-card reveal glass rounded-2xl p-6 border border-white/08" id="feature-registro">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5 border border-indigo-600/30"
+            style="background: rgba(26,35,126,0.25);">
+            <svg class="w-6 h-6 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+              stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </div>
+          <h3 class="text-white font-bold text-base mb-2">Registro de Terneros</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Cargá productor, establecimiento, RP del ternero, sexo, estado del ombligo y nivel de Ig en segundos.
+            Targets grandes para usar con guantes.
+          </p>
+          <div class="mt-4 text-indigo-300 text-xs font-medium">R.P. + I.G. + Ombligo + Estado</div>
+        </div>
+
+        <!-- 2: Ig calostro -->
+        <div class="feature-card reveal glass rounded-2xl p-6 border border-white/08" id="feature-ig">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5 border border-forest-700/40"
+            style="background: rgba(46,125,50,0.18);">
+            <svg class="w-6 h-6 text-forest-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+              stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <h3 class="text-white font-bold text-base mb-2">Control de Ig del Calostro</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Registrá el nivel de inmunoglobulinas del calostro de la madre y el nivel del ternero. Identifica fallas de
+            transferencia pasiva con datos concretos.
+          </p>
+          <div class="mt-4 text-forest-400 text-xs font-medium">Ig madre + Ig ternero</div>
+        </div>
+
+        <!-- 3: Mortalidad y causas -->
+        <div class="feature-card reveal glass rounded-2xl p-6 border border-white/08" id="feature-mortalidad">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5 border border-red-700/30"
+            style="background: rgba(185,28,28,0.12);">
+            <svg class="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 class="text-white font-bold text-base mb-2">Seguimiento de Mortalidad</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Registrá el estado del ternero (vivo, muerto en establecimiento, en guachería, en terapia) y la causa
+            específica: Colibacilosis, Rotavirus, Neumonía y más.
+          </p>
+          <div class="mt-4 text-red-400 text-xs font-medium">Causa categoría + causa específica</div>
+        </div>
+
+        <!-- 4: Offline-first -->
+        <div class="feature-card reveal glass rounded-2xl p-6 border border-white/08" id="feature-offline">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5 border border-amber-700/30"
+            style="background: rgba(146,64,14,0.18);">
+            <svg class="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+              stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 18h.01M8.93 6.93A3.5 3.5 0 0112 6a3.5 3.5 0 012.68 1.24M5 12.5a7 7 0 0114 0M2.05 9.05a11.5 11.5 0 0119.9 0" />
+            </svg>
+          </div>
+          <h3 class="text-white font-bold text-base mb-2">Sin Señal, Sin Problema</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Guardá localmente cuando no hay internet. Cuando volviste al pueblo y agarraste wifi, sincroniza
+            automáticamente con la nube. Cero pérdida de datos.
+          </p>
+          <div class="mt-4 text-amber-400 text-xs font-medium">Offline-first + sync automático</div>
+        </div>
+
+        <!-- 5: Productores y establecimientos -->
+        <div class="feature-card reveal glass rounded-2xl p-6 border border-white/08" id="feature-campos">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5 border border-indigo-600/30"
+            style="background: rgba(26,35,126,0.25);">
+            <svg class="w-6 h-6 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+              stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3 10l1.5-1.5M21 10l-1.5-1.5M12 3v2m0 14v2M6.343 6.343l-1.414-1.415M19.07 6.343l1.414-1.415M6.343 17.657l-1.414 1.414M19.07 17.657l1.414 1.414M12 8a4 4 0 100 8 4 4 0 000-8z" />
+            </svg>
+          </div>
+          <h3 class="text-white font-bold text-base mb-2">Múltiples Productores y Campos</h3>
+          <p class="text-slate-400 10-sm leading-relaxed">
+            Manejá tu cartera de productores y sus establecimientos. Cada registro queda vinculado correctamente. Filtrá
+            por campo o productor cuando necesitás el reporte.
+          </p>
+          <div class="mt-4 text-indigo-300 text-xs font-medium">Productor > Establecimiento > Registro</div>
+        </div>
+
+        <!-- 6: Reportes -->
+        <div class="feature-card reveal glass rounded-2xl p-6 border border-white/08" id="feature-reportes">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5 border border-forest-700/40"
+            style="background: rgba(46,125,50,0.18);">
+            <svg class="w-6 h-6 text-forest-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+              stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <h3 class="text-white font-bold text-base mb-2">Dashboard e Indicadores</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Total de terneros, porcentaje de mortalidad y promedio de Ig en tiempo real. Filtrá por establecimiento,
+            productor y fecha para presentarle los datos al productor.
+          </p>
+          <div class="mt-4 text-forest-400 text-xs font-medium">Mortalidad % + Ig promedio + Totales</div>
+        </div>
+
+      </div>
+
+      <!-- Extras strip -->
+      <div class="reveal mt-8 glass rounded-2xl px-6 py-5 border border-white/08">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+          <div>
+            <p class="text-forest-400 font-bold text-sm mb-1">Google Sign-In</p>
+            <p class="text-slate-500 text-xs">Ingresá con tu cuenta Google</p>
+          </div>
+          <div>
+            <p class="text-forest-400 font-bold text-sm mb-1">Multi-dispositivo</p>
+            <p class="text-slate-500 text-xs">Celular, tablet o PC</p>
+          </div>
+          <div>
+            <p class="text-forest-400 font-bold text-sm mb-1">Backup diario</p>
+            <p class="text-slate-500 text-xs">Tus datos siempre a salvo</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================
+       HOW IT WORKS (3 pasos)
+  ======================================================== -->
+  <section class="py-20 border-t border-white/05"
+    style="background: linear-gradient(180deg, #0d1240 0%, #091a10 100%);">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+      <div class="reveal mb-12">
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-3">Tres pasos, sin complicaciones</h2>
+        <p class="text-slate-500">De la manga al reporte en minutos.</p>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-8">
+        <div class="reveal">
+          <div
+            class="w-10 h-10 rounded-full border-2 border-forest-700 text-forest-400 font-bold text-base flex items-center justify-center mx-auto mb-4">
+            1</div>
+          <h3 class="text-white font-semibold mb-2">Abrís la app en el campo</h3>
+          <p class="text-slate-500 text-sm">Sin señal, sin problema. La app carga igual desde el caché.</p>
+        </div>
+        <div class="reveal" style="transition-delay: 0.1s;">
+          <div
+            class="w-10 h-10 rounded-full border-2 border-forest-700 text-forest-400 font-bold text-base flex items-center justify-center mx-auto mb-4">
+            2</div>
+          <h3 class="text-white font-semibold mb-2">Cargás cada ternero</h3>
+          <p class="text-slate-500 text-sm">RP, Ig, ombligo, estado. Botones grandes, carga rápida.</p>
+        </div>
+        <div class="reveal" style="transition-delay: 0.2s;">
+          <div
+            class="w-10 h-10 rounded-full border-2 border-forest-700 text-forest-400 font-bold text-base flex items-center justify-center mx-auto mb-4">
+            3</div>
+          <h3 class="text-white font-semibold mb-2">Al volver, sincroniza solo</h3>
+          <p class="text-slate-500 text-sm">Cuando agarra wifi sube todo automáticamente con un boton. Reporte listo
+            para el
+            productor.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       PRICING
+  ======================================================== -->
+  <section id="pricing" class="py-24 bg-indigo-950">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="text-center mb-16 reveal">
+        <div class="inline-flex items-center gap-2 stat-pill rounded-full px-4 py-1.5 mb-4">
+          <span class="text-forest-400 text-xs font-semibold tracking-widest uppercase">Planes</span>
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-white mb-4">
+          Precios para veterinarios,<br />
+          <span class="grad-text">no para corporaciones</span>
+        </h2>
+        <p class="text-slate-400 text-lg">Sin permanencia. Sin sorpresas. Cambiá cuando quieras.</p>
+
+        <!-- Billing toggle -->
+        <div class="billing-toggle-wrap mt-8" role="group" aria-label="Ciclo de facturación">
+          <span class="billing-label active" id="label-mensual">Pago Mensual</span>
+
+          <label class="billing-switch" for="billing-toggle" aria-label="Cambiar a pago anual">
+            <input type="checkbox" id="billing-toggle" role="switch" aria-checked="false" />
+            <span class="billing-track">
+              <span class="billing-thumb"></span>
+            </span>
+          </label>
+
+          <span class="billing-label" id="label-anual">Pago Anual</span>
+          <span class="billing-badge" id="badge-ahorro" aria-live="polite">Ahorrá hasta 38%</span>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
+
+        <!-- Plan Inicio -->
+        <div class="reveal flex flex-col">
+          <div class="glass rounded-2xl p-8 border border-white/08 flex flex-col flex-1" id="plan-inicio">
+            <div class="mb-6">
+              <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">Para empezar</p>
+              <h3 class="text-white text-xl font-bold">Plan Inicio</h3>
+              <p class="text-slate-500 text-sm mt-1">El veterinario de campo que quiere dejar el papel.</p>
+            </div>
+            <div class="mb-7">
+              <div class="flex items-end gap-1">
+                <span class="text-white text-5xl font-extrabold">$0</span>
+                <span class="text-slate-500 text-sm mb-2">/mes</span>
+              </div>
+              <p class="text-slate-600 text-xs mt-1">Gratis durante la beta</p>
+            </div>
+            <ul class="space-y-3 mb-8 flex-1">
+              <li class="flex items-start gap-2.5 text-sm text-slate-300">
+                <svg class="w-4 h-4 text-forest-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Hasta 3 productores
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-300">
+                <svg class="w-4 h-4 text-forest-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                100 registros de terneros
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-300">
+                <svg class="w-4 h-4 text-forest-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Modo offline completo
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-300">
+                <svg class="w-4 h-4 text-forest-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Dashboard con Ig y mortalidad
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-500">
+                <svg class="w-4 h-4 text-slate-700 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Exportación de reportes
+              </li>
+
+            </ul>
+            <a href="/index?tab=register" id="cta-inicio"
+              class="btn-outline w-full text-center py-3.5 px-6 rounded-xl text-indigo-300 font-semibold text-sm">
+              Crear Cuenta Gratis
+            </a>
+          </div>
+        </div>
+
+        <!-- Plan Pro — popular -->
+        <div class="reveal flex flex-col">
+          <div class="plan-popular rounded-2xl p-8 flex flex-col relative md:scale-105 z-10 shadow-2xl flex-1"
+            id="plan-pro">
+            <div class="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+              <span
+                class="bg-forest-700 text-white text-xs font-bold px-5 py-1.5 rounded-full shadow-lg whitespace-nowrap tracking-wide">
+                MÁS ELEGIDO
+              </span>
+            </div>
+            <div class="mb-6">
+              <p class="text-forest-300 text-xs font-semibold uppercase tracking-wider mb-2">Para el profesional</p>
+              <h3 class="text-white text-xl font-bold">Plan Pro</h3>
+              <p class="text-slate-400 text-sm mt-1">Para el veterinario que maneja una cartera real de productores.</p>
+            </div>
+            <div class="mb-7">
+              <div class="flex items-end gap-1">
+                <span class="text-white text-5xl font-extrabold price-amount" id="price-pro">$8.990</span>
+                <span class="text-slate-400 text-sm mb-2" id="period-pro">ARS/mes</span>
+              </div>
+              <p class="text-forest-300 text-xs mt-1" id="subprice-pro">o $69.990 ARS/año</p>
+            </div>
+            <ul class="space-y-3 mb-8 flex-1">
+              <li class="flex items-start gap-2.5 text-sm text-slate-200">
+                <svg class="w-4 h-4 text-forest-300 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Productores ilimitados
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-200">
+                <svg class="w-4 h-4 text-forest-300 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Registros ilimitados
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-200">
+                <svg class="w-4 h-4 text-forest-300 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Modo offline + sync
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-200">
+                <svg class="w-4 h-4 text-forest-300 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Exportación de reportes (PDF/CSV)
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-200">
+                <svg class="w-4 h-4 text-forest-300 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Visualización de gráficos y estadísticas
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-200">
+                <svg class="w-4 h-4 text-forest-300 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Soporte por WhatsApp prioritario
+              </li>
+            </ul>
+            <a href="#" id="cta-pro" target="_blank"
+              class="btn-primary w-full text-center py-3.5 px-6 rounded-xl text-white font-bold text-sm">
+              Suscribirme al Plan Pro
+            </a>
+          </div>
+        </div>
+
+        <!-- Plan Premium -->
+        <div class="reveal flex flex-col">
+          <div class="glass rounded-2xl p-8 border border-white/08 flex flex-col flex-1" id="plan-premium">
+            <div class="mb-6">
+              <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">Para el profesional de élite
+              </p>
+              <h3 class="text-white text-xl font-bold">Plan Premium</h3>
+              <p class="text-slate-500 text-sm mt-1">El veterinario con alta demanda y reportes a medida.</p>
+            </div>
+            <div class="mb-7">
+              <div class="flex items-end gap-1">
+                <span class="text-white text-5xl font-extrabold price-amount" id="price-premium">$19.990</span>
+                <span class="text-slate-400 text-sm mb-2" id="period-premium">ARS/mes</span>
+              </div>
+              <p class="text-forest-300 text-xs mt-1" id="subprice-premium">o $125.990 ARS/año</p>
+            </div>
+            <ul class="space-y-3 mb-8 flex-1">
+              <li class="flex items-start gap-2.5 text-sm text-slate-300">
+                <svg class="w-4 h-4 text-forest-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Todo del Plan Pro
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-300">
+                <svg class="w-4 h-4 text-forest-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Backup automático en tu propia nube
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-300">
+                <svg class="w-4 h-4 text-forest-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Reportes ilimitados
+              </li>
+              <li class="flex items-start gap-2.5 text-sm text-slate-300">
+                <svg class="w-4 h-4 text-forest-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Descarga y exportación de gráficos
+              </li>
+
+              <li class="flex items-start gap-2.5 text-sm text-slate-300">
+                <svg class="w-4 h-4 text-forest-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Soporte 24/7 via Whatsapp
+              </li>
+            </ul>
+            <a href="#" id="cta-premium" target="_blank"
+              class="btn-outline w-full text-center py-3.5 px-6 rounded-xl text-indigo-300 font-semibold text-sm">
+              Suscribirme al Plan Premium
+            </a>
+          </div>
+        </div>
+
+
+      </div>
+
+      <!-- Guarantees -->
+      <div class="reveal mt-10 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-slate-500">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-forest-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Sin tarjeta de crédito para la prueba
+        </div>
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-forest-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Cancelá cuando quieras
+        </div>
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-forest-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Tus datos son tuyos
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================
+       FAQ
+  ======================================================== -->
+  <section id="faq" class="py-24" style="background: linear-gradient(180deg, #091a10 0%, #0d1240 100%);">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6">
+
+      <div class="text-center mb-14 reveal">
+        <div class="inline-flex items-center gap-2 stat-pill rounded-full px-4 py-1.5 mb-4">
+          <span class="text-forest-400 text-xs font-semibold tracking-widest uppercase">FAQ</span>
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-white mb-4">Preguntas frecuentes</h2>
+        <p class="text-slate-500">Lo que nos preguntan los veterinarios antes de empezar.</p>
+      </div>
+
+      <div class="space-y-3" role="list">
+
+        <div class="reveal glass rounded-2xl border border-white/08 overflow-hidden" role="listitem">
+          <button class="faq-trigger w-full flex items-center justify-between p-6 text-left" aria-expanded="false"
+            id="faq1-btn" aria-controls="faq1-body">
+            <span class="text-white font-semibold text-sm sm:text-base pr-4">
+              Trabajo en zonas sin internet. ¿Funciona igual?
+            </span>
+            <svg class="faq-icon w-5 h-5 text-forest-400 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+          <div class="faq-answer px-6" id="faq1-body" role="region" aria-labelledby="faq1-btn">
+            <p class="text-slate-400 text-sm leading-relaxed pb-6">
+              Sí, completamente. vetfield.pro está diseñado con un modelo offline-first: guarda todos los registros en
+              tu dispositivo cuando no hay internet. En cuanto el celular agarra señal o wifi, con solo apretar un
+              boton, sube todo a la nube
+              automáticamente.
+            </p>
+          </div>
+        </div>
+
+        <div class="reveal glass rounded-2xl border border-white/08 overflow-hidden" role="listitem">
+          <button class="faq-trigger w-full flex items-center justify-between p-6 text-left" aria-expanded="false"
+            id="faq2-btn" aria-controls="faq2-body">
+            <span class="text-white font-semibold text-sm sm:text-base pr-4">
+              ¿Qué datos puedo registrar de cada ternero?
+            </span>
+            <svg class="faq-icon w-5 h-5 text-forest-400 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+          <div class="faq-answer px-6" id="faq2-body" role="region" aria-labelledby="faq2-btn">
+            <p class="text-slate-400 text-sm leading-relaxed pb-6">
+              Por cada ternero registrás: productor, establecimiento, fecha, RP del ternero, nivel de Ig
+              (inmunoglobulinas), sexo, estado del ombligo (Bueno / Regular / Malo), tipo de madre (vaca o vaquillona),
+              RP de la madre, nivel de Ig del calostro de la madre, estado de supervivencia y en caso de muerte la
+              categoría y causa específica (Colibacilosis, Rotavirus, Coronavirus, Neumonía, Onfalitis, entre otras).
+            </p>
+          </div>
+        </div>
+
+        <div class="reveal glass rounded-2xl border border-white/08 overflow-hidden" role="listitem">
+          <button class="faq-trigger w-full flex items-center justify-between p-6 text-left" aria-expanded="false"
+            id="faq3-btn" aria-controls="faq3-body">
+            <span class="text-white font-semibold text-sm sm:text-base pr-4">
+              ¿Puedo migrar los datos que ya tengo en papel o Excel?
+            </span>
+            <svg class="faq-icon w-5 h-5 text-forest-400 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+          <div class="faq-answer px-6" id="faq3-body" role="region" aria-labelledby="faq3-btn">
+            <p class="text-slate-400 text-sm leading-relaxed pb-6">
+              Sí. vetfield.pro cuenta con una herramienta de importación inteligente. Podés descargar nuestra plantilla
+              modelo de Excel (.xlsx / .csv) desde la configuración de tu perfil, completar tus registros históricos y
+              subirlos directamente para cargarlos en bloque en el sistema de manera autónoma.
+            </p>
+          </div>
+        </div>
+
+        <div class="reveal glass rounded-2xl border border-white/08 overflow-hidden" role="listitem">
+          <button class="faq-trigger w-full flex items-center justify-between p-6 text-left" aria-expanded="false"
+            id="faq4-btn" aria-controls="faq4-body">
+            <span class="text-white font-semibold text-sm sm:text-base pr-4">
+              ¿Hay permanencia o tengo que firmar algo?
+            </span>
+            <svg class="faq-icon w-5 h-5 text-forest-400 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+          <div class="faq-answer px-6" id="faq4-body" role="region" aria-labelledby="faq4-btn">
+            <p class="text-slate-400 text-sm leading-relaxed pb-6">
+              No para el plan mensual: si pagás mes a mes, no hay permanencia ni contratos, y podés cancelar cuando
+              quieras desde la configuración de tu cuenta. En el caso del pago anual, dado que se ofrece con un
+              descuento muy importante, por contrato el período no es reembolsable. Por eso recomendamos empezar usando
+              la versión gratuita y, una vez que estés conforme con el servicio, realizar el pago anual para ahorrar en
+              tu suscripción.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       CTA FINAL
+  ======================================================== -->
+  <section class="py-20 relative overflow-hidden"
+    style="background: linear-gradient(135deg, #0a1f10 0%, #0d1240 100%);">
+    <div class="absolute inset-0 grid-overlay opacity-60" aria-hidden="true"></div>
+    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 text-center reveal">
+      <img src="../logoternero.png" alt="" class="w-24 h-24 object-contain mx-auto mb-6 opacity-90"
+        aria-hidden="true" />
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white mb-4">
+        El papel se moja. La nube, no.
+      </h2>
+      <p class="text-slate-400 text-lg mb-8 max-w-xl mx-auto">
+        Empezá a registrar hoy. Es gratis, funciona sin señal y no necesitás tarjeta de crédito.
+      </p>
+      <a href="/index?tab=register" id="final-cta"
+        class="btn-primary text-white font-bold text-base px-10 py-4 rounded-xl inline-flex items-center gap-2">
+        Crear mi cuenta gratis
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+        </svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- ========================================================
+       FOOTER
+  ======================================================== -->
+  <footer class="bg-indigo-950 border-t border-white/05 pt-12 pb-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+
+        <!-- Brand -->
+        <div class="col-span-2 md:col-span-1">
+          <a href="#" class="flex items-center gap-2.5 mb-4">
+            <img src="../logoternero.png" alt="Logo vetfield.pro" class="w-8 h-8 object-contain" />
+            <span class="text-base font-bold">
+              <span class="text-white">vetfield</span><span class="text-forest-400">.pro</span>
+            </span>
+          </a>
+          <p class="text-slate-500 text-xs leading-relaxed mb-5">
+            Software de gestión de guacheras y crianza de terneros para veterinarios de campo. Hecho en Argentina.
+          </p>
+          <div class="flex items-center gap-3">
+            <a href="https://www.instagram.com/vetfield.pro/" target="_blank" rel="noopener noreferrer"
+              aria-label="Instagram" id="footer-ig"
+              class="w-8 h-8 glass rounded-lg flex items-center justify-center hover:border-forest-700 transition-colors">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+              </svg>
+            </a>
+            <a href="#" aria-label="TikTok" id="footer-tt"
+              class="w-8 h-8 glass rounded-lg flex items-center justify-center hover:border-forest-700 transition-colors">
+              <svg class="w-3.5 h-3.5 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                <path
+                  d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.23.86.17 1.75.28 2.63.29v3.9c-1.3-.01-2.6-.18-3.82-.69-.17 2.24-.94 4.41-2.23 6.25-1.53 2.1-3.86 3.51-6.43 3.91-2.9.43-5.91-.45-8.08-2.45C-1.8 13.56-1.99 9.38.8 6.9c1.9-1.74 4.54-2.54 7.07-2.18l.05 4.09c-1.32-.23-2.73.08-3.75.95-.98.81-1.37 2.15-1.01 3.37.31 1.13 1.25 1.99 2.39 2.22 1.48.27 3.08-.43 3.69-1.83.21-.52.28-1.08.27-1.63V0h3.11z" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Producto -->
+        <div>
+          <h4 class="text-white text-xs font-semibold uppercase tracking-wider mb-4">Producto</h4>
+          <ul class="space-y-2.5">
+            <li><a href="#features" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Funciones</a>
+            </li>
+            <li><a href="#pricing" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Precios</a>
+            </li>
+            <li><a href="#faq" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">FAQ</a></li>
+          </ul>
+        </div>
+
+        <!-- Compañía -->
+        <div>
+          <h4 class="text-white text-xs font-semibold uppercase tracking-wider mb-4">Compañía</h4>
+          <ul class="space-y-2.5">
+            <li><a href="/quienes-somos" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Quiénes
+                somos</a></li>
+            <li><a href="/contacto" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Contacto</a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Legal -->
+        <div>
+          <h4 class="text-white text-xs font-semibold uppercase tracking-wider mb-4">Legal</h4>
+          <ul class="space-y-2.5">
+            <li><a href="/politica-privacidad" id="footer-privacy"
+                class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Política de Privacidad</a></li>
+            <li><a href="/terminos-servicio" id="footer-terms"
+                class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Términos de Servicio</a></li>
+            <li><a href="/politica-reembolsos"
+                class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Política de Reembolsos</a></li>
+            <li><a href="/cookies" class="text-slate-500 hover:text-slate-300 text-sm transition-colors">Cookies</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="border-t border-white/05 pt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p class="text-slate-700 text-xs">&copy; <span id="footer-year"></span> vetfield.pro — Todos los derechos
+          reservados.</p>
+        <p class="text-slate-700 text-xs">Hecho con mate y barro en Argentina.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================
+       JAVASCRIPT
+  ======================================================== -->
+  <script>
+    // Copyright year
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+    // Navbar opacity on scroll
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('nav-opaque', window.scrollY > 24);
+    }, { passive: true });
+
+    // FAQ accordion
+    document.querySelectorAll('.faq-trigger').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const isOpen = btn.getAttribute('aria-expanded') === 'true';
+        // Close all
+        document.querySelectorAll('.faq-trigger').forEach(b => {
+          b.setAttribute('aria-expanded', 'false');
+          b.querySelector('.faq-icon').classList.remove('rotated');
+          document.getElementById(b.getAttribute('aria-controls')).classList.remove('open');
+        });
+        // Open this one if it was closed
+        if (!isOpen) {
+          btn.setAttribute('aria-expanded', 'true');
+          btn.querySelector('.faq-icon').classList.add('rotated');
+          document.getElementById(btn.getAttribute('aria-controls')).classList.add('open');
+        }
+      });
+    });
+
+    // Reveal on scroll (IntersectionObserver)
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08 });
+
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  </script>
+
+
+  <!-- ========================================================
+       MERCADO PAGO + BILLING TOGGLE
+  ======================================================== -->
+  <script>
+    /* ── 1. URLs de checkout de Mercado Pago ──────────────── */
+    /* IMPORTANTE: Reemplazá los # con las URLs reales de tus
+       planes de suscripción de Mercado Pago. Se obtienen así:
+       developers.mercadopago.com → Tu app → Suscripciones →
+       Copiar el link de checkout de cada plan.               */
+    var PLANS = {
+      pro: {
+        monthly: {
+          price: '$8.990',
+          period: 'ARS/mes',
+          subprice: 'o $69.990 ARS/año',
+          url: 'https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=9fd8e36af50a462a9f3bb4dbdc5b8c85'   /* ← reemplazar con URL de MP */
+        },
+        annual: {
+          price: '$69.990',
+          period: 'ARS/año',
+          subprice: '≈ $5.832 ARS/mes · ahorrás 35%',
+          url: 'https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=10e431df0a0f49dd9cb2601a0319933c'    /* ← reemplazar con URL de MP */
+        }
+      },
+      premium: {
+        monthly: {
+          price: '$19.990',
+          period: 'ARS/mes',
+          subprice: 'o $125.990 ARS/año',
+          url: 'https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=f50defec1bb5402597352bbb5f075a03' /* ← reemplazar con URL de MP */
+        },
+        annual: {
+          price: '$125.990',
+          period: 'ARS/año',
+          subprice: '≈ $10.499 ARS/mes · ahorrás 38%',
+          url: 'https://www.mercadopago.com.ar/subscriptions/checkout?preapproval_plan_id=e73fb86bf68a4e3eaafa0ff0a8d3a650'  /* ← reemplazar con URL de MP */
+        }
+      }
+    };
+
+    /* ── 3. Animate price change ──────────────────────────── */
+    function animatePrice(el, newText) {
+      el.classList.add('animating');
+      setTimeout(function () {
+        el.textContent = newText;
+        el.classList.remove('animating');
+      }, 200);
+    }
+
+    /* ── 4. Apply billing cycle ───────────────────────────── */
+    function applyBilling(isAnnual) {
+      var cycle = isAnnual ? 'annual' : 'monthly';
+
+      /* Pro */
+      var proPlan = PLANS.pro[cycle];
+      animatePrice(document.getElementById('price-pro'), proPlan.price);
+      document.getElementById('period-pro').textContent = proPlan.period;
+      document.getElementById('subprice-pro').textContent = proPlan.subprice;
+      document.getElementById('cta-pro').href = proPlan.url;
+
+      /* Premium */
+      var premiumPlan = PLANS.premium[cycle];
+      animatePrice(document.getElementById('price-premium'), premiumPlan.price);
+      document.getElementById('period-premium').textContent = premiumPlan.period;
+      document.getElementById('subprice-premium').textContent = premiumPlan.subprice;
+      document.getElementById('cta-premium').href = premiumPlan.url;
+
+      /* Labels */
+      document.getElementById('label-mensual').classList.toggle('active', !isAnnual);
+      document.getElementById('label-anual').classList.toggle('active', isAnnual);
+
+      /* ARIA */
+      document.getElementById('billing-toggle').setAttribute('aria-checked', isAnnual ? 'true' : 'false');
+    }
+
+    /* ── 5. Toggle event ──────────────────────────────────── */
+    document.getElementById('billing-toggle').addEventListener('change', function () {
+      applyBilling(this.checked);
+    });
+
+    /* ── 6. Inicializar al cargar la página ───────────────── */
+    /* Sin esto, los botones quedan con href="#" hasta que se
+       toca el toggle, haciendo que redirijan a la misma página. */
+    applyBilling(false);
+
+    /* ── 6. Los botones CTA ya tienen el href de Mercado Pago ── */
+    /*
+      La función applyBilling() mantiene el atributo href actualizado
+      según el ciclo de facturación seleccionado (mensual / anual),
+      apuntando siempre al checkout correcto de Mercado Pago.
+     */
+  </script>
+
+  <!-- ========================================================
+       MODAL: TOUR DE LA APP (VER CÓMO FUNCIONA)
+  ======================================================== -->
+  <div id="tour-modal"
+    class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm transition-all duration-300 opacity-0"
+    role="dialog" aria-modal="true" aria-labelledby="tour-modal-title">
+    <div id="tour-modal-card"
+      class="relative w-full max-w-4xl glass rounded-3xl border border-white/10 overflow-hidden shadow-2xl transition-all duration-300 transform scale-95 flex flex-col max-h-[90vh]">
+
+      <!-- Close Button -->
+      <button onclick="closeTourModal()"
+        class="absolute top-5 right-5 z-10 w-10 h-10 rounded-full glass hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+        aria-label="Cerrar modal">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Modal Content: Slide area -->
+      <div class="flex-1 overflow-y-auto p-6 sm:p-10 pt-16">
+
+        <!-- Navigation Tabs / Steps bar -->
+        <div class="flex justify-between items-center max-w-md mx-auto mb-8 border-b border-white/5 pb-4">
+          <button onclick="goToSlide(0)"
+            class="tour-step-tab flex-1 text-center pb-2 border-b-2 transition-all text-xs font-bold uppercase tracking-wider border-forest-500 text-forest-400"
+            id="step-tab-0">
+            1. Registro
+          </button>
+          <div class="w-4 h-[1px] bg-white/10 mb-2"></div>
+          <button onclick="goToSlide(1)"
+            class="tour-step-tab flex-1 text-center pb-2 border-b-2 transition-all text-xs font-bold uppercase tracking-wider border-transparent text-slate-500 hover:text-slate-300"
+            id="step-tab-1">
+            2. Sincronización
+          </button>
+          <div class="w-4 h-[1px] bg-white/10 mb-2"></div>
+          <button onclick="goToSlide(2)"
+            class="tour-step-tab flex-1 text-center pb-2 border-b-2 transition-all text-xs font-bold uppercase tracking-wider border-transparent text-slate-500 hover:text-slate-300"
+            id="step-tab-2">
+            3. Analítica
+          </button>
+        </div>
+
+        <!-- Slides Wrapper -->
+        <div class="relative overflow-hidden">
+
+          <!-- SLIDE 1: Registro offline -->
+          <div class="tour-slide transition-all duration-300 flex flex-col md:flex-row gap-8 items-center"
+            id="tour-slide-0">
+            <!-- Left Side: Interactive Graphic / Mockup -->
+            <div class="w-full md:w-1/2 flex justify-center">
+              <div
+                class="w-full max-w-[280px] rounded-2xl border border-white/10 bg-[#0d1240] overflow-hidden shadow-xl">
+                <!-- Status bar -->
+                <div class="flex items-center justify-between px-3 py-2 bg-[#090e2f] border-b border-white/5">
+                  <span class="text-[9px] text-amber-500 flex items-center gap-1 font-semibold">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    Modo Offline
+                  </span>
+                  <span class="text-[9px] text-slate-500 font-mono">vetfield.pro</span>
+                </div>
+                <!-- Form Mockup -->
+                <div class="p-4 space-y-2.5">
+                  <div class="bg-white/5 rounded-lg p-2 border border-white/5">
+                    <p class="text-[8px] text-indigo-300 uppercase font-bold tracking-wider">Productor</p>
+                    <p class="text-xs text-white">Estancia Santa Julia</p>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-white/5 rounded-lg p-2 border border-white/5">
+                      <p class="text-[8px] text-indigo-300 uppercase font-bold tracking-wider">RP Ternero</p>
+                      <p class="text-xs text-white">4912-A</p>
+                    </div>
+                    <div class="bg-white/5 rounded-lg p-2 border-forest-500/30 bg-forest-950/10">
+                      <p class="text-[8px] text-forest-400 uppercase font-bold tracking-wider">Ig Calostro</p>
+                      <p class="text-xs text-forest-400 font-bold">23.8 %</p>
+                    </div>
+                  </div>
+                  <!-- Touch selectors simulation -->
+                  <div>
+                    <p class="text-[8px] text-indigo-300 uppercase font-bold tracking-wider mb-1">Estado Ombligo</p>
+                    <div class="grid grid-cols-3 gap-1">
+                      <div class="bg-forest-700 text-white rounded text-[9px] text-center py-1 font-bold">Bueno</div>
+                      <div class="bg-white/5 text-slate-500 rounded text-[9px] text-center py-1">Regular</div>
+                      <div class="bg-white/5 text-slate-500 rounded text-[9px] text-center py-1">Malo</div>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="text-[8px] text-indigo-300 uppercase font-bold tracking-wider mb-1">Diagnóstico (Causa
+                      Muerte)</p>
+                    <div
+                      class="bg-white/5 text-slate-400 rounded-lg p-2 text-xs border border-white/5 flex items-center justify-between">
+                      <span>Ninguno (Vivo)</span>
+                      <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="pt-1">
+                    <div
+                      class="w-full bg-forest-600 hover:bg-forest-500 text-white text-center py-2 text-xs font-bold rounded-lg cursor-pointer transition-colors shadow-lg">
+                      Guardar Registro
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Right Side: Explanatory Copy -->
+            <div class="w-full md:w-1/2 space-y-4">
+              <span
+                class="inline-block bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 text-xs font-bold px-3 py-1 rounded-full">Paso
+                1: Captura Rápida</span>
+              <h3 class="text-2xl font-extrabold text-white leading-tight">Registrá datos al pie de la manga sin señal
+              </h3>
+              <p class="text-slate-400 text-sm leading-relaxed">
+                Nuestra aplicación está diseñada para ser <strong>offline-first</strong>. Esto significa que podés
+                cargar todos los datos de los terneros (inmunoglobulina de calostro, estado sanitario, peso, sexo y
+                causa de muerte) en el medio del campo, sin preocuparte por la conectividad.
+              </p>
+              <ul class="space-y-2 text-xs text-slate-300">
+                <li class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-forest-400 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Botones grandes y selectores táctiles diseñados para el barro y guantes.
+                </li>
+                <li class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-forest-400 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Base de datos local segura que evita la pérdida de información.
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- SLIDE 2: Sincronización inteligente -->
+          <div class="tour-slide transition-all duration-300 hidden flex flex-col md:flex-row gap-8 items-center"
+            id="tour-slide-1">
+            <!-- Left Side: Visual animation of sync -->
+            <div class="w-full md:w-1/2 flex justify-center">
+              <div
+                class="w-full max-w-[280px] p-6 rounded-2xl border border-white/10 bg-[#0d1240] shadow-xl text-center space-y-6">
+                <div class="relative flex justify-center items-center">
+                  <!-- Outer pulsing ring -->
+                  <div class="absolute w-24 h-24 rounded-full border border-forest-500/20 animate-ping"></div>
+                  <!-- Inner pulsing ring -->
+                  <div class="absolute w-16 h-16 rounded-full border border-forest-500/40 animate-pulse"></div>
+                  <!-- Cloud Icon container -->
+                  <div
+                    class="relative w-12 h-12 rounded-full bg-forest-950/40 border border-forest-500/30 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-forest-400 animate-bounce" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div class="space-y-2">
+                  <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Sincronizando registros</div>
+                  <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden relative">
+                    <div
+                      class="bg-forest-505 absolute inset-y-0 bg-forest-500 rounded-full animate-[progress_2s_infinite_linear]"
+                      style="width: 35%;"></div>
+                  </div>
+                  <p class="text-[10px] text-forest-400 font-semibold" id="sync-animation-text">Sincronizando 14
+                    registros...</p>
+                </div>
+
+                <div class="bg-forest-950/20 border border-forest-500/20 rounded-xl p-3 flex items-center gap-3">
+                  <div class="w-2.5 h-2.5 rounded-full bg-forest-400 animate-ping flex-shrink-0"></div>
+                  <div class="text-left">
+                    <div class="text-xs font-bold text-white leading-none">Conexión Detectada</div>
+                    <div class="text-[10px] text-slate-400">Datos guardados en la nube</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Right Side: Explanatory Copy -->
+            <div class="w-full md:w-1/2 space-y-4">
+              <span
+                class="inline-block bg-forest-500/10 text-forest-300 border border-forest-500/20 text-xs font-bold px-3 py-1 rounded-full">Paso
+                2: Backup Nube</span>
+              <h3 class="text-2xl font-extrabold text-white leading-tight">Sincronización segura al volver al pueblo
+              </h3>
+              <p class="text-slate-400 text-sm leading-relaxed">
+                Toda la información recolectada localmente se mantiene a salvo en tu celular o tablet. Una vez que
+                vuelves al casco del establecimiento o detectás señal de celular/WIFI, presionás un botón y todo se
+                sincroniza automáticamente.
+              </p>
+              <ul class="space-y-2 text-xs text-slate-300">
+                <li class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-forest-400 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Garantía de cero pérdidas de información por caídas de internet.
+                </li>
+                <li class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-forest-400 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Multi-dispositivo: podés ver y analizar tus datos desde cualquier PC o celular.
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- SLIDE 3: Analítica -->
+          <div class="tour-slide transition-all duration-300 hidden flex flex-col md:flex-row gap-8 items-center"
+            id="tour-slide-2">
+            <!-- Left Side: Dashboard Preview mockup -->
+            <div class="w-full md:w-1/2 flex justify-center">
+              <div class="w-full max-w-[300px] p-4 rounded-2xl border border-white/10 bg-[#0d1240] shadow-xl space-y-4">
+                <!-- Mini title -->
+                <div class="flex justify-between items-center">
+                  <span class="text-[10px] font-bold text-white">Estadísticas Generales</span>
+                  <span class="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">Filtro: Lote 4</span>
+                </div>
+
+                <!-- Mini KPIs -->
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="bg-white/5 rounded-lg p-2 border border-white/5 text-center">
+                    <p class="text-[8px] text-indigo-300 font-medium">Evaluados</p>
+                    <p class="text-sm font-bold text-white">248</p>
+                  </div>
+                  <div class="bg-red-950/15 rounded-lg p-2 border border-red-500/20 text-center">
+                    <p class="text-[8px] text-red-400 font-medium">Mortalidad</p>
+                    <p class="text-sm font-bold text-red-500">2.4 %</p>
+                  </div>
+                </div>
+
+                <!-- Bar chart mock -->
+                <div class="bg-white/5 rounded-lg p-3 border border-white/5 space-y-2">
+                  <p class="text-[9px] font-bold text-white">Principales Diagnósticos</p>
+
+                  <div class="space-y-1.5">
+                    <div>
+                      <div class="flex justify-between text-[8px] text-slate-400">
+                        <span>Digestivas (Rotavirus/E. Coli)</span>
+                        <span class="font-bold text-slate-300">60%</span>
+                      </div>
+                      <div class="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                        <div class="bg-forest-500 h-full rounded-full" style="width: 60%;"></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="flex justify-between text-[8px] text-slate-400">
+                        <span>Respiratorias (Neumonías)</span>
+                        <span class="font-bold text-slate-300">30%</span>
+                      </div>
+                      <div class="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                        <div class="bg-indigo-500 h-full rounded-full" style="width: 30%;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- IgG average correlation badge -->
+                <div
+                  class="bg-white/5 rounded-lg p-2.5 border border-white/5 flex items-center justify-between text-[9px]">
+                  <span class="text-slate-400">Calostro Promedio (Ig)</span>
+                  <span
+                    class="font-bold text-forest-400 bg-forest-950/20 border border-forest-500/20 px-2 py-0.5 rounded">21.8
+                    mg/dL</span>
+                </div>
+              </div>
+            </div>
+            <!-- Right Side: Explanatory Copy -->
+            <div class="w-full md:w-1/2 space-y-4">
+              <span
+                class="inline-block bg-amber-500/10 text-amber-300 border border-amber-500/20 text-xs font-bold px-3 py-1 rounded-full">Paso
+                3: Toma de Decisiones</span>
+              <h3 class="text-2xl font-extrabold text-white leading-tight">Analizá indicadores en tiempo real</h3>
+              <p class="text-slate-400 text-sm leading-relaxed">
+                Olvidate de pasar planillas a Excel los domingos. El sistema procesa los datos automáticamente y te
+                muestra gráficos analíticos de causas de muerte, estado sanitario de ombligos, correlaciones de calidad
+                de calostro y ranking de establecimientos por mortandad.
+              </p>
+              <ul class="space-y-2 text-xs text-slate-300">
+                <li class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-forest-400 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Exportá reportes en PDF con un clic para entregárselos al productor.
+                </li>
+                <li class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-forest-400 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Tomá decisiones sanitarias correctivas basadas en datos reales.
+                </li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Navigation buttons at bottom -->
+      <div class="p-6 bg-slate-950/40 border-t border-white/5 flex items-center justify-between">
+        <button id="tour-prev-btn" onclick="prevSlide()"
+          class="btn-outline glass px-5 py-2.5 text-xs text-white font-bold rounded-xl disabled:opacity-35 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+          disabled>
+          Anterior
+        </button>
+
+        <!-- Slide indicators (dots) -->
+        <div class="flex gap-2">
+          <span class="tour-dot w-2 h-2 rounded-full transition-all duration-300 bg-forest-400 cursor-pointer"
+            onclick="goToSlide(0)"></span>
+          <span
+            class="tour-dot w-2 h-2 rounded-full transition-all duration-300 bg-slate-600 hover:bg-slate-400 cursor-pointer"
+            onclick="goToSlide(1)"></span>
+          <span
+            class="tour-dot w-2 h-2 rounded-full transition-all duration-300 bg-slate-600 hover:bg-slate-400 cursor-pointer"
+            onclick="goToSlide(2)"></span>
+        </div>
+
+        <button id="tour-next-btn" onclick="nextSlide()"
+          class="btn-primary px-6 py-2.5 text-xs text-white font-bold rounded-xl">
+          Siguiente
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    /* ── TOUR MODAL CONTROLLER ───────────────────────────── */
+    let currentTourSlide = 0;
+    const totalTourSlides = 3;
+
+    function openTourModal() {
+      const modal = document.getElementById('tour-modal');
+      const card = document.getElementById('tour-modal-card');
+
+      // Show modal element
+      modal.classList.remove('hidden');
+
+      // Force layout calculation to trigger transition
+      void modal.offsetWidth;
+
+      // Set transition styles
+      modal.classList.remove('opacity-0');
+      card.classList.remove('scale-95');
+
+      // Start with slide 0
+      goToSlide(0);
+
+      // Disable background scrolling
+      document.body.style.overflow = 'hidden';
+
+      // Add keyboard escape handler
+      document.addEventListener('keydown', handleTourModalEsc);
+
+      // Add click outside handler
+      modal.addEventListener('click', handleTourModalOutsideClick);
+    }
+
+    function closeTourModal() {
+      const modal = document.getElementById('tour-modal');
+      const card = document.getElementById('tour-modal-card');
+
+      modal.classList.add('opacity-0');
+      card.classList.add('scale-95');
+
+      // Wait for transition before hiding element
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }, 300);
+
+      // Remove events
+      document.removeEventListener('keydown', handleTourModalEsc);
+      modal.removeEventListener('click', handleTourModalOutsideClick);
+    }
+
+    function handleTourModalEsc(e) {
+      if (e.key === 'Escape') {
+        closeTourModal();
+      }
+    }
+
+    function handleTourModalOutsideClick(e) {
+      const card = document.getElementById('tour-modal-card');
+      if (!card.contains(e.target)) {
+        closeTourModal();
+      }
+    }
+
+    function goToSlide(index) {
+      currentTourSlide = index;
+
+      // Hide all slides, show current
+      for (let i = 0; i < totalTourSlides; i++) {
+        const slide = document.getElementById(`tour-slide-${i}`);
+        const tab = document.getElementById(`step-tab-${i}`);
+        const dot = document.querySelectorAll('.tour-dot')[i];
+
+        if (i === index) {
+          slide.classList.remove('hidden');
+          // Update active step tab
+          tab.classList.remove('border-transparent', 'text-slate-500', 'hover:text-slate-300');
+          tab.classList.add('border-forest-500', 'text-forest-400');
+
+          // Update active dot
+          dot.classList.remove('bg-slate-600', 'hover:bg-slate-400');
+          dot.classList.add('bg-forest-400');
+        } else {
+          slide.classList.add('hidden');
+          // Update inactive step tab
+          tab.classList.add('border-transparent', 'text-slate-500', 'hover:text-slate-300');
+          tab.classList.remove('border-forest-500', 'text-forest-400');
+
+          // Update inactive dot
+          dot.classList.add('bg-slate-600', 'hover:bg-slate-400');
+          dot.classList.remove('bg-forest-400');
+        }
+      }
+
+      // Update buttons
+      const prevBtn = document.getElementById('tour-prev-btn');
+      const nextBtn = document.getElementById('tour-next-btn');
+
+      if (currentTourSlide === 0) {
+        prevBtn.setAttribute('disabled', 'true');
+      } else {
+        prevBtn.removeAttribute('disabled');
+      }
+
+      if (currentTourSlide === totalTourSlides - 1) {
+        nextBtn.textContent = 'Probar gratis';
+        nextBtn.classList.remove('btn-primary');
+        nextBtn.classList.add('bg-gradient-to-r', 'from-forest-600', 'to-forest-500', 'hover:from-forest-500', 'hover:to-forest-400', 'shadow-[0_0_24px_rgba(46,125,50,0.5)]');
+      } else {
+        nextBtn.textContent = 'Siguiente';
+        nextBtn.classList.add('btn-primary');
+        nextBtn.classList.remove('bg-gradient-to-r', 'from-forest-600', 'to-forest-500', 'hover:from-forest-500', 'hover:to-forest-400', 'shadow-[0_0_24px_rgba(46,125,50,0.5)]');
+      }
+    }
+
+    function nextSlide() {
+      if (currentTourSlide < totalTourSlides - 1) {
+        goToSlide(currentTourSlide + 1);
+      } else {
+        // Redirigir a registro al terminar
+        closeTourModal();
+        window.location.href = '/index?tab=register';
+      }
+    }
+
+    function prevSlide() {
+      if (currentTourSlide > 0) {
+        goToSlide(currentTourSlide - 1);
+      }
+    }
+  </script>
+</body>
+
+</html>

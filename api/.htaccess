@@ -1,0 +1,17 @@
+# ============================================================
+# VETFIELD PRO — api/.htaccess
+# ============================================================
+
+Options -Indexes
+
+# ── Bloquear acceso directo a db_config.php ──────────────────
+<Files "db_config.php">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# ── Bloquear archivos de ejemplo y configuracion ─────────────
+<FilesMatch "\.(example|log|sh|sql)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
