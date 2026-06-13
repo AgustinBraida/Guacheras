@@ -49,7 +49,7 @@ $up = $db->prepare(
 $up->execute([$token, $expira, $user['id']]);
 
 // Enviar email con link de reseteo
-$link    = APP_URL . '/?reset_token=' . $token;
+$link    = rtrim(APP_URL, '/') . '/index?reset_token=' . $token;
 $nombre  = htmlspecialchars($user['nombre']);
 $content = "Hola <strong>{$nombre}</strong>,<br><br>
 Recibimos una solicitud para restablecer la contraseña de tu cuenta de VETFIELD PRO.<br><br>

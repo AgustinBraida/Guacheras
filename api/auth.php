@@ -102,7 +102,7 @@ function action_register(array $in): void {
     send_whatsapp("🐄 VETFIELD PRO\n✅ Nuevo registro creado\n👤 Nombre: {$nombre}\n📧 Email: {$email}\n📋 Plan: {$plan_txt}\n🕐 " . date('d/m/Y H:i'));
 
     // Enviar email de confirmación
-    $link    = APP_URL . '/api/auth.php?action=confirm&token=' . $token_confirmacion;
+    $link    = rtrim(APP_URL, '/') . '/api/auth.php?action=confirm&token=' . $token_confirmacion;
     $content = "Hola <strong>{$nombre}</strong>,<br><br>
 Gracias por registrarte en VETFIELD PRO. Solo falta un paso: confirmá tu dirección de email para activar tu cuenta.";
     $html = email_template(
@@ -128,7 +128,7 @@ function action_confirm_email(): void {
     if (strlen($token) < 32) {
         http_response_code(400);
         // Redirigir con error visible
-        header('Location: ' . APP_URL . '/index?auth_msg=token_invalido');
+        header('Location: ' . rtrim(APP_URL, '/') . '/index?auth_msg=token_invalido');
         exit;
     }
 
@@ -138,7 +138,7 @@ function action_confirm_email(): void {
     $user = $stmt->fetch();
 
     if (!$user) {
-        header('Location: ' . APP_URL . '/index?auth_msg=token_invalido');
+        header('Location: ' . rtrim(APP_URL, '/') . '/index?auth_msg=token_invalido');
         exit;
     }
 
@@ -147,7 +147,7 @@ function action_confirm_email(): void {
     );
     $up->execute([$user['id']]);
 
-    header('Location: ' . APP_URL . '/index?auth_msg=confirmado');
+    header('Location: ' . rtrim(APP_URL, '/') . '/index?auth_msg=confirmado');
     exit;
 }
 

@@ -540,14 +540,15 @@ const AuthUI = {
 
         // 1. Definir callback global (Debe estar listo antes de inicializar el SDK)
         window.handleGoogleSignIn = async (response) => {
-            const btnContainer = document.getElementById('btn-google-container');
-            // Nota: Aquí no podemos poner el "loading" text tradicional fácil, el botón oficial gestiona su UI.
+            const activeForm = document.querySelector('.auth-form.active');
+            const errorId = (activeForm && activeForm.id === 'register-form') ? 'register-error' : 'login-error';
+
             const r = await AuthManager.loginWithGoogle(response.credential);
             if (r.ok) {
                 this._showApp(AuthManager.getSession());
                 if (typeof showToast === 'function') showToast(`¡Bienvenido, ${AuthManager.getSession().name}!`);
             } else {
-                this._err('login-error', r.error || 'No se pudo iniciar sesión con Google.');
+                this._err(errorId, r.error || 'No se pudo iniciar sesión con Google.');
             }
         };
 
@@ -750,7 +751,10 @@ const AuthUI = {
     // ── Google Sign-In: inicialización programática ────────────
     _initGoogleAuth() {
         const tryInit = () => {
-            if (window.google?.accounts?.id && document.getElementById('btn-google-container')) {
+            const loginBtn = document.getElementById('btn-google-container');
+            const registerBtn = document.getElementById('btn-google-register-container');
+
+            if (window.google?.accounts?.id && (loginBtn || registerBtn)) {
                 // Inicializar
                 window.google.accounts.id.initialize({
                     client_id: GOOGLE_CLIENT_ID,
@@ -759,17 +763,33 @@ const AuthUI = {
                     cancel_on_tap_outside: true,
                 });
 
-                // Renderizar el botón oficial en el contenedor
-                window.google.accounts.id.renderButton(
-                    document.getElementById('btn-google-container'),
-                    {
-                        theme: 'outline',
-                        size: 'large',
-                        text: 'continue_with',
-                        shape: 'pill',
-                        width: 280
-                    }
-                );
+                // Renderizar el botón oficial en el contenedor de login
+                if (loginBtn) {
+                    window.google.accounts.id.renderButton(
+                        loginBtn,
+                        {
+                            theme: 'outline',
+                            size: 'large',
+                            text: 'continue_with',
+                            shape: 'pill',
+                            width: 280
+                        }
+                    );
+                }
+
+                // Renderizar el botón oficial en el contenedor de registro
+                if (registerBtn) {
+                    window.google.accounts.id.renderButton(
+                        registerBtn,
+                        {
+                            theme: 'outline',
+                            size: 'large',
+                            text: 'signup_with',
+                            shape: 'pill',
+                            width: 280
+                        }
+                    );
+                }
             } else {
                 // Reintentar si el SDK o el DOM no están listos
                 setTimeout(tryInit, 300);
