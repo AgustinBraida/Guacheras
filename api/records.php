@@ -43,6 +43,20 @@ if ($method === 'GET') {
     json_response(['ok' => false, 'error' => 'Método no permitido.'], 405);
 }
 
+// ── Normalización de valores de I.G. (evita que 10,3 se guarde como 103) ──
+function normalize_ig_val(?float $val): ?float {
+    if ($val === null) return null;
+    // En medicina veterinaria el I.G./Brix oscila entre 0 y 40 (normalmente 5 a 30).
+    // Si viene >= 50 (ej. 103, 85, 112, 225) perdió la coma decimal al importar.
+    if ($val >= 50.0 && $val <= 500.0) {
+        return round($val / 10.0, 2);
+    }
+    if ($val > 500.0 && $val <= 5000.0) {
+        return round($val / 100.0, 2);
+    }
+    return $val;
+}
+
 // ============================================================
 // UPDATE — Actualizar un registro existente
 // ============================================================
@@ -59,8 +73,8 @@ function action_update(string $uid, array $in): void {
     if (!$fecha || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha))
         json_response(['ok' => false, 'error' => 'Fecha inválida.']);
 
-    $ig_ternero  = is_numeric($in['ig_ternero']  ?? null) ? (float)$in['ig_ternero']  : null;
-    $ig_calostro = is_numeric($in['ig_calostro'] ?? null) ? (float)$in['ig_calostro'] : null;
+    $ig_ternero  = normalize_ig_val(is_numeric($in['ig_ternero']  ?? null) ? (float)$in['ig_ternero']  : null);
+    $ig_calostro = normalize_ig_val(is_numeric($in['ig_calostro'] ?? null) ? (float)$in['ig_calostro'] : null);
 
     $stmt = $db->prepare(
         "UPDATE registros
@@ -139,6 +153,14 @@ function action_list(string $uid): void {
         $params[':fecha'] = $fecha;
     }
 
+    // Auto-corregir registros históricos donde la coma decimal se perdió al importar desde Excel (ej. 103 -> 10.3)
+    try {
+        $db->exec("UPDATE registros SET ig_ternero = ROUND(ig_ternero / 10, 2) WHERE user_id = " . $db->quote($uid) . " AND ig_ternero >= 50 AND ig_ternero <= 500");
+        $db->exec("UPDATE registros SET ig_calostro = ROUND(ig_calostro / 10, 2) WHERE user_id = " . $db->quote($uid) . " AND ig_calostro >= 50 AND ig_calostro <= 500");
+    } catch (Exception $e) {
+        // Ignorar si falla el update
+    }
+
     $sql .= " ORDER BY created_at DESC";
 
     $stmt = $db->prepare($sql);
@@ -147,8 +169,8 @@ function action_list(string $uid): void {
 
     // Normalizar campos numéricos para el frontend
     foreach ($records as &$r) {
-        $r['ig_ternero']  = $r['ig_ternero']  !== null ? (float)$r['ig_ternero']  : null;
-        $r['ig_calostro'] = $r['ig_calostro'] !== null ? (float)$r['ig_calostro'] : null;
+        $r['ig_ternero']  = normalize_ig_val($r['ig_ternero']  !== null ? (float)$r['ig_ternero']  : null);
+        $r['ig_calostro'] = normalize_ig_val($r['ig_calostro'] !== null ? (float)$r['ig_calostro'] : null);
         $r['synced']      = true; // Viniendo de la BD siempre están "synced"
     }
     unset($r);
@@ -326,8 +348,8 @@ function action_save(string $uid, array $in): void {
     // ── Fin de chequeo de límites ────────────────────────────────────
 
 
-    $ig_ternero  = is_numeric($in['ig_ternero']  ?? null) ? (float)$in['ig_ternero']  : null;
-    $ig_calostro = is_numeric($in['ig_calostro'] ?? null) ? (float)$in['ig_calostro'] : null;
+    $ig_ternero  = normalize_ig_val(is_numeric($in['ig_ternero']  ?? null) ? (float)$in['ig_ternero']  : null);
+    $ig_calostro = normalize_ig_val(is_numeric($in['ig_calostro'] ?? null) ? (float)$in['ig_calostro'] : null);
 
     $stmt = $db->prepare(
         "INSERT INTO registros
@@ -532,8 +554,8 @@ function action_backup_import(string $uid, array $in): void {
             
             $existing = null;
             if ($rp_ternero) {
-                $stmt_check = $db->prepare("SELECT id FROM registros WHERE user_id = ? AND UPPER(rp_ternero) = UPPER(?) AND fecha = ? LIMIT 1");
-                $stmt_check->execute([$uid, $rp_ternero, $fecha]);
+                $stmt_check = $db->prepare("SELECT id FROM registros WHERE user_id = ? AND productor = ? AND UPPER(rp_ternero) = UPPER(?) AND fecha = ? LIMIT 1");
+                $stmt_check->execute([$uid, $productor, $rp_ternero, $fecha]);
                 $existing = $stmt_check->fetchColumn();
             } else {
                 $stmt_check = $db->prepare("SELECT id FROM registros WHERE user_id = ? AND productor = ? AND (establecimiento = ? OR (establecimiento IS NULL AND ? IS NULL)) AND fecha = ? LIMIT 1");
@@ -541,8 +563,8 @@ function action_backup_import(string $uid, array $in): void {
                 $existing = $stmt_check->fetchColumn();
             }
             
-            $ig_ternero  = is_numeric($r['ig_ternero'] ?? null) ? (float)$r['ig_ternero'] : null;
-            $ig_calostro = is_numeric($r['ig_calostro'] ?? null) ? (float)$r['ig_calostro'] : null;
+            $ig_ternero  = normalize_ig_val(is_numeric($r['ig_ternero'] ?? null) ? (float)$r['ig_ternero'] : null);
+            $ig_calostro = normalize_ig_val(is_numeric($r['ig_calostro'] ?? null) ? (float)$r['ig_calostro'] : null);
             $sexo        = in_array($r['sexo'] ?? '', ['Macho', 'Hembra']) ? $r['sexo'] : 'Macho';
             $ombligo     = in_array($r['ombligo'] ?? '', ['Bueno', 'Regular', 'Malo']) ? $r['ombligo'] : 'Bueno';
             $tipo_madre  = in_array($r['tipo_madre'] ?? '', ['Vaca', 'Vaquillona']) ? $r['tipo_madre'] : 'Vaca';
@@ -626,11 +648,17 @@ function action_backup_import(string $uid, array $in): void {
         
         $db->commit();
         
+        $msg = "Importación completada con éxito. Se guardaron {$importados} registros nuevos";
+        if ($actualizados > 0) {
+            $msg .= " y se actualizaron {$actualizados} existentes.";
+        } else {
+            $msg .= ".";
+        }
         json_response([
             'ok' => true,
             'importados' => $importados,
             'actualizados' => $actualizados,
-            'message' => "Respaldo restaurado con éxito. Se importaron {$importados} registros nuevos y se actualizaron {$actualizados} existentes."
+            'message' => $msg
         ]);
     } catch (\Exception $e) {
         $db->rollBack();

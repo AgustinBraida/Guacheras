@@ -32,7 +32,7 @@
     <!-- Chart.js for Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
     <!-- Estilos -->
-    <link rel="stylesheet" href="styles.css?v=67">
+    <link rel="stylesheet" href="styles.css?v=69">
     <!-- Módulo de Voz (Ocultado temporalmente) -->
     <!-- <link rel="stylesheet" href="voice.css?v=49"> -->
 
@@ -1488,6 +1488,34 @@
             </div>
         </div>
 
+        <!-- MODAL: DETALLE CAUSAS DE MUERTE (drill-down del gráfico) -->
+        <div id="causaDetailModal" class="modal-overlay" onclick="closeCausaDetailModal(event)">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+                    <div style="flex:1; min-width:0;">
+                        <h2 id="causaDetailTitle" style="color: var(--primary); font-size: 1.35rem;">Detalle de Causa
+                        </h2>
+                        <p id="causaDetailSubtitle" style="color: var(--text-secondary); font-size: 0.85rem;"></p>
+                    </div>
+                    <button onclick="closeCausaDetailModal()"
+                        style="background: var(--bg-body); border: none; padding: 10px; border-radius: 12px; cursor: pointer; flex-shrink:0;">
+                        <i data-lucide="x" style="width: 20px; color: var(--text-secondary);"></i>
+                    </button>
+                </div>
+                <div id="causaDetailBody"
+                    style="display: flex; flex-direction: column; gap: 0.5rem; padding-right: 5px;">
+                    <!-- Content injected via JS -->
+                </div>
+                <div style="margin-top: 1.5rem;">
+                    <button onclick="closeCausaDetailModal()" class="btn-auth-primary"
+                        style="background: transparent; color: var(--text-secondary); border: 2px solid var(--input-border); box-shadow: none; width: 100%; margin-top: 0;">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- MODAL: EXPORTAR DATOS -->
         <div id="exportModal" class="modal-overlay" onclick="closeExportModal(event)">
             <div class="modal-content" onclick="event.stopPropagation()">
@@ -1569,76 +1597,70 @@
 
         <!-- MODAL: IMPORTAR EXCEL -->
         <div id="importExcelModal" class="modal-overlay" onclick="closeImportExcelModal(event)">
-            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 550px;">
-                <div
-                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;">
-                    <div>
-                        <h2 style="color: var(--primary); font-size: 1.5rem;">Importar desde Excel (.xlsx / .csv)</h2>
-                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px;">Sube tus registros
-                            históricos de forma masiva utilizando una planilla.</p>
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 580px; padding: 1.35rem 1.5rem; max-height: 90vh; overflow-y: auto;">
+                
+                <!-- PASO 1: SELECCIONAR ARCHIVO -->
+                <div id="importExcelStepUpload">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.85rem;">
+                        <div>
+                            <h2 style="color: var(--primary); font-size: 1.25rem; font-weight: 700; margin: 0;">Importar desde Excel (.xlsx / .csv)</h2>
+                            <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 3px;">Sube tus registros históricos de forma masiva utilizando una planilla.</p>
+                        </div>
+                        <button onclick="closeImportExcelModal()"
+                            style="background: var(--bg-body); border: none; padding: 6px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="x" style="width: 18px; height: 18px; color: var(--text-secondary);"></i>
+                        </button>
                     </div>
-                    <button onclick="closeImportExcelModal()"
-                        style="background: var(--bg-body); border: none; padding: 10px; border-radius: 12px; cursor: pointer;">
-                        <i data-lucide="x" style="width: 20px; color: var(--text-secondary);"></i>
-                    </button>
-                </div>
 
-                <div
-                    style="background: rgba(26,35,126,0.04); border: 1px solid rgba(26,35,126,0.15); border-radius: 16px; padding: 15px; margin-bottom: 1.5rem; font-size: 0.8rem; line-height: 1.45; color: var(--text-main);">
-                    <div
-                        style="font-weight: 700; color: var(--primary); margin-bottom: 8px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
-                        <i data-lucide="info" style="width:16px;height:16px;"></i> Instrucciones de formato de columnas:
+                    <div style="background: rgba(26,35,126,0.04); border: 1px solid rgba(26,35,126,0.15); border-radius: 12px; padding: 10px 14px; margin-bottom: 0.85rem; font-size: 0.76rem; line-height: 1.4; color: var(--text-main);">
+                        <div style="font-weight: 700; color: var(--primary); margin-bottom: 6px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="info" style="width:14px;height:14px;"></i> Instrucciones de formato de columnas:
+                        </div>
+                        <ul style="margin-left: 14px; list-style-type: disc; display: flex; flex-direction: column; gap: 2px;">
+                            <li><strong>Productor</strong> y <strong>Fecha (AAAA-MM-DD o DD/MM/AAAA)</strong> son obligatorios en cada fila.</li>
+                            <li><strong>Establecimiento</strong>, <strong>R.P. Ternero</strong> y <strong>R.P. Madre</strong> son opcionales.</li>
+                            <li><strong>Mellizos / Gemelos:</strong> diferéncialos en el R.P. con una letra (ej: <code>4520 A</code> y <code>4520 B</code>).</li>
+                            <li><strong>I.G. Ternero</strong> e <strong>I.G. Calostro Madre</strong> deben ser valores numéricos (ej. 8.5, 23.4).</li>
+                            <li>Campos de opción (ej. Sexo, Ombligo, Madre, Estado) se normalizarán automáticamente.</li>
+                        </ul>
+                        <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(26,35,126,0.12); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                            <span>Usa nuestra plantilla modelo para evitar errores:</span>
+                            <button onclick="downloadExcelTemplate()" class="btn-save"
+                                style="width: auto; margin-top: 0; padding: 4px 10px; font-size: 0.72rem; border-radius: 6px; background: var(--primary); color: white; border: none; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <i data-lucide="download" style="width: 13px; height: 13px;"></i> Descargar Plantilla
+                            </button>
+                        </div>
                     </div>
-                    <ul
-                        style="margin-left: 15px; list-style-type: disc; display: flex; flex-direction: column; gap: 4px;">
-                        <li><strong>Productor</strong> y <strong>Fecha (AAAA-MM-DD)</strong> son obligatorios en cada
-                            fila.</li>
-                        <li><strong>Establecimiento</strong>, <strong>R.P. Ternero</strong> y <strong>R.P.
-                                Madre</strong> son opcionales.</li>
-                        <li><strong>I.G. Ternero</strong> e <strong>I.G. Calostro Madre</strong> deben ser valores
-                            numéricos (ej. 8.5, 23.4).</li>
-                        <li>Campos de opción (ej. Sexo, Ombligo, Madre, Estado) se normalizarán automáticamente.</li>
-                    </ul>
-                    <div style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between;">
-                        <span>Usa nuestra plantilla modelo para evitar errores:</span>
-                        <button onclick="downloadExcelTemplate()" class="btn-save"
-                            style="width: auto; margin-top: 0; padding: 6px 12px; font-size: 0.75rem; border-radius: 8px; background: var(--primary); color: white; border: none; display: flex; align-items: center; gap: 6px;">
-                            <i data-lucide="download" style="width: 14px; height: 14px;"></i> Descargar Plantilla
+
+                    <div style="margin-bottom: 0.9rem;">
+                        <label style="display: block; font-weight: 700; font-size: 0.8rem; margin-bottom: 6px; color: var(--text-main);">Selecciona el archivo completo:</label>
+                        <input type="file" id="excel-import-file" accept=".xlsx, .xls, .csv" style="display: none;"
+                            onchange="handleImportExcelFile(event)">
+                        <div onclick="document.getElementById('excel-import-file').click()"
+                            style="border: 2px dashed var(--input-border); border-radius: 12px; padding: 18px 12px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--input-bg);"
+                            onmouseover="this.style.borderColor='var(--primary)'"
+                            onmouseout="this.style.borderColor='var(--input-border)'">
+                            <i data-lucide="file-spreadsheet"
+                                style="width: 36px; height: 36px; color: var(--text-secondary); margin: 0 auto 6px auto; display: block;"></i>
+                            <span id="excel-file-name"
+                                style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); display: block;">Haga clic para seleccionar planilla (.xlsx / .csv)</span>
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px; display: block;">Soporta formatos Excel standard y CSV delimitados por comas</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 0.75rem; margin-top: 0.25rem;">
+                        <button onclick="closeImportExcelModal()" class="btn-auth-primary"
+                            style="background: transparent; color: var(--text-secondary); border: 1.5px solid var(--border-color); margin-top: 0; box-shadow: none; flex: 1; height: 44px; font-size: 0.9rem;">
+                            Cancelar
                         </button>
                     </div>
                 </div>
 
-                <div style="margin-bottom: 1.75rem;">
-                    <label
-                        style="display: block; font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; color: var(--text-main);">Selecciona
-                        el archivo completo:</label>
-                    <input type="file" id="excel-import-file" accept=".xlsx, .xls, .csv" style="display: none;"
-                        onchange="handleImportExcelFile(event)">
-                    <div onclick="document.getElementById('excel-import-file').click()"
-                        style="border: 2px dashed var(--input-border); border-radius: 16px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--input-bg);"
-                        onmouseover="this.style.borderColor='var(--primary)'"
-                        onmouseout="this.style.borderColor='var(--input-border)'">
-                        <i data-lucide="file-spreadsheet"
-                            style="width: 48px; height: 48px; color: var(--text-secondary); margin: 0 auto 10px auto; display: block;"></i>
-                        <span id="excel-file-name"
-                            style="font-size: 0.9rem; font-weight: 600; color: var(--text-main); display: block;">Haga
-                            clic para seleccionar planilla (.xlsx / .csv)</span>
-                        <span
-                            style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; display: block;">Soporta
-                            formatos Excel standard y CSV delimitados por comas</span>
-                    </div>
+                <!-- PASO 2: POP-UP DE VALIDACIÓN Y CONFIRMACIÓN PREVIA -->
+                <div id="importExcelStepReview" style="display: none;">
+                    <div id="importExcelReviewContent"></div>
                 </div>
 
-                <div style="display: flex; gap: 1rem;">
-                    <button onclick="closeImportExcelModal()" class="btn-auth-primary"
-                        style="background: transparent; color: var(--text-secondary); border: 2px solid #e2e8f0; margin-top: 0; box-shadow: none; flex: 1;">
-                        Cancelar
-                    </button>
-                    <button id="btn-confirm-import-excel" onclick="confirmImportExcel(this)" class="btn-auth-primary"
-                        style="margin-top: 0; flex: 1; height: 50px;" disabled>
-                        Subir y Procesar
-                    </button>
-                </div>
             </div>
         </div>
 
@@ -1870,9 +1892,9 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <!-- Dashboard Module -->
-    <script src="dashboard.js?v=68" defer></script>
+    <script src="dashboard.js?v=75" defer></script>
     <!-- App Script -->
-    <script src="app.js?v=62" defer></script>
+    <script src="app.js?v=75" defer></script>
     <!-- Voice Module (Ocultado temporalmente) -->
     <!-- <script src="voice.js?v=62" defer></script> -->
 
@@ -1880,7 +1902,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=68')
+                navigator.serviceWorker.register('./sw.js?v=75')
                     .then(registration => {
                         console.log('[VETFIELD] ServiceWorker registrado. Scope:', registration.scope);
                     })

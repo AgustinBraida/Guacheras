@@ -96,6 +96,15 @@ async function loadFromAPI() {
         // Mezclar registros del servidor con pendientes offline
         const offline = getOfflineRecords();
         records = [...recData.records, ...offline];
+        // Auto-corrección preventiva: si algún registro tiene I.G. >= 50 (sin coma decimal), normalizarlo
+        records.forEach(r => {
+            if (r.ig_ternero !== null && r.ig_ternero !== undefined && r.ig_ternero >= 50 && r.ig_ternero <= 500) {
+                r.ig_ternero = parseFloat((r.ig_ternero / 10).toFixed(2));
+            }
+            if (r.ig_calostro !== null && r.ig_calostro !== undefined && r.ig_calostro >= 50 && r.ig_calostro <= 500) {
+                r.ig_calostro = parseFloat((r.ig_calostro / 10).toFixed(2));
+            }
+        });
     } else {
         // Si falla la API, cargar cache offline
         loadFromOfflineCache();
@@ -233,7 +242,7 @@ function setSegmented(btn, val) {
 
 const opcionesCausa = {
     'Enfermedades e Infecciones': ['Colibacilosis', 'Salmonelosis', 'Rotavirus', 'Coronavirus', 'Criptosporidiosis', 'Onfalitis', 'Neumonía'],
-    'Problemas Digestivos y Metabólicos': ['Torsión de abomaso', 'Úlcera de abomaso', 'Intoxicación'],
+    'Problemas Digestivos y Metabólicos': ['Diarrea', 'Torsión de abomaso', 'Úlcera de abomaso', 'Intoxicación'],
     'Factores Externos y de Manejo': ['Estrés calórico', 'Falsa vía', 'Traumática']
 };
 
@@ -1714,11 +1723,11 @@ let _parsedExcelData = null;
 
 function openImportExcelModal() {
     _parsedExcelData = null;
-    const confirmBtn = document.getElementById('btn-confirm-import-excel');
-    if (confirmBtn) {
-        confirmBtn.disabled = true;
-        confirmBtn.textContent = 'Subir y Procesar';
-    }
+    const uploadStep = document.getElementById('importExcelStepUpload');
+    const reviewStep = document.getElementById('importExcelStepReview');
+    if (uploadStep) uploadStep.style.display = 'block';
+    if (reviewStep) reviewStep.style.display = 'none';
+
     const fileNameSpan = document.getElementById('excel-file-name');
     if (fileNameSpan) {
         fileNameSpan.textContent = 'Haga clic para seleccionar planilla (.xlsx / .csv)';
@@ -1727,12 +1736,29 @@ function openImportExcelModal() {
     if (fileInput) fileInput.value = '';
     
     document.getElementById('importExcelModal').classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
 }
 
 function closeImportExcelModal(event) {
     if (event && event.target !== event.currentTarget) return;
     document.getElementById('importExcelModal').classList.remove('active');
     _parsedExcelData = null;
+}
+
+function resetImportExcelModal() {
+    _parsedExcelData = null;
+    const uploadStep = document.getElementById('importExcelStepUpload');
+    const reviewStep = document.getElementById('importExcelStepReview');
+    if (uploadStep) uploadStep.style.display = 'block';
+    if (reviewStep) reviewStep.style.display = 'none';
+
+    const fileNameSpan = document.getElementById('excel-file-name');
+    if (fileNameSpan) {
+        fileNameSpan.textContent = 'Haga clic para seleccionar planilla (.xlsx / .csv)';
+    }
+    const fileInput = document.getElementById('excel-import-file');
+    if (fileInput) fileInput.value = '';
+    if (window.lucide) window.lucide.createIcons();
 }
 
 function downloadExcelTemplate() {
@@ -1821,7 +1847,7 @@ function handleImportExcelFile(event) {
             }
 
             const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
+            const workbook = XLSX.read(data, { type: 'array', raw: true });
             const sheetName = workbook.SheetNames[0];
             const sheet = workbook.Sheets[sheetName];
             const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
@@ -1869,10 +1895,52 @@ function handleImportExcelFile(event) {
                 return "";
             }
 
-            function parseNumeric(val) {
+            function parseNumeric(val, isIg = false) {
                 if (val === undefined || val === null || val === "") return null;
-                const num = parseFloat(String(val).replace(",", "."));
-                return isNaN(num) ? null : num;
+                let num = parseFloat(String(val).replace(",", "."));
+                if (isNaN(num)) return null;
+                // Auto-corrección de coma decimal perdida (ej. 10,3 se importó como 103, o 8,5 como 85)
+                // En refractometría veterinaria el I.G./Brix oscila normalmente entre 5% y 35%
+                if (isIg && num >= 50 && num <= 500) {
+                    num = parseFloat((num / 10).toFixed(2));
+                } else if (isIg && num > 500 && num <= 5000) {
+                    num = parseFloat((num / 100).toFixed(2));
+                }
+                return num;
+            }
+
+            // Identificación inteligente de I.G. Ternero / Calostro Ternero vs Calostro Madre
+            function findIgTernero(row) {
+                const keys = Object.keys(row);
+                // 1. Claves explícitas de ternero / cría (prioridad absoluta)
+                for (const k of keys) {
+                    const norm = k.toLowerCase().replace(/[^a-z0-9]/g, "");
+                    if (norm.includes("madre")) continue; // Nunca asignar datos de madre al ternero
+                    if (norm.includes("igternero") || norm.includes("calostroternero") || norm.includes("calostrocria") || norm.includes("brixternero")) {
+                        return row[k];
+                    }
+                }
+                // 2. Claves generales de calostro / IG siempre que NO sean de la madre
+                for (const k of keys) {
+                    const norm = k.toLowerCase().replace(/[^a-z0-9]/g, "");
+                    if (norm.includes("madre")) continue;
+                    if (norm === "calostro" || norm === "ig" || norm === "igcalostro" || norm === "brix" || norm === "igbrix" || norm === "inmunoglobulina" || norm.startsWith("calostro") || norm.startsWith("ig")) {
+                        return row[k];
+                    }
+                }
+                return undefined;
+            }
+
+            function findIgMadre(row) {
+                const keys = Object.keys(row);
+                for (const k of keys) {
+                    const norm = k.toLowerCase().replace(/[^a-z0-9]/g, "");
+                    if (norm.includes("ternero") || norm.includes("cria")) continue; // Nunca asignar datos de ternero a madre
+                    if (norm.includes("madre") && (norm.includes("calostro") || norm.includes("ig") || norm.includes("brix") || norm.includes("inmuno"))) {
+                        return row[k];
+                    }
+                }
+                return undefined;
             }
 
             function sanitizeSexo(val) {
@@ -1903,41 +1971,93 @@ function handleImportExcelFile(event) {
                 return "Vivo";
             }
 
+            // Normaliza texto libre a Title Case: "estancia SANTA julia" → "Estancia Santa Julia"
+            function toTitleCase(val) {
+                const str = trimValue(val);
+                if (!str) return "";
+                return str
+                    .toLowerCase()
+                    .replace(/(?:^|\s)\S/g, c => c.toUpperCase());
+            }
+
+            // Quita tildes y pasa a minúsculas para comparación: "Onfálitis" y "onfalitis" → "onfalitis"
+            function normalizeCompare(val) {
+                return trimValue(val)
+                    .toLowerCase()
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "");
+            }
+
+            // Normalización inteligente de causas de muerte conocidas
+            function normalizeCausa(rawCat, rawEsp) {
+                let cat = toTitleCase(rawCat);
+                let esp = toTitleCase(rawEsp);
+                const normEsp = normalizeCompare(esp);
+                const normCat = normalizeCompare(cat);
+
+                // Variaciones de Diarrea (diarrea, diarea, diarréa, etc.)
+                if (normEsp.match(/^di+ar+e+a$/) || normEsp.includes("diarrea") || normEsp.includes("diarea")) {
+                    esp = "Diarrea";
+                    if (!cat || normCat.includes("digestiv") || normCat.includes("metabolic")) {
+                        cat = "Problemas Digestivos y Metabólicos";
+                    }
+                }
+
+                return { cat, esp };
+            }
+
             const mappedRecords = [];
+            const rejectedRows = [];
             const uniqueProductors = new Set();
             const uniqueEstablishments = [];
+            const seenRPs = {}; // track RP duplicates within the file
 
-            for (const row of json) {
-                const productor = trimValue(findValue(row, ["productor", "cliente", "owner"]));
-                const fecha = formatDateValue(findValue(row, ["fecha", "date"]));
+            for (let i = 0; i < json.length; i++) {
+                const row = json[i];
+                const excelRowNum = i + 2; // +2 because row 1 is the header
+                const productor = toTitleCase(findValue(row, ["productor", "cliente", "owner"]));
+                const rawFecha = findValue(row, ["fecha", "date"]);
+                const fecha = formatDateValue(rawFecha);
                 
-                if (!productor || !fecha) {
-                    continue; // Skip invalid rows
+                // --- Validation: missing required fields ---
+                const rowErrors = [];
+                if (!productor) {
+                    rowErrors.push('Falta el campo "Productor"');
+                }
+                if (!rawFecha && rawFecha !== 0) {
+                    rowErrors.push('Falta el campo "Fecha"');
+                } else if (!fecha) {
+                    rowErrors.push(`Fecha con formato irreconocible: "${rawFecha}"`);
+                }
+
+                if (rowErrors.length > 0) {
+                    const rp_preview = trimValue(findValue(row, ["rp ternero", "rp_ternero", "rp", "id ternero", "calf id"]));
+                    rejectedRows.push({
+                        fila: excelRowNum,
+                        rp: rp_preview || '—',
+                        motivos: rowErrors
+                    });
+                    continue;
                 }
                 
-                const establecimiento = trimValue(findValue(row, ["establecimiento", "campo", "lote", "location"])) || "";
+                const establecimiento = toTitleCase(findValue(row, ["establecimiento", "campo", "lote", "location"]));
                 const rp_ternero = trimValue(findValue(row, ["rp ternero", "rp_ternero", "rp", "id ternero", "calf id"])) || "";
-                const ig_ternero = parseNumeric(findValue(row, ["ig ternero", "ig_ternero", "ig", "ig%"]));
+                const ig_ternero = parseNumeric(findIgTernero(row), true);
                 const sexo = sanitizeSexo(findValue(row, ["sexo", "gender"]));
                 const ombligo = sanitizeOmbligo(findValue(row, ["ombligo", "estado ombligo", "navel"]));
                 const tipo_madre = sanitizeTipoMadre(findValue(row, ["tipo madre", "tipo_madre", "madre tipo"]));
                 const rp_madre = trimValue(findValue(row, ["rp madre", "rp_madre", "rp de la madre", "madre id"])) || "";
-                const ig_calostro = parseNumeric(findValue(row, ["ig calostro", "ig_calostro", "calostro"]));
+                const ig_calostro = parseNumeric(findIgMadre(row), true);
                 const estado = sanitizeEstado(findValue(row, ["estado", "supervivencia", "status"]));
                 
-                const causa_cat = trimValue(findValue(row, ["causa categoria", "causa_categoria", "categoria muerte", "categoria"])) || "";
-                const causa_esp = trimValue(findValue(row, ["causa especifica", "causa_especifica", "causa muerte", "causa"])) || "";
+                const raw_causa_cat = findValue(row, ["causa categoria", "causa_categoria", "categoria muerte", "categoria"]);
+                const raw_causa_esp = findValue(row, ["causa especifica", "causa_especifica", "causa muerte", "causa"]);
+                const normCausa = normalizeCausa(raw_causa_cat, raw_causa_esp);
+                const causa_cat = normCausa.cat;
+                const causa_esp = normCausa.esp;
                 const causa = causa_cat && causa_esp ? `${causa_cat} - ${causa_esp}` : (causa_cat || causa_esp || "");
-                
-                uniqueProductors.add(productor);
-                if (establecimiento) {
-                    const exists = uniqueEstablishments.some(e => e.productor === productor && e.establecimiento === establecimiento);
-                    if (!exists) {
-                        uniqueEstablishments.push({ productor, establecimiento });
-                    }
-                }
-                
-                mappedRecords.push({
+
+                const recordData = {
                     productor,
                     establecimiento: establecimiento || null,
                     fecha,
@@ -1952,28 +2072,58 @@ function handleImportExcelFile(event) {
                     causa: estado !== 'Vivo' ? causa || null : null,
                     causa_categoria: estado !== 'Vivo' ? causa_cat || null : null,
                     causa_especifica: estado !== 'Vivo' ? causa_esp || null : null
-                });
+                };
+
+                // --- Validation: duplicate RP within the file ---
+                if (rp_ternero) {
+                    const rpKey = `${normalizeCompare(productor)}||${rp_ternero.toUpperCase()}||${fecha}`;
+                    if (seenRPs[rpKey]) {
+                        seenRPs[rpKey].occurrences.push({
+                            fila: excelRowNum,
+                            record: recordData
+                        });
+                        rejectedRows.push({
+                            fila: excelRowNum,
+                            rp: rp_ternero,
+                            isTwinCandidate: true,
+                            rpKey: rpKey,
+                            motivos: [`R.P. "${rp_ternero}" duplicado (fila ${seenRPs[rpKey].firstFila}). Si son mellizos/gemelos usar "${rp_ternero} A" y "${rp_ternero} B"`]
+                        });
+                        continue;
+                    }
+                    seenRPs[rpKey] = {
+                        firstFila: excelRowNum,
+                        mappedIndex: mappedRecords.length,
+                        rp_base: rp_ternero,
+                        occurrences: [
+                            { fila: excelRowNum, record: recordData }
+                        ]
+                    };
+                }
+                
+                uniqueProductors.add(productor);
+                if (establecimiento) {
+                    const exists = uniqueEstablishments.some(e => e.productor === productor && e.establecimiento === establecimiento);
+                    if (!exists) {
+                        uniqueEstablishments.push({ productor, establecimiento });
+                    }
+                }
+                
+                mappedRecords.push(recordData);
             }
 
-            if (mappedRecords.length === 0) {
-                showToast('No se encontraron registros válidos. Verifica Productor y Fecha.');
-                if (fileNameSpan) fileNameSpan.textContent = 'Error: Sin registros válidos';
-                return;
-            }
-
+            // --- Show review step ---
             _parsedExcelData = {
-                productores: Array.from(uniqueProductors),
+                fileName: file.name,
+                totalRows: json.length,
+                productores: uniqueProductors,
                 establecimientos: uniqueEstablishments,
-                registros: mappedRecords
+                registros: mappedRecords,
+                rejectedRows: rejectedRows,
+                seenRPs: seenRPs
             };
 
-            if (fileNameSpan) {
-                fileNameSpan.textContent = `Archivo: ${file.name} (${mappedRecords.length} registros)`;
-            }
-            if (confirmBtn) {
-                confirmBtn.disabled = false;
-            }
-            showToast(`Listo para importar: ${mappedRecords.length} registros cargados.`);
+            showImportReviewStep(file.name, json.length, mappedRecords.length, rejectedRows);
         } catch (err) {
             console.error(err);
             showToast('Error al parsear la planilla. Asegúrate de que no esté corrupta.');
@@ -1983,9 +2133,71 @@ function handleImportExcelFile(event) {
     reader.readAsArrayBuffer(file);
 }
 
+function autoResolveTwins() {
+    if (!_parsedExcelData || !_parsedExcelData.seenRPs) {
+        showToast('No se encontraron mellizos pendientes de resolver.');
+        return;
+    }
+
+    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    let resolvedCount = 0;
+
+    for (const rpKey in _parsedExcelData.seenRPs) {
+        const group = _parsedExcelData.seenRPs[rpKey];
+        if (group && group.occurrences && group.occurrences.length > 1) {
+            // First occurrence: rename RP to "[Base] A"
+            const firstItem = group.occurrences[0];
+            if (firstItem && firstItem.record) {
+                firstItem.record.rp_ternero = `${group.rp_base} A`;
+            }
+
+            // Subsequent occurrences: assign "B", "C", etc. and add to valid registros
+            for (let i = 1; i < group.occurrences.length; i++) {
+                const item = group.occurrences[i];
+                const letter = letters[i] || `_${i + 1}`;
+                item.record.rp_ternero = `${group.rp_base} ${letter}`;
+
+                _parsedExcelData.registros.push(item.record);
+
+                if (_parsedExcelData.productores instanceof Set) {
+                    _parsedExcelData.productores.add(item.record.productor);
+                } else if (Array.isArray(_parsedExcelData.productores) && !_parsedExcelData.productores.includes(item.record.productor)) {
+                    _parsedExcelData.productores.push(item.record.productor);
+                }
+
+                if (item.record.establecimiento) {
+                    const exists = _parsedExcelData.establecimientos.some(
+                        e => e.productor === item.record.productor && e.establecimiento === item.record.establecimiento
+                    );
+                    if (!exists) {
+                        _parsedExcelData.establecimientos.push({
+                            productor: item.record.productor,
+                            establecimiento: item.record.establecimiento
+                        });
+                    }
+                }
+                resolvedCount++;
+            }
+        }
+    }
+
+    _parsedExcelData.rejectedRows = _parsedExcelData.rejectedRows.filter(r => !r.isTwinCandidate);
+    _parsedExcelData.seenRPs = null;
+    _parsedExcelData.twinsResolved = resolvedCount;
+
+    showToast(`¡Listo! Se diferenciaron ${resolvedCount} terneros como mellizos (A/B).`);
+
+    showImportReviewStep(
+        _parsedExcelData.fileName,
+        _parsedExcelData.totalRows,
+        _parsedExcelData.registros.length,
+        _parsedExcelData.rejectedRows
+    );
+}
+
 async function confirmImportExcel(btnEl) {
-    if (!_parsedExcelData) {
-        showToast('No hay datos cargados para importar.');
+    if (!_parsedExcelData || _parsedExcelData.registros.length === 0) {
+        showToast('No hay registros válidos para importar.');
         return;
     }
     
@@ -2002,7 +2214,13 @@ async function confirmImportExcel(btnEl) {
     try {
         const payload = {
             action: 'backup_import',
-            data: _parsedExcelData
+            data: {
+                productores: Array.isArray(_parsedExcelData.productores) 
+                    ? _parsedExcelData.productores 
+                    : Array.from(_parsedExcelData.productores),
+                establecimientos: _parsedExcelData.establecimientos,
+                registros: _parsedExcelData.registros
+            }
         };
         const res = await apiFetchApp(API_RECORDS, {
             method: 'POST',
@@ -2027,6 +2245,189 @@ async function confirmImportExcel(btnEl) {
     }
 }
 
+function showImportReviewStep(fileName, totalRows, validCount, rejectedRows) {
+    const uploadStep = document.getElementById('importExcelStepUpload');
+    const reviewStep = document.getElementById('importExcelStepReview');
+    const reviewContent = document.getElementById('importExcelReviewContent');
+    
+    if (uploadStep) uploadStep.style.display = 'none';
+    if (reviewStep) reviewStep.style.display = 'block';
+
+    const rejectedCount = rejectedRows.length;
+    const hasErrors = rejectedCount > 0;
+    const hasValid = validCount > 0;
+    const twinCandidates = rejectedRows.filter(r => r.isTwinCandidate);
+    const hasTwins = twinCandidates.length > 0;
+
+    // Build the summary icon and color
+    let statusIcon, statusColor, statusBg, statusTitle;
+    if (!hasValid) {
+        statusIcon = 'x-circle';
+        statusColor = '#dc2626';
+        statusBg = 'rgba(220,38,38,0.06)';
+        statusTitle = 'No se puede importar';
+    } else if (hasErrors) {
+        statusIcon = 'alert-triangle';
+        statusColor = '#d97706';
+        statusBg = 'rgba(217,119,6,0.06)';
+        statusTitle = 'Revisión necesaria';
+    } else {
+        statusIcon = 'check-circle-2';
+        statusColor = '#16a34a';
+        statusBg = 'rgba(22,163,74,0.06)';
+        statusTitle = 'Todo listo para importar';
+    }
+
+    let html = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.85rem;">
+            <div>
+                <h2 style="color: var(--primary); font-size: 1.25rem; font-weight: 700; margin: 0;">Revisión de Importación</h2>
+                <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 3px;">${fileName}</p>
+            </div>
+            <button onclick="closeImportExcelModal()"
+                style="background: var(--bg-body); border: none; padding: 6px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <i data-lucide="x" style="width: 18px; height: 18px; color: var(--text-secondary);"></i>
+            </button>
+        </div>
+
+        <!-- Status banner -->
+        <div style="background: ${statusBg}; border: 1.5px solid ${statusColor}22; border-radius: 12px; padding: 14px 16px; margin-bottom: 1rem; display: flex; align-items: center; gap: 12px;">
+            <i data-lucide="${statusIcon}" style="width: 28px; height: 28px; color: ${statusColor}; flex-shrink: 0;"></i>
+            <div>
+                <div style="font-weight: 700; font-size: 0.95rem; color: ${statusColor};">${statusTitle}</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">
+                    Se leyeron <strong>${totalRows}</strong> filas del archivo Excel.
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats row -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 1rem;">
+            <div style="background: var(--bg-body); border-radius: 10px; padding: 10px 12px; text-align: center;">
+                <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-main);">${totalRows}</div>
+                <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: 600;">Filas leídas</div>
+            </div>
+            <div style="background: var(--bg-body); border-radius: 10px; padding: 10px 12px; text-align: center;">
+                <div style="font-size: 1.4rem; font-weight: 800; color: #16a34a;">${validCount}</div>
+                <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: 600;">Listas para importar</div>
+            </div>
+            <div style="background: var(--bg-body); border-radius: 10px; padding: 10px 12px; text-align: center;">
+                <div style="font-size: 1.4rem; font-weight: 800; color: ${rejectedCount > 0 ? '#dc2626' : 'var(--text-secondary)'};">${rejectedCount}</div>
+                <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: 600;">Rechazadas</div>
+            </div>
+        </div>`;
+
+    // Twin auto-resolve proposal banner (if detected)
+    if (hasTwins) {
+        html += `
+        <div style="background: rgba(99, 102, 241, 0.08); border: 1.5px solid rgba(99, 102, 241, 0.25); border-radius: 12px; padding: 12px 14px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 220px;">
+                <i data-lucide="sparkles" style="width: 22px; height: 22px; color: #4f46e5; flex-shrink: 0; margin-top: 2px;"></i>
+                <div>
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #3730a3;">¿Son mellizos o gemelos? (${twinCandidates.length} detectados)</div>
+                    <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px; line-height: 1.4;">
+                        Podés resolverlos con 1 clic: se les asignará automáticamente <strong>A</strong> y <strong>B</strong> para no tener que editar el Excel.
+                    </div>
+                </div>
+            </div>
+            <button type="button" onclick="autoResolveTwins()" class="btn-save"
+                style="width: auto; margin: 0; padding: 8px 14px; font-size: 0.82rem; border-radius: 8px; background: #4f46e5; color: white; border: none; display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25); transition: all 0.2s;">
+                <i data-lucide="wand-2" style="width: 15px; height: 15px;"></i> Diferenciar Mellizos (A/B)
+            </button>
+        </div>`;
+    }
+
+    // Rejected rows detail
+    if (hasErrors) {
+        html += `
+        <div style="margin-bottom: 1rem;">
+            <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-main); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="list-x" style="width:16px;height:16px;color:#dc2626;"></i>
+                Detalle de filas rechazadas (${rejectedCount})
+            </div>
+            <div style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-body); position: relative;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem;">
+                    <thead>
+                        <tr>
+                            <th style="position: sticky; top: 0; z-index: 2; background: var(--card-bg, #ffffff); padding: 8px 10px; text-align: left; font-weight: 700; color: var(--text-secondary); border-bottom: 1.5px solid var(--border-color); width: 60px;">Fila</th>
+                            <th style="position: sticky; top: 0; z-index: 2; background: var(--card-bg, #ffffff); padding: 8px 10px; text-align: left; font-weight: 700; color: var(--text-secondary); border-bottom: 1.5px solid var(--border-color); width: 80px;">R.P.</th>
+                            <th style="position: sticky; top: 0; z-index: 2; background: var(--card-bg, #ffffff); padding: 8px 10px; text-align: left; font-weight: 700; color: var(--text-secondary); border-bottom: 1.5px solid var(--border-color);">Motivo</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+        for (const rej of rejectedRows) {
+            const motivos = rej.motivos.map(m => `<span style="display:block;">${m}</span>`).join('');
+            const twinBadge = rej.isTwinCandidate ? `<span style="display:inline-block; font-size:0.68rem; font-weight:700; padding:2px 6px; border-radius:4px; background:rgba(99,102,241,0.12); color:#4f46e5; margin-left:6px;">Mellizo</span>` : '';
+            html += `
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 6px 10px; color: var(--text-main); font-weight: 600;">${rej.fila}</td>
+                            <td style="padding: 6px 10px; color: var(--text-main); font-family: monospace;">${rej.rp}${twinBadge}</td>
+                            <td style="padding: 6px 10px; color: #dc2626; line-height: 1.4;">${motivos}</td>
+                        </tr>`;
+        }
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+    }
+
+    // Question and action buttons
+    if (hasValid && hasErrors) {
+        html += `
+        <div style="background: rgba(217,119,6,0.06); border: 1px solid rgba(217,119,6,0.2); border-radius: 10px; padding: 12px 14px; margin-bottom: 1rem; font-size: 0.82rem; color: var(--text-main); line-height: 1.5;">
+            <strong style="color: #d97706;">¿Querés continuar?</strong><br>
+            Se van a cargar únicamente los <strong>${validCount}</strong> registros válidos. Los ${rejectedCount} terneros observados no se importarán.
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <button onclick="resetImportExcelModal()" class="btn-auth-primary"
+                style="background: transparent; color: var(--text-secondary); border: 1.5px solid var(--border-color); margin-top: 0; box-shadow: none; flex: 1; height: 44px; font-size: 0.85rem;">
+                <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Cancelar y Corregir
+            </button>
+            <button onclick="confirmImportExcel(this)" class="btn-auth-primary"
+                style="background: var(--primary); color: white; border: none; margin-top: 0; flex: 1; height: 44px; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <i data-lucide="check" style="width:16px;height:16px;"></i> Sí, cargar los ${validCount} válidos
+            </button>
+        </div>`;
+    } else if (hasValid && !hasErrors) {
+        const resolvedTag = (_parsedExcelData && _parsedExcelData.twinsResolved)
+            ? `<div style="margin-top: 4px; font-size: 0.78rem; color: #4f46e5; font-weight: 600;">✨ Se diferenciaron ${_parsedExcelData.twinsResolved} terneros como mellizos (A y B) automáticamente.</div>`
+            : '';
+        html += `
+        <div style="background: rgba(22,163,74,0.06); border: 1px solid rgba(22,163,74,0.2); border-radius: 10px; padding: 12px 14px; margin-bottom: 1rem; font-size: 0.82rem; color: var(--text-main); line-height: 1.5;">
+            <strong style="color: #16a34a;">¡Perfecto!</strong> Todos los ${validCount} registros están listos para importar sin errores.
+            ${resolvedTag}
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <button onclick="resetImportExcelModal()" class="btn-auth-primary"
+                style="background: transparent; color: var(--text-secondary); border: 1.5px solid var(--border-color); margin-top: 0; box-shadow: none; flex: 1; height: 44px; font-size: 0.85rem;">
+                Cancelar
+            </button>
+            <button onclick="confirmImportExcel(this)" class="btn-auth-primary"
+                style="background: var(--primary); color: white; border: none; margin-top: 0; flex: 1; height: 44px; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <i data-lucide="upload" style="width:16px;height:16px;"></i> Importar ${validCount} registros
+            </button>
+        </div>`;
+    } else {
+        // No valid records at all
+        html += `
+        <div style="background: rgba(220,38,38,0.06); border: 1px solid rgba(220,38,38,0.2); border-radius: 10px; padding: 12px 14px; margin-bottom: 1rem; font-size: 0.82rem; color: var(--text-main); line-height: 1.5;">
+            <strong style="color: #dc2626;">No hay registros válidos.</strong> Todas las filas fueron rechazadas. Revisá tu archivo Excel y asegurate de que cada fila tenga al menos <strong>Productor</strong> y <strong>Fecha</strong>.
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <button onclick="resetImportExcelModal()" class="btn-auth-primary"
+                style="background: var(--primary); color: white; border: none; margin-top: 0; flex: 1; height: 44px; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Volver e intentar con otro archivo
+            </button>
+        </div>`;
+    }
+
+    reviewContent.innerHTML = html;
+    if (window.lucide) window.lucide.createIcons();
+}
+
 window.exportBackup = exportBackup;
 window.closeExportModal = closeExportModal;
 window.confirmExport = confirmExport;
@@ -2038,6 +2439,9 @@ window.closeImportExcelModal = closeImportExcelModal;
 window.downloadExcelTemplate = downloadExcelTemplate;
 window.handleImportExcelFile = handleImportExcelFile;
 window.confirmImportExcel = confirmImportExcel;
+window.resetImportExcelModal = resetImportExcelModal;
+window.showImportReviewStep = showImportReviewStep;
+window.autoResolveTwins = autoResolveTwins;
 
 // =============================================================
 // ARRANQUE — auth.js llama a appLoadForUser() al confirmar sesión

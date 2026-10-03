@@ -14,7 +14,7 @@ const MOCK_RECORDS = (function generateMockData() {
 
     const CAUSAS = {
         'Enfermedades e Infecciones':         ['Neumonía','Salmonelosis','Rotavirus','Colibacilosis','Onfalitis','Criptosporidiosis','Coronavirus'],
-        'Problemas Digestivos y Metabólicos': ['Torsión de abomaso','Úlcera de abomaso','Intoxicación'],
+        'Problemas Digestivos y Metabólicos': ['Diarrea','Torsión de abomaso','Úlcera de abomaso','Intoxicación'],
         'Factores Externos y de Manejo':      ['Estrés calórico','Traumática','Falsa vía'],
     };
     const CAT_KEYS = Object.keys(CAUSAS);
@@ -143,6 +143,10 @@ const MOCK_RECORDS = (function generateMockData() {
 let _dashCharts = {};
 let _dashFilters = { desde: '', hasta: '', productor: '', establecimiento: '' };
 let _useMock = false; // true si los records reales están vacíos
+
+// Datos para el drill-down modal de causas de muerte
+let _causasGroupData = null;
+let _causasAllData = null;
 
 // Umbrales configurables por el veterinario (se persisten en localStorage)
 const _KPI_THRESHOLDS_KEY = 'vetfield_kpi_thresholds';
@@ -676,6 +680,10 @@ function _renderCausasMuerte(data) {
     };
     const colors = labels.map(l => colorMap[l] || PALETTE.primary);
 
+    // Guardar datos para drill-down modal
+    _causasGroupData = sorted;
+    _causasAllData = data;
+
     _dashCharts.chart_causas = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -713,10 +721,119 @@ function _renderCausasMuerte(data) {
             scales: {
                 x: { grid: GRID_Y_SUBTLE, ticks: { color: '#64748b', font: { family: 'Inter' } } },
                 y: { grid: GRID_NONE,     ticks: { color: '#334155', font: { family: 'Inter', weight: '600' } } }
+            },
+            onClick: function(_evt, elements) {
+                if (elements.length > 0) {
+                    _showCausaDetailModal(elements[0].index);
+                }
             }
         }
     });
+
+    // Cursor pointer al pasar sobre las barras
+    ctx.canvas.style.cursor = 'pointer';
 }
+
+// ────────────────────────────────────────────────────────────────
+// Drill-down modal: detalle de una causa de muerte
+// ────────────────────────────────────────────────────────────────
+function _showCausaDetailModal(groupIndex) {
+    const group = _causasGroupData?.[groupIndex];
+    if (!group || !_causasAllData) return;
+
+    const muertos = _causasAllData.filter(r => r.estado !== 'Vivo');
+    const totalMuertos = muertos.length;
+    const pct = totalMuertos > 0 ? ((group.count / totalMuertos) * 100).toFixed(1) : 0;
+
+    // Título y subtítulo
+    document.getElementById('causaDetailTitle').textContent = `☠️ ${group.canonicalName}`;
+    document.getElementById('causaDetailSubtitle').textContent =
+        `${group.count} caso${group.count !== 1 ? 's' : ''} · ${pct}% del total de muertes`;
+
+    // Buscar registros que coincidan con los rawNames de este grupo
+    const matchingRecords = muertos.filter(r => {
+        return r.causa_especifica && group.rawNames.hasOwnProperty(r.causa_especifica);
+    });
+
+    let html = '';
+
+    // ── Resumen estadístico ──
+    html += `<div class="causa-detail-summary">
+        <div class="causa-detail-stat">
+            <span class="causa-detail-stat-value">${group.count}</span>
+            <span class="causa-detail-stat-label">Casos</span>
+        </div>
+        <div class="causa-detail-stat">
+            <span class="causa-detail-stat-value">${pct}%</span>
+            <span class="causa-detail-stat-label">Del Total</span>
+        </div>`;
+
+    // Categoría de causa (tomar la más frecuente)
+    const catCounts = {};
+    matchingRecords.forEach(r => {
+        if (r.causa_categoria) catCounts[r.causa_categoria] = (catCounts[r.causa_categoria] || 0) + 1;
+    });
+    const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0];
+    if (topCat) {
+        html += `<div class="causa-detail-stat">
+            <span class="causa-detail-stat-value" style="font-size:0.85rem;">${topCat[0]}</span>
+            <span class="causa-detail-stat-label">Categoría</span>
+        </div>`;
+    }
+
+    // Desglose de variantes si hubo agrupamiento fuzzy
+    const rawEntries = Object.entries(group.rawNames).sort((a, b) => b[1] - a[1]);
+    if (rawEntries.length > 1) {
+        html += `<div style="width:100%; margin-top:10px; padding-top:10px; border-top:1px solid var(--border-color);">
+            <div style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:6px; font-weight:600;">
+                Variantes agrupadas:
+            </div>`;
+        rawEntries.forEach(([name, count]) => {
+            html += `<div style="display:flex; justify-content:space-between; font-size:0.82rem; padding:3px 0;">
+                <span style="color:var(--text-main);">${name}</span>
+                <span style="color:var(--text-secondary); font-weight:700;">${count}</span>
+            </div>`;
+        });
+        html += `</div>`;
+    }
+    html += `</div>`;
+
+    // ── Lista de terneros afectados ──
+    html += `<div style="font-size:0.82rem; font-weight:700; color:var(--text-main); margin-bottom:6px;">
+        🐄 Terneros afectados (${matchingRecords.length}):
+    </div>`;
+
+    if (matchingRecords.length > 0) {
+        matchingRecords
+            .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+            .forEach(r => {
+                const estadoIcon = r.estado === 'Muerto en Guachería' ? '🏠'
+                    : r.estado === 'Muerto en Establecimiento' ? '🏢'
+                    : r.estado === 'Muerto en Terapia' ? '💉' : '☠️';
+                html += `<div class="causa-detail-item">
+                    <div class="causa-detail-rp">${r.rp_ternero || 'S/N'}</div>
+                    <div class="causa-detail-info">
+                        📅 ${r.fecha || '—'} · 📍 ${r.establecimiento || '—'}<br>
+                        ${estadoIcon} ${r.estado || '—'}
+                    </div>
+                </div>`;
+            });
+    } else {
+        html += `<div style="text-align:center; color:var(--text-secondary); padding:1.5rem; font-size:0.85rem;">
+            No se encontraron registros detallados para esta causa.
+        </div>`;
+    }
+
+    document.getElementById('causaDetailBody').innerHTML = html;
+    document.getElementById('causaDetailModal').classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
+}
+
+function closeCausaDetailModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('causaDetailModal').classList.remove('active');
+}
+window.closeCausaDetailModal = closeCausaDetailModal;
 
 // ────────────────────────────────────────────────────────────────
 // 2. Mortalidad por Ubicación — PieChart
@@ -773,7 +890,34 @@ function _renderCorrelacionCalostro(data) {
     const ctx = _getCtx('chart_calostro');
     if (!ctx) return;
 
+    // Limpiar overlay previo si existe
+    const canvasEl = ctx.canvas || ctx;
+    const wrapper = canvasEl.parentElement;
+    const oldOverlay = wrapper?.querySelector('.dash-no-data-overlay');
+    if (oldOverlay) oldOverlay.remove();
+
     const sample = data.filter(r => r.ig_calostro && r.ig_ternero).slice(0, 120);
+
+    // Si no hay registros con I.G., mostrar mensaje amigable
+    if (sample.length === 0) {
+        if (wrapper) {
+            wrapper.style.position = 'relative';
+            const overlay = document.createElement('div');
+            overlay.className = 'dash-no-data-overlay';
+            overlay.innerHTML = `
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+                            background:rgba(255,255,255,0.85);border-radius:12px;z-index:5;flex-direction:column;gap:8px;">
+                    <span style="font-size:2.2rem;">📊</span>
+                    <span style="color:#64748b;font-size:0.95rem;font-weight:500;text-align:center;max-width:280px;">
+                        Sin datos de I.G. Calostro / Ternero.<br>
+                        <span style="font-size:0.82rem;color:#94a3b8;">Cargá registros con valores de inmunoglobulinas para ver la correlación.</span>
+                    </span>
+                </div>`;
+            wrapper.appendChild(overlay);
+        }
+        // Crear chart vacío para que no se vea roto
+    }
+
     const vivos = sample.filter(r => r.estado === 'Vivo').map(r => ({ x: parseFloat(r.ig_calostro), y: parseFloat(r.ig_ternero) }));
     const muertos = sample.filter(r => r.estado !== 'Vivo').map(r => ({ x: parseFloat(r.ig_calostro), y: parseFloat(r.ig_ternero) }));
 

@@ -828,6 +828,25 @@ nav.bottom-nav {
     max-height: 92vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.35);
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.65);
 }
 
 .modal-overlay.active .modal-content {
@@ -2637,6 +2656,9 @@ html.dark .export-option-card:has(input:checked) {
 @media (min-width: 768px) {
     .modal-overlay {
         align-items: center; /* Centrar modal vertical y horizontalmente */
+        padding: 1.25rem;
+        box-sizing: border-box;
+        overflow-y: auto;
     }
 
     .modal-content {
@@ -2648,6 +2670,13 @@ html.dark .export-option-card:has(input:checked) {
         display: flex !important;
         flex-direction: column !important;
         max-height: 90vh !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    /* Modal específico con scroll interno (#detailModal) para mantener header y footer fijos */
+    #detailModal .modal-content {
         overflow: hidden !important;
     }
 
@@ -2689,4 +2718,131 @@ html.dark .export-option-card:has(input:checked) {
         margin-top: 0 !important;
         height: 48px !important;
     }
+}
+
+/* ── Panel de Validación Previa de Importación Excel ── */
+.import-stat-card {
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 8px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    transition: all 0.2s;
+}
+.import-stat-card.valid {
+    background: rgba(34, 197, 94, 0.08);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+.import-stat-card.invalid {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+.import-error-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid #ef4444;
+    border-radius: 8px;
+    padding: 9px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.78rem;
+    transition: background-color 0.2s;
+}
+html.dark .import-error-item {
+    background: #1e293b;
+    border-color: rgba(255, 255, 255, 0.08);
+    border-left-color: #ef4444;
+}
+.import-error-item:hover {
+    background: rgba(239, 68, 68, 0.03);
+}
+.import-error-reason {
+    color: #dc2626;
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    line-height: 1.35;
+}
+html.dark .import-error-reason {
+    color: #f87171;
+}
+
+/* ── Causa Detail Modal (Drill-down del gráfico de causas de muerte) ── */
+.causa-detail-summary {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+    padding: 14px 18px;
+    background: rgba(26, 35, 126, 0.05);
+    border-radius: 14px;
+    border: 1px solid rgba(26, 35, 126, 0.08);
+}
+html.dark .causa-detail-summary {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.06);
+}
+.causa-detail-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 60px;
+}
+.causa-detail-stat-value {
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: var(--primary);
+    line-height: 1.2;
+}
+html.dark .causa-detail-stat-value {
+    color: #818cf8;
+}
+.causa-detail-stat-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+.causa-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+.causa-detail-item:hover {
+    background: rgba(26, 35, 126, 0.04);
+    border-color: rgba(26, 35, 126, 0.15);
+    transform: translateX(3px);
+}
+html.dark .causa-detail-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+.causa-detail-rp {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 0.88rem;
+    min-width: 72px;
+    flex-shrink: 0;
+}
+html.dark .causa-detail-rp {
+    color: #818cf8;
+}
+.causa-detail-info {
+    flex: 1;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
 }
