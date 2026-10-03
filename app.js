@@ -1859,17 +1859,33 @@ function handleImportExcelFile(event) {
             }
 
             // Helpers for parsing and normalizing
+            function cleanCompareKey(str) {
+                if (!str) return '';
+                return String(str)
+                    .toLowerCase()
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-z0-9]/g, "");
+            }
+
             function findValue(row, aliases) {
                 const keys = Object.keys(row);
+                // 1. Coincidencia exacta limpia (sin tildes, sin espacios, minúsculas)
                 for (const alias of aliases) {
-                    const foundKey = keys.find(k => k.toLowerCase().replace(/[^a-z0-9]/g, "").includes(alias.toLowerCase().replace(/[^a-z0-9]/g, "")));
+                    const cleanAlias = cleanCompareKey(alias);
+                    if (!cleanAlias) continue;
+                    const foundKey = keys.find(k => cleanCompareKey(k) === cleanAlias);
                     if (foundKey) return row[foundKey];
                 }
-                // Fallback search
-                for (const key of keys) {
-                    if (key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(aliases[0].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""))) {
-                        return row[key];
-                    }
+                // 2. Coincidencia por inclusión limpia
+                for (const alias of aliases) {
+                    const cleanAlias = cleanCompareKey(alias);
+                    if (!cleanAlias) continue;
+                    const foundKey = keys.find(k => {
+                        const ck = cleanCompareKey(k);
+                        return ck.includes(cleanAlias) || cleanAlias.includes(ck);
+                    });
+                    if (foundKey) return row[foundKey];
                 }
                 return undefined;
             }
@@ -1995,12 +2011,85 @@ function handleImportExcelFile(event) {
                 const normEsp = normalizeCompare(esp);
                 const normCat = normalizeCompare(cat);
 
-                // Variaciones de Diarrea (diarrea, diarea, diarréa, etc.)
-                if (normEsp.match(/^di+ar+e+a$/) || normEsp.includes("diarrea") || normEsp.includes("diarea")) {
-                    esp = "Diarrea";
-                    if (!cat || normCat.includes("digestiv") || normCat.includes("metabolic")) {
-                        cat = "Problemas Digestivos y Metabólicos";
+                // 1. Normalizar la categoría a nombres canónicos
+                if (normCat.includes("digestiv") || normCat.includes("metabolic")) {
+                    cat = "Problemas Digestivos y Metabólicos";
+                } else if (normCat.includes("infecci") || normCat.includes("enfermedad")) {
+                    cat = "Enfermedades e Infecciones";
+                } else if (normCat.includes("extern") || normCat.includes("manejo")) {
+                    cat = "Factores Externos y de Manejo";
+                } else if (normCat.includes("otra")) {
+                    cat = "Otra Causa";
+                }
+
+                // 2. Normalización de causas específicas
+                if (normEsp.includes("diarrea") || normEsp.includes("diarea") || normEsp.match(/^di+ar+e+a$/)) {
+                    if (normEsp.includes("onfalit")) {
+                        esp = "Onfalitis - Diarrea";
+                        if (!cat) cat = "Enfermedades e Infecciones"; // Onfalitis es infección, aunque acompañe diarrea
+                    } else {
+                        esp = "Diarrea";
+                        if (!cat) cat = "Problemas Digestivos y Metabólicos";
                     }
+
+                } else if (normEsp.includes("torsion") || normEsp.includes("abomaso")) {
+                    esp = "Torsión de abomaso";
+                    if (!cat) cat = "Problemas Digestivos y Metabólicos";
+                } else if (normEsp.includes("ulcera")) {
+                    esp = "Úlcera de abomaso";
+                    if (!cat) cat = "Problemas Digestivos y Metabólicos";
+                } else if (normEsp.includes("intoxic")) {
+                    esp = "Intoxicación";
+                    if (!cat) cat = "Problemas Digestivos y Metabólicos";
+                } else if (normEsp.includes("acidosis") || normEsp.includes("timpanis") || normEsp.includes("hinchad") || normEsp.includes("empaste")) {
+                    esp = "Acidosis / Timpanismo";
+                    if (!cat) cat = "Problemas Digestivos y Metabólicos";
+                } else if (normEsp.includes("neumon") || normEsp.includes("pulmon")) {
+                    esp = "Neumonía";
+                    if (!cat) cat = "Enfermedades e Infecciones";
+                } else if (normEsp.includes("rotavirus") || normEsp.match(/\brota\b/)) {
+                    esp = "Rotavirus";
+                    if (!cat) cat = "Enfermedades e Infecciones";
+                } else if (normEsp.includes("coronavirus") || normEsp.match(/\bcorona\b/)) {
+                    esp = "Coronavirus";
+                    if (!cat) cat = "Enfermedades e Infecciones";
+                } else if (normEsp.includes("colibacil") || normEsp.includes("escherichia") || normEsp.includes("coli")) {
+                    esp = "Colibacilosis";
+                    if (!cat) cat = "Enfermedades e Infecciones";
+                } else if (normEsp.includes("onfalit") || normEsp.includes("ombligo")) {
+                    esp = "Onfalitis";
+                    if (!cat) cat = "Enfermedades e Infecciones";
+                } else if (normEsp.includes("salmonel")) {
+                    esp = "Salmonelosis";
+                    if (!cat) cat = "Enfermedades e Infecciones";
+                } else if (normEsp.includes("cripto")) {
+                    esp = "Criptosporidiosis";
+                    if (!cat) cat = "Enfermedades e Infecciones";
+                } else if (normEsp.includes("calor") || normEsp.includes("estres")) {
+                    esp = "Estrés calórico";
+                    if (!cat) cat = "Factores Externos y de Manejo";
+                } else if (normEsp.includes("falsa via") || normEsp.includes("broncoaspir")) {
+                    esp = "Falsa vía";
+                    if (!cat) cat = "Factores Externos y de Manejo";
+                } else if (normEsp.includes("trauma") || normEsp.includes("golpe") || normEsp.includes("fractura")) {
+                    esp = "Traumática";
+                    if (!cat) cat = "Factores Externos y de Manejo";
+                } else if (normEsp.includes("hipotermia") || normEsp.includes("frio")) {
+                    esp = "Hipotermia";
+                    if (!cat) cat = "Factores Externos y de Manejo";
+                } else if (normEsp.includes("digestiv") || normEsp.includes("metabolic")) {
+                    if (!cat) cat = "Problemas Digestivos y Metabólicos";
+                    esp = "";
+                } else if (normEsp.includes("infeccion") || normEsp.includes("enfermedad")) {
+                    if (!cat) cat = "Enfermedades e Infecciones";
+                    esp = "";
+                } else if (normEsp.includes("extern") || normEsp.includes("manejo")) {
+                    if (!cat) cat = "Factores Externos y de Manejo";
+                    esp = "";
+                }
+
+                if (!cat && esp) {
+                    cat = "Otra Causa";
                 }
 
                 return { cat, esp };
@@ -2050,8 +2139,8 @@ function handleImportExcelFile(event) {
                 const ig_calostro = parseNumeric(findIgMadre(row), true);
                 const estado = sanitizeEstado(findValue(row, ["estado", "supervivencia", "status"]));
                 
-                const raw_causa_cat = findValue(row, ["causa categoria", "causa_categoria", "categoria muerte", "categoria"]);
-                const raw_causa_esp = findValue(row, ["causa especifica", "causa_especifica", "causa muerte", "causa"]);
+                const raw_causa_cat = findValue(row, ["causa categoria", "causa categoría", "causa_categoria", "categoria", "categoría", "categoria muerte", "categoría muerte", "grupo causa"]);
+                const raw_causa_esp = findValue(row, ["causa especifica", "causa específica", "causa_especifica", "subcausa", "sub causa", "diagnostico", "diagnóstico", "enfermedad", "motivo", "causa muerte", "causa"]);
                 const normCausa = normalizeCausa(raw_causa_cat, raw_causa_esp);
                 const causa_cat = normCausa.cat;
                 const causa_esp = normCausa.esp;

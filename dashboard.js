@@ -561,124 +561,233 @@ const CHART_DEFAULTS = {
 const GRID_Y_SUBTLE = { color: '#E0E0E0', lineWidth: 1 };
 const GRID_NONE     = { display: false };
 
+// Helper functions for fuzzy unification y detalle de causas de muerte
+function cleanCausaString(str) {
+    if (!str) return '';
+    return str
+        .toLowerCase()
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // remove accents
+        .replace(/^h+/g, '') // remove leading h (e.g. hipotermia -> ipotermia)
+        .replace(/h/g, '') // remove all h's
+        .replace(/v/g, 'b') // treat v and b as same
+        .replace(/y/g, 'i') // treat y and i as same
+        .replace(/z/g, 's') // treat z and s as same
+        .replace(/c(?=[ei])/g, 's') // treat c before e or i as s
+        .replace(/[^a-z0-9]/g, ''); // keep only letters and numbers
+}
+
+function levenshteinDist(a, b) {
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1, // substitution
+                    matrix[i][j - 1] + 1,     // insertion
+                    matrix[i - 1][j] + 1      // deletion
+                );
+            }
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
+// Nombres canónicos de las categorías principales (usados en el formulario de app.js)
+const CATEGORIAS_CANONICAS = [
+    'Problemas Digestivos y Metabólicos',
+    'Enfermedades e Infecciones',
+    'Factores Externos y de Manejo',
+    'Otra Causa'
+];
+
+function matchCanonicalCategory(str) {
+    if (!str) return null;
+    const s = str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    if (/digestiv|metab/i.test(s)) return 'Problemas Digestivos y Metabólicos';
+    if (/infecci|enfermedad/i.test(s)) return 'Enfermedades e Infecciones';
+    if (/factor|extern|manejo/i.test(s)) return 'Factores Externos y de Manejo';
+    if (/^otra(?:\s+causa)?$/i.test(s)) return 'Otra Causa';
+    return null;
+}
+
+// Mapa de enfermedades específicas con regex para detección en texto libre
+const MAPA_CAUSAS_ESPECIFICAS = [
+    { re: /\b(?:diarrea|empacho|cagadera|curso)\b/i, label: 'Diarrea', cat: 'Problemas Digestivos y Metabólicos' },
+    { re: /\b(?:torsi[oó]n(?:\s+de\s+abomaso)?)\b/i, label: 'Torsión de abomaso', cat: 'Problemas Digestivos y Metabólicos' },
+    { re: /\b(?:[uú]lcera(?:\s+de\s+abomaso)?)\b/i, label: 'Úlcera de abomaso', cat: 'Problemas Digestivos y Metabólicos' },
+    { re: /\b(?:intoxicaci[oó]n|intoxicado)\b/i, label: 'Intoxicación', cat: 'Problemas Digestivos y Metabólicos' },
+    { re: /\b(?:acidosis|timpanismo|hinchado|hinchaz[oó]n|empaste)\b/i, label: 'Acidosis / Timpanismo', cat: 'Problemas Digestivos y Metabólicos' },
+    { re: /\b(?:neumon[ií]a|pulmon[ií]a)\b/i, label: 'Neumonía', cat: 'Enfermedades e Infecciones' },
+    { re: /\b(?:salmonelosis|salmonela)\b/i, label: 'Salmonelosis', cat: 'Enfermedades e Infecciones' },
+    { re: /\b(?:rotavirus|rota\b)\b/i, label: 'Rotavirus', cat: 'Enfermedades e Infecciones' },
+    { re: /\b(?:coronavirus|corona\b)\b/i, label: 'Coronavirus', cat: 'Enfermedades e Infecciones' },
+    { re: /\b(?:colibacilosis|escherichia|e\.?\s*coli)\b/i, label: 'Colibacilosis', cat: 'Enfermedades e Infecciones' },
+    { re: /\b(?:onfalitis|ombligo)\b/i, label: 'Onfalitis', cat: 'Enfermedades e Infecciones' },
+    { re: /\b(?:criptosporidiosis|cripto\b)\b/i, label: 'Criptosporidiosis', cat: 'Enfermedades e Infecciones' },
+    { re: /\b(?:estr[eé]s\s+cal[oó]rico|golpe\s+de\s+calor)\b/i, label: 'Estrés calórico', cat: 'Factores Externos y de Manejo' },
+    { re: /\b(?:falsa\s+v[ií]a|broncoaspiraci[oó]n)\b/i, label: 'Falsa vía', cat: 'Factores Externos y de Manejo' },
+    { re: /\b(?:traum[aá]tica|trauma|golpe|fractura)\b/i, label: 'Traumática', cat: 'Factores Externos y de Manejo' },
+    { re: /\b(?:hipotermia|fr[ií]o)\b/i, label: 'Hipotermia', cat: 'Factores Externos y de Manejo' }
+];
+
+/**
+ * Obtiene la categoría principal de un registro de muerte.
+ * Analiza causa_categoria, causa, causa_especifica y texto libre.
+ */
+function getCategoryForRecord(r) {
+    if (!r) return 'Otra Causa';
+
+    const cat = (r.causa_categoria || '').trim();
+    const esp = (r.causa_especifica || '').trim();
+    const causa = (r.causa || '').trim();
+
+    // 1) Si "causa" tiene formato "Categoría - Enfermedad", tomar la parte antes del guion
+    if (causa && causa.includes(' - ')) {
+        const beforeDash = causa.split(' - ')[0].trim();
+        const m = matchCanonicalCategory(beforeDash);
+        if (m) return m;
+    }
+
+    // 2) Si causa_categoria coincide con alguna categoría conocida
+    if (cat) {
+        const m = matchCanonicalCategory(cat);
+        if (m) return m;
+    }
+
+    // 3) Si causa_especifica contiene el nombre de una categoría (muy habitual en datos heredados)
+    if (esp) {
+        const m = matchCanonicalCategory(esp);
+        if (m) return m;
+    }
+
+    // 4) Si causa completa coincide con alguna categoría
+    if (causa) {
+        const m = matchCanonicalCategory(causa);
+        if (m) return m;
+    }
+
+    // 5) Búsqueda por palabras clave de enfermedades o temas conocidos
+    const full = `${cat} ${esp} ${causa} ${r.diagnostico || ''}`.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    if (/digestiv|metab|diarrea|empacho|cagadera|curso|torsion|abomaso|ulcera|intoxicaci|acidosis|timpanismo|hinchad|empaste/i.test(full)) {
+        return 'Problemas Digestivos y Metabólicos';
+    }
+
+    if (/infecci|enfermedad|neumon|pulmon|salmonel|rotavirus|rota\b|coronavirus|corona\b|colibacilosis|escherichia|e\.?\s*coli|onfalitis|ombligo|cripto|bacteri|viral|virus|septicemia|mancha|clostridi/i.test(full)) {
+        return 'Enfermedades e Infecciones';
+    }
+
+    if (/factor|extern|manejo|estres|calor|falsa\s*via|broncoaspiraci|trauma|golpe|fractura|hipotermia|frio|ahogad|aplastad|accidente/i.test(full)) {
+        return 'Factores Externos y de Manejo';
+    }
+
+    // 6) Si causa_categoria tiene algún texto personalizado que no sea "Sin categoría"
+    if (cat && !/sin\s+cat/i.test(cat)) {
+        return cat;
+    }
+
+    return 'Otra Causa';
+}
+
+/**
+ * Extrae la enfermedad o causa específica real de un registro.
+ * NUNCA devuelve el nombre de una categoría macro repetida.
+ * Devuelve null si el registro solo tenía la categoría general sin subdiagnóstico.
+ */
+function getSpecificDisease(r) {
+    if (!r) return null;
+
+    const rawCausa = (r.causa || '').trim();
+    const rawEsp = (r.causa_especifica || '').trim();
+
+    // 1) Si tiene formato "Categoría - Enfermedad", tomar la parte después del guion
+    if (rawCausa && rawCausa.includes(' - ')) {
+        const parts = rawCausa.split(' - ');
+        if (parts.length >= 2) {
+            const afterDash = parts.slice(1).join(' - ').trim();
+            // Verificar que no sea el nombre de una categoría
+            if (afterDash && !matchCanonicalCategory(afterDash)) {
+                return cleanAndCapitalizeDisease(afterDash);
+            }
+        }
+    }
+
+    // 2) Si causa_especifica tiene valor y NO es el nombre de una categoría
+    if (rawEsp && !matchCanonicalCategory(rawEsp)) {
+        return cleanAndCapitalizeDisease(rawEsp);
+    }
+
+    // 3) Buscar en todos los campos si coincide con alguna enfermedad específica conocida
+    const fullText = `${rawCausa} ${rawEsp} ${r.diagnostico || ''} ${r.observaciones || ''}`;
+    for (const item of MAPA_CAUSAS_ESPECIFICAS) {
+        if (item.re.test(fullText)) {
+            return item.label;
+        }
+    }
+
+    // 4) Si causa completa no tiene guion y NO es nombre de categoría
+    if (rawCausa && !matchCanonicalCategory(rawCausa)) {
+        return cleanAndCapitalizeDisease(rawCausa);
+    }
+
+    // Solo se registró la categoría general
+    return null;
+}
+
+function cleanAndCapitalizeDisease(str) {
+    if (!str) return '';
+    const cleaned = str
+        .replace(/Ã¡/g, 'á').replace(/Ã©/g, 'é').replace(/Ã­/g, 'í').replace(/Ã³/g, 'ó').replace(/Ãº/g, 'ú')
+        .replace(/ã¡/g, 'á').replace(/ã©/g, 'é').replace(/ã­/g, 'í').replace(/ã³/g, 'ó').replace(/ãº/g, 'ú')
+        .trim();
+    return cleaned.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
 // ────────────────────────────────────────────────────────────────
 // 1. Causas de Muerte — BarChart Horizontal
+//    BARRAS = Categorías principales (Problemas Digestivos, Infecciones, etc.)
+//    TOOLTIP/MODAL = Enfermedades específicas dentro de esa categoría
 // ────────────────────────────────────────────────────────────────
 function _renderCausasMuerte(data) {
     const ctx = _getCtx('chart_causas');
     if (!ctx) return;
 
-    // Helper functions for fuzzy unification
-    function cleanString(str) {
-        if (!str) return '';
-        return str
-            .toLowerCase()
-            .trim()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "") // remove accents
-            .replace(/^h+/g, '') // remove leading h (e.g. hipotermia -> ipotermia)
-            .replace(/h/g, '') // remove all h's
-            .replace(/v/g, 'b') // treat v and b as same
-            .replace(/y/g, 'i') // treat y and i as same
-            .replace(/z/g, 's') // treat z and s as same
-            .replace(/c(?=[ei])/g, 's') // treat c before e or i as s
-            .replace(/[^a-z0-9]/g, ''); // keep only letters and numbers
-    }
+    const muertos = data.filter(r => r.estado !== 'Vivo' && (r.causa_especifica || r.causa_categoria || r.causa));
 
-    function levenshtein(a, b) {
-        const matrix = [];
-        for (let i = 0; i <= b.length; i++) matrix[i] = [i];
-        for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
-        for (let i = 1; i <= b.length; i++) {
-            for (let j = 1; j <= a.length; j++) {
-                if (b.charAt(i - 1) === a.charAt(j - 1)) {
-                    matrix[i][j] = matrix[i - 1][j - 1];
-                } else {
-                    matrix[i][j] = Math.min(
-                        matrix[i - 1][j - 1] + 1, // substitution
-                        matrix[i][j - 1] + 1,     // insertion
-                        matrix[i - 1][j] + 1      // deletion
-                    );
-                }
-            }
+    // Agrupar por CATEGORÍA PRINCIPAL
+    const categoryGroups = {};
+    muertos.forEach(r => {
+        const cat = getCategoryForRecord(r);
+        if (!categoryGroups[cat]) {
+            categoryGroups[cat] = { count: 0, records: [] };
         }
-        return matrix[b.length][a.length];
-    }
+        categoryGroups[cat].count++;
+        categoryGroups[cat].records.push(r);
+    });
 
-    function groupCauses(muertos) {
-        const groups = []; // array of { canonicalName: string, cleaned: string, count: number, rawNames: Object }
+    // Ordenar de mayor a menor y tomar las que tengan casos (> 0)
+    const sorted = Object.entries(categoryGroups)
+        .filter(([_, d]) => d.count > 0)
+        .map(([name, d]) => ({ canonicalName: name, count: d.count, records: d.records }))
+        .sort((a, b) => b.count - a.count);
 
-        muertos.forEach(r => {
-            const raw = r.causa_especifica;
-            if (!raw) return;
-            
-            const cleaned = cleanString(raw);
-            
-            // Try to find an existing group that matches
-            let foundGroup = null;
-            for (const g of groups) {
-                // Check for exact cleaned match first
-                if (g.cleaned === cleaned) {
-                    foundGroup = g;
-                    break;
-                }
-                // Or check Levenshtein distance
-                const dist = levenshtein(g.cleaned, cleaned);
-                const maxLen = Math.max(g.cleaned.length, cleaned.length);
-                const threshold = Math.max(2, Math.floor(maxLen * 0.25));
-                if (dist <= threshold) {
-                    foundGroup = g;
-                    break;
-                }
-            }
-
-            if (foundGroup) {
-                foundGroup.count++;
-                foundGroup.rawNames[raw] = (foundGroup.rawNames[raw] || 0) + 1;
-            } else {
-                const newGroup = {
-                    canonicalName: raw.trim().charAt(0).toUpperCase() + raw.trim().slice(1).toLowerCase(),
-                    cleaned: cleaned,
-                    count: 1,
-                    rawNames: { [raw]: 1 }
-                };
-                groups.push(newGroup);
-            }
-        });
-
-        // Update canonicalName for each group to be the most common raw name, capitalized nicely
-        groups.forEach(g => {
-            let bestRaw = g.canonicalName;
-            let maxCount = 0;
-            for (const [raw, count] of Object.entries(g.rawNames)) {
-                if (count > maxCount) {
-                    maxCount = count;
-                    bestRaw = raw;
-                }
-            }
-            g.canonicalName = bestRaw.trim()
-                .split(/\s+/)
-                .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-                .join(' ');
-        });
-
-        return groups;
-    }
-
-    const muertos = data.filter(r => r.estado !== 'Vivo' && r.causa_especifica);
-    const groups = groupCauses(muertos);
-    const sorted = groups.sort((a, b) => b.count - a.count).slice(0, 10);
     const labels = sorted.map(g => g.canonicalName);
     const values = sorted.map(g => g.count);
 
-    // Colores por categoría de causa
-    const colorMap = {
-        'Colibacilosis': '#dc2626', 'Salmonelosis': '#ef4444', 'Rotavirus': '#f87171',
-        'Coronavirus': '#fca5a5', 'Criptosporidiosis': '#b91c1c', 'Onfalitis': '#991b1b', 'Neumonía': '#7f1d1d',
-        'Torsión de abomaso': '#d97706', 'Úlcera de abomaso': '#f59e0b', 'Intoxicación': '#fbbf24',
-        'Estrés calórico': '#0284c7', 'Falsa vía': '#0ea5e9', 'Traumática': '#38bdf8'
+    // Colores por categoría
+    const catColorMap = {
+        'Problemas Digestivos y Metabólicos': '#d97706',
+        'Enfermedades e Infecciones': '#dc2626',
+        'Factores Externos y de Manejo': '#0284c7',
+        'Otra Causa': '#64748b'
     };
-    const colors = labels.map(l => colorMap[l] || PALETTE.primary);
+    const colors = labels.map(l => catColorMap[l] || PALETTE.primary);
 
     // Guardar datos para drill-down modal
     _causasGroupData = sorted;
@@ -695,7 +804,6 @@ function _renderCausasMuerte(data) {
                 borderColor: colors,
                 borderWidth: 1.5,
                 borderRadius: 6,
-                // Etiqueta al final de cada barra
                 datalabels: {
                     anchor: 'end',
                     align: 'left',
@@ -714,7 +822,44 @@ function _renderCausasMuerte(data) {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: ctx => ` ${ctx.raw} casos · ${data.length > 0 ? ((ctx.raw / data.filter(r=>r.estado!=='Vivo').length)*100).toFixed(1) : 0}% de muertes`
+                        label: ctx => {
+                            const totalMuertos = data.filter(r => r.estado !== 'Vivo').length;
+                            const pct = totalMuertos > 0 ? ((ctx.raw / totalMuertos) * 100).toFixed(1) : 0;
+                            return ` ${ctx.raw} casos · ${pct}% de muertes`;
+                        },
+                        afterBody: ctxItems => {
+                            const item = ctxItems[0];
+                            const group = _causasGroupData?.[item.dataIndex];
+                            if (!group || !group.records) return [];
+
+                            // Contar enfermedades específicas dentro de esta categoría
+                            const diseaseCounts = {};
+                            let generalCount = 0;
+                            group.records.forEach(r => {
+                                const disease = getSpecificDisease(r);
+                                if (disease) {
+                                    diseaseCounts[disease] = (diseaseCounts[disease] || 0) + 1;
+                                } else {
+                                    generalCount++;
+                                }
+                            });
+
+                            const entries = Object.entries(diseaseCounts).sort((a, b) => b[1] - a[1]);
+                            const lines = [''];
+                            if (entries.length > 0) {
+                                lines.push('Enfermedades específicas:');
+                                entries.slice(0, 5).forEach(([name, count]) => {
+                                    lines.push(`  • ${name}: ${count}`);
+                                });
+                                if (entries.length > 5) {
+                                    lines.push(`  ... y ${entries.length - 5} más (clic para ver)`);
+                                }
+                            }
+                            if (generalCount > 0) {
+                                lines.push(`  • Diagnóstico general: ${generalCount}`);
+                            }
+                            return lines;
+                        }
                     }
                 }
             },
@@ -735,7 +880,8 @@ function _renderCausasMuerte(data) {
 }
 
 // ────────────────────────────────────────────────────────────────
-// Drill-down modal: detalle de una causa de muerte
+// Drill-down modal: detalle de una categoría de causa de muerte
+// Muestra las ENFERMEDADES ESPECÍFICAS dentro de esa categoría
 // ────────────────────────────────────────────────────────────────
 function _showCausaDetailModal(groupIndex) {
     const group = _causasGroupData?.[groupIndex];
@@ -750,9 +896,19 @@ function _showCausaDetailModal(groupIndex) {
     document.getElementById('causaDetailSubtitle').textContent =
         `${group.count} caso${group.count !== 1 ? 's' : ''} · ${pct}% del total de muertes`;
 
-    // Buscar registros que coincidan con los rawNames de este grupo
-    const matchingRecords = muertos.filter(r => {
-        return r.causa_especifica && group.rawNames.hasOwnProperty(r.causa_especifica);
+    const matchingRecords = group.records || [];
+
+    // Contar enfermedades específicas
+    const diseaseCounts = {};
+    let generalCount = 0;
+
+    matchingRecords.forEach(r => {
+        const disease = getSpecificDisease(r);
+        if (disease) {
+            diseaseCounts[disease] = (diseaseCounts[disease] || 0) + 1;
+        } else {
+            generalCount++;
+        }
     });
 
     let html = '';
@@ -768,35 +924,41 @@ function _showCausaDetailModal(groupIndex) {
             <span class="causa-detail-stat-label">Del Total</span>
         </div>`;
 
-    // Categoría de causa (tomar la más frecuente)
-    const catCounts = {};
-    matchingRecords.forEach(r => {
-        if (r.causa_categoria) catCounts[r.causa_categoria] = (catCounts[r.causa_categoria] || 0) + 1;
-    });
-    const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0];
-    if (topCat) {
+    const uniqueDiseases = Object.keys(diseaseCounts).length;
+    if (uniqueDiseases > 0) {
         html += `<div class="causa-detail-stat">
-            <span class="causa-detail-stat-value" style="font-size:0.85rem;">${topCat[0]}</span>
-            <span class="causa-detail-stat-label">Categoría</span>
+            <span class="causa-detail-stat-value">${uniqueDiseases}</span>
+            <span class="causa-detail-stat-label">Enfermedades</span>
         </div>`;
     }
+    html += `</div>`;
 
-    // Desglose de variantes si hubo agrupamiento fuzzy
-    const rawEntries = Object.entries(group.rawNames).sort((a, b) => b[1] - a[1]);
-    if (rawEntries.length > 1) {
-        html += `<div style="width:100%; margin-top:10px; padding-top:10px; border-top:1px solid var(--border-color);">
-            <div style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:6px; font-weight:600;">
-                Variantes agrupadas:
+    // ── Desglose de Enfermedades Específicas ──
+    const diseaseEntries = Object.entries(diseaseCounts).sort((a, b) => b[1] - a[1]);
+    if (diseaseEntries.length > 0 || generalCount > 0) {
+        html += `<div style="width:100%; margin-bottom:1rem; padding:12px 16px; background:var(--input-bg); border-radius:12px; border:1px solid var(--border-color);">
+            <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
+                🔬 Diagnóstico específico / Enfermedad:
             </div>`;
-        rawEntries.forEach(([name, count]) => {
-            html += `<div style="display:flex; justify-content:space-between; font-size:0.82rem; padding:3px 0;">
-                <span style="color:var(--text-main);">${name}</span>
-                <span style="color:var(--text-secondary); font-weight:700;">${count}</span>
+
+        diseaseEntries.forEach(([name, count]) => {
+            const subPct = group.count > 0 ? ((count / group.count) * 100).toFixed(0) : 0;
+            html += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.84rem; padding:4px 0; border-bottom:1px dashed var(--border-color);">
+                <span style="color:var(--text-main); font-weight:600;">• ${name}</span>
+                <span style="color:var(--primary); font-weight:700;">${count} caso${count !== 1 ? 's' : ''} <span style="font-weight:400; color:var(--text-secondary); font-size:0.75rem;">(${subPct}%)</span></span>
             </div>`;
         });
+
+        if (generalCount > 0) {
+            const genPct = group.count > 0 ? ((generalCount / group.count) * 100).toFixed(0) : 0;
+            html += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.84rem; padding:4px 0; color:var(--text-secondary);">
+                <span>• Diagnóstico general (sin subcausa)</span>
+                <span style="font-weight:600;">${generalCount} caso${generalCount !== 1 ? 's' : ''} <span style="font-size:0.75rem;">(${genPct}%)</span></span>
+            </div>`;
+        }
+
         html += `</div>`;
     }
-    html += `</div>`;
 
     // ── Lista de terneros afectados ──
     html += `<div style="font-size:0.82rem; font-weight:700; color:var(--text-main); margin-bottom:6px;">
@@ -810,11 +972,17 @@ function _showCausaDetailModal(groupIndex) {
                 const estadoIcon = r.estado === 'Muerto en Guachería' ? '🏠'
                     : r.estado === 'Muerto en Establecimiento' ? '🏢'
                     : r.estado === 'Muerto en Terapia' ? '💉' : '☠️';
+
+                const rDisease = getSpecificDisease(r);
+                const diseaseBadge = rDisease
+                    ? `<span style="color:var(--primary); font-weight:600;">🦠 ${rDisease}</span>`
+                    : `<span style="color:var(--text-secondary); font-size:0.8rem;">📋 General</span>`;
+
                 html += `<div class="causa-detail-item">
                     <div class="causa-detail-rp">${r.rp_ternero || 'S/N'}</div>
                     <div class="causa-detail-info">
                         📅 ${r.fecha || '—'} · 📍 ${r.establecimiento || '—'}<br>
-                        ${estadoIcon} ${r.estado || '—'}
+                        ${estadoIcon} ${r.estado || '—'} · ${diseaseBadge}
                     </div>
                 </div>`;
             });
