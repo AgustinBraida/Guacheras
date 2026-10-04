@@ -1,5 +1,5 @@
 // =============================================================
-// VETFIELD PRO — app.js v3 (MySQL Edition)
+// VETFIELD PRO — app.js v78
 // Los datos ahora vienen de api/records.php (MySQL).
 // Mantiene soporte offline-first: guarda en localStorage
 // cuando no hay conexión y sincroniza automáticamente al volver.
@@ -1730,7 +1730,7 @@ function openImportExcelModal() {
 
     const fileNameSpan = document.getElementById('excel-file-name');
     if (fileNameSpan) {
-        fileNameSpan.textContent = 'Haga clic para seleccionar planilla (.xlsx / .csv)';
+        fileNameSpan.textContent = 'Haga clic para seleccionar planilla (.xlsx)';
     }
     const fileInput = document.getElementById('excel-import-file');
     if (fileInput) fileInput.value = '';
@@ -1754,7 +1754,7 @@ function resetImportExcelModal() {
 
     const fileNameSpan = document.getElementById('excel-file-name');
     if (fileNameSpan) {
-        fileNameSpan.textContent = 'Haga clic para seleccionar planilla (.xlsx / .csv)';
+        fileNameSpan.textContent = 'Haga clic para seleccionar planilla (.xlsx)';
     }
     const fileInput = document.getElementById('excel-import-file');
     if (fileInput) fileInput.value = '';
@@ -1829,6 +1829,12 @@ function downloadExcelTemplate() {
 function handleImportExcelFile(event) {
     const file = event.target.files[0];
     if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+        showToast('Solo se admiten planillas en formato Excel (.xlsx).');
+        resetImportExcelModal();
+        return;
+    }
 
     const confirmBtn = document.getElementById('btn-confirm-import-excel');
     const fileNameSpan = document.getElementById('excel-file-name');

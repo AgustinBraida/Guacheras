@@ -1603,8 +1603,8 @@
                 <div id="importExcelStepUpload">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.85rem;">
                         <div>
-                            <h2 style="color: var(--primary); font-size: 1.25rem; font-weight: 700; margin: 0;">Importar desde Excel (.xlsx / .csv)</h2>
-                            <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 3px;">Sube tus registros históricos de forma masiva utilizando una planilla.</p>
+                            <h2 style="color: var(--primary); font-size: 1.25rem; font-weight: 700; margin: 0;">Importar desde Excel (.xlsx)</h2>
+                            <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 3px;">Sube tus registros históricos de forma masiva utilizando una planilla Excel.</p>
                         </div>
                         <button onclick="closeImportExcelModal()"
                             style="background: var(--bg-body); border: none; padding: 6px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
@@ -1634,7 +1634,7 @@
 
                     <div style="margin-bottom: 0.9rem;">
                         <label style="display: block; font-weight: 700; font-size: 0.8rem; margin-bottom: 6px; color: var(--text-main);">Selecciona el archivo completo:</label>
-                        <input type="file" id="excel-import-file" accept=".xlsx, .xls, .csv" style="display: none;"
+                        <input type="file" id="excel-import-file" accept=".xlsx" style="display: none;"
                             onchange="handleImportExcelFile(event)">
                         <div onclick="document.getElementById('excel-import-file').click()"
                             style="border: 2px dashed var(--input-border); border-radius: 12px; padding: 18px 12px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--input-bg);"
@@ -1643,8 +1643,8 @@
                             <i data-lucide="file-spreadsheet"
                                 style="width: 36px; height: 36px; color: var(--text-secondary); margin: 0 auto 6px auto; display: block;"></i>
                             <span id="excel-file-name"
-                                style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); display: block;">Haga clic para seleccionar planilla (.xlsx / .csv)</span>
-                            <span style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px; display: block;">Soporta formatos Excel standard y CSV delimitados por comas</span>
+                                style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); display: block;">Haga clic para seleccionar planilla (.xlsx)</span>
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px; display: block;">Soporta formato Excel (.xlsx)</span>
                         </div>
                     </div>
 
@@ -1786,7 +1786,7 @@
                     <button id="btn-import-excel" onclick="openImportExcelModal()" class="btn-save"
                         style="background:transparent; color:var(--text-color); border:2.5px solid var(--primary); margin-top:0; display:flex; align-items:center; justify-content:center; gap:8px;">
                         <i data-lucide="file-spreadsheet" style="width:18px; height:18px;"></i>
-                        Importar desde Excel (.xlsx / .csv)
+                        Importar desde Excel (.xlsx)
                     </button>
                 </div>
 
@@ -1892,9 +1892,9 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <!-- Dashboard Module -->
-    <script src="dashboard.js?v=77" defer></script>
+    <script src="dashboard.js?v=78" defer></script>
     <!-- App Script -->
-    <script src="app.js?v=77" defer></script>
+    <script src="app.js?v=78" defer></script>
     <!-- Voice Module (Ocultado temporalmente) -->
     <!-- <script src="voice.js?v=62" defer></script> -->
 
@@ -1902,7 +1902,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=77')
+                navigator.serviceWorker.register('./sw.js?v=78')
                     .then(registration => {
                         console.log('[VETFIELD] ServiceWorker registrado. Scope:', registration.scope);
                     })
