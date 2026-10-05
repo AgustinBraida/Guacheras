@@ -546,13 +546,42 @@ const PALETTE = {
 // Opacidad 80% para todos los colores de fondo
 const ALPHA80 = 'cc'; // hex cc = 204 / 255 ≈ 80%
 
+function _isDarkMode() {
+    return document.documentElement.classList.contains('dark');
+}
+
+function _getChartTheme() {
+    const isDark = _isDarkMode();
+    return {
+        isDark,
+        textPrimary:     isDark ? '#ffffff' : '#1e293b',
+        textSecondary:   isDark ? '#94a3b8' : '#64748b',
+        textBold:        isDark ? '#f8fafc' : '#334155',
+        textAxisTitle:   isDark ? '#cbd5e1' : '#64748b',
+        legendText:      isDark ? '#f1f5f9' : '#475569',
+        gridSubtle:      isDark ? 'rgba(255, 255, 255, 0.08)' : '#E0E0E0',
+        gridFaint:       isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9',
+        evaluadosLine:   isDark ? '#60a5fa' : PALETTE.primary,
+        evaluadosPoint:  isDark ? '#93c5fd' : PALETTE.primary,
+        evaluadosText:   isDark ? '#ffffff' : PALETTE.primary,
+        evaluadosTicks:  isDark ? '#ffffff' : PALETTE.primary,
+        badgeBg:         isDark ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.82)',
+        sexoMachoBg:     isDark ? 'rgba(96, 165, 250, 0.8)' : PALETTE.primary + 'cc',
+        sexoMachoBorder: isDark ? '#60a5fa' : PALETTE.primary,
+    };
+}
+
 const CHART_DEFAULTS = {
     responsive: true,
     maintainAspectRatio: false,
     layout: { padding: { top: 10, bottom: 10, left: 6, right: 6 } },
     plugins: {
         legend: {
-            labels: { font: { family: 'Inter', size: 11 }, color: '#475569', padding: 14 }
+            labels: {
+                font: { family: 'Inter', size: 11 },
+                get color() { return _isDarkMode() ? '#f1f5f9' : '#475569'; },
+                padding: 14
+            }
         }
     }
 };
@@ -864,8 +893,8 @@ function _renderCausasMuerte(data) {
                 }
             },
             scales: {
-                x: { grid: GRID_Y_SUBTLE, ticks: { color: '#64748b', font: { family: 'Inter' } } },
-                y: { grid: GRID_NONE,     ticks: { color: '#334155', font: { family: 'Inter', weight: '600' } } }
+                x: { grid: { color: _getChartTheme().gridSubtle, lineWidth: 1 }, ticks: { color: _getChartTheme().textSecondary, font: { family: 'Inter' } } },
+                y: { grid: GRID_NONE,     ticks: { color: _getChartTheme().textBold, font: { family: 'Inter', weight: '600' } } }
             },
             onClick: function(_evt, elements) {
                 if (elements.length > 0) {
@@ -945,7 +974,7 @@ function _showCausaDetailModal(groupIndex) {
             const subPct = group.count > 0 ? ((count / group.count) * 100).toFixed(0) : 0;
             html += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.84rem; padding:4px 0; border-bottom:1px dashed var(--border-color);">
                 <span style="color:var(--text-main); font-weight:600;">• ${name}</span>
-                <span style="color:var(--primary); font-weight:700;">${count} caso${count !== 1 ? 's' : ''} <span style="font-weight:400; color:var(--text-secondary); font-size:0.75rem;">(${subPct}%)</span></span>
+                <span class="causa-disease-count">${count} caso${count !== 1 ? 's' : ''} <span style="font-weight:400; color:var(--text-secondary); font-size:0.75rem;">(${subPct}%)</span></span>
             </div>`;
         });
 
@@ -975,7 +1004,7 @@ function _showCausaDetailModal(groupIndex) {
 
                 const rDisease = getSpecificDisease(r);
                 const diseaseBadge = rDisease
-                    ? `<span style="color:var(--primary); font-weight:600;">🦠 ${rDisease}</span>`
+                    ? `<span class="causa-disease-badge">🦠 ${rDisease}</span>`
                     : `<span style="color:var(--text-secondary); font-size:0.8rem;">📋 General</span>`;
 
                 html += `<div class="causa-detail-item">
@@ -1122,8 +1151,8 @@ function _renderCorrelacionCalostro(data) {
                 }
             },
             scales: {
-                x: { title: { display: true, text: 'I.G. Calostro Madre (mg/dL)', color: '#64748b', font: { family: 'Inter' } }, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } },
-                y: { title: { display: true, text: 'I.G. Ternero (%)', color: '#64748b', font: { family: 'Inter' } }, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } }
+                x: { title: { display: true, text: 'I.G. Calostro Madre (mg/dL)', color: _getChartTheme().textAxisTitle, font: { family: 'Inter' } }, grid: { color: _getChartTheme().gridFaint }, ticks: { color: _getChartTheme().textSecondary } },
+                y: { title: { display: true, text: 'I.G. Ternero (%)', color: _getChartTheme().textAxisTitle, font: { family: 'Inter' } }, grid: { color: _getChartTheme().gridFaint }, ticks: { color: _getChartTheme().textSecondary } }
             }
         }
     });
@@ -1183,8 +1212,8 @@ function _renderDesempenoMadre(data) {
                 }
             },
             scales: {
-                x: { stacked: true, grid: { display: false }, ticks: { color: '#334155', font: { family: 'Inter', weight: '600' } } },
-                y: { stacked: true, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } }
+                x: { stacked: true, grid: { display: false }, ticks: { color: _getChartTheme().textBold, font: { family: 'Inter', weight: '600' } } },
+                y: { stacked: true, grid: { color: _getChartTheme().gridFaint }, ticks: { color: _getChartTheme().textSecondary } }
             }
         }
     });
@@ -1278,13 +1307,13 @@ function _renderTendenciaTemporal(data) {
                 {
                     label: 'Total Evaluados',
                     data: totales,
-                    borderColor: PALETTE.primary,
+                    borderColor: _getChartTheme().evaluadosLine,
                     backgroundColor: 'rgba(26,35,126,0.05)',
                     tension: 0.4,
                     fill: false,
                     pointRadius: 3,
                     pointHoverRadius: 6,
-                    pointBackgroundColor: PALETTE.primary,
+                    pointBackgroundColor: _getChartTheme().evaluadosPoint,
                     borderDash: [4, 4],
                     yAxisID: 'y1',
                 }
@@ -1295,6 +1324,13 @@ function _renderTendenciaTemporal(data) {
             interaction: { mode: 'index', intersect: false },
             plugins: {
                 ...CHART_DEFAULTS.plugins,
+                legend: {
+                    labels: {
+                        font: { family: 'Inter', size: 11 },
+                        color: _getChartTheme().legendText,
+                        padding: 14
+                    }
+                },
                 tooltip: {
                     callbacks: {
                         label: ctx => ` ${ctx.dataset.label}: ${ctx.raw}${ctx.datasetIndex === 0 ? '%' : ''}`
@@ -1304,9 +1340,9 @@ function _renderTendenciaTemporal(data) {
             scales: {
                 // Rotación 45° para evitar solapamiento de fechas
                 x: {
-                    grid: { color: '#f1f5f9' },
+                    grid: { color: _getChartTheme().gridFaint },
                     ticks: {
-                        color: '#64748b',
+                        color: _getChartTheme().textSecondary,
                         maxRotation: 45,
                         minRotation: 45,
                         font: { size: 10, family: 'Inter' },
@@ -1316,13 +1352,16 @@ function _renderTendenciaTemporal(data) {
                 },
                 y:  {
                     type: 'linear', position: 'left',
-                    grid: GRID_Y_SUBTLE,
+                    grid: { color: _getChartTheme().gridSubtle, lineWidth: 1 },
                     ticks: { color: PALETTE.danger, callback: v => v + '%', font: { family: 'Inter' } }
                 },
                 y1: {
                     type: 'linear', position: 'right',
                     grid: GRID_NONE,
-                    ticks: { color: PALETTE.primary, font: { family: 'Inter' } }
+                    ticks: {
+                        color: _getChartTheme().evaluadosTicks,
+                        font: { family: 'Inter', weight: '700' }
+                    }
                 }
             }
         }
@@ -1383,6 +1422,8 @@ function _renderMortalidadSexo(data) {
     const supervM = 100 - tasaM;
     const supervH = 100 - tasaH;
 
+    const theme = _getChartTheme();
+
     _dashCharts.chart_sexo = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1391,8 +1432,8 @@ function _renderMortalidadSexo(data) {
                 {
                     label: 'Supervivencia (%)',
                     data: [supervM.toFixed(1), supervH.toFixed(1)],
-                    backgroundColor: [PALETTE.primary + 'cc', PALETTE.pink + 'cc'],
-                    borderColor: [PALETTE.primary, PALETTE.pink],
+                    backgroundColor: [theme.sexoMachoBg, PALETTE.pink + 'cc'],
+                    borderColor: [theme.sexoMachoBorder, PALETTE.pink],
                     borderWidth: 2,
                     borderRadius: 8,
                 },
@@ -1417,8 +1458,8 @@ function _renderMortalidadSexo(data) {
                 }
             },
             scales: {
-                x: { grid: { display: false }, ticks: { color: '#334155', font: { family: 'Inter', weight: '600', size: 12 } } },
-                y: { max: 100, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', callback: v => v + '%' } }
+                x: { grid: { display: false }, ticks: { color: theme.textBold, font: { family: 'Inter', weight: '600', size: 12 } } },
+                y: { max: 100, grid: { color: theme.gridFaint }, ticks: { color: theme.textSecondary, callback: v => v + '%' } }
             }
         }
     });
@@ -1679,7 +1720,7 @@ window.exportDashboardPDF = function(btnEl) {
                                         } else {
                                             // Total evaluados → debajo del nodo
                                             customYOffset = 18;
-                                            textColor     = PALETTE.primary;
+                                            textColor     = _getChartTheme().evaluadosText;
                                             strokeColor   = null;
                                             drawBg        = true;
                                         }
@@ -1713,7 +1754,7 @@ window.exportDashboardPDF = function(btnEl) {
                                             // Barra muy pequeña → etiqueta fuera con bg
                                             align         = 'left';
                                             customXOffset = (element.width ?? 30) / 2 + 6;
-                                            textColor     = '#334155';
+                                            textColor     = _getChartTheme().textBold;
                                             strokeColor   = null;
                                             drawBg        = true;
                                         } else {
@@ -1737,7 +1778,7 @@ window.exportDashboardPDF = function(btnEl) {
                                         if (elH <= 24) {
                                             align         = 'left';
                                             customXOffset = (element.width ?? 30) / 2 + 6;
-                                            textColor     = '#334155';
+                                            textColor     = _getChartTheme().textBold;
                                             strokeColor   = null;
                                             drawBg        = true;
                                         } else {
@@ -1764,7 +1805,7 @@ window.exportDashboardPDF = function(btnEl) {
                                         let bgX    = finalX;
                                         if (align === 'center') bgX -= maxW / 2;
                                         else if (align === 'right') bgX -= maxW;
-                                        tCtx.fillStyle = 'rgba(255,255,255,0.82)';
+                                        tCtx.fillStyle = _getChartTheme().badgeBg;
                                         if (tCtx.roundRect) {
                                             tCtx.beginPath();
                                             tCtx.roundRect(bgX - 4, finalY - bgH / 2, maxW + 8, bgH, 4);
@@ -1876,4 +1917,89 @@ window.exportDashboardPDF = function(btnEl) {
             if (window.lucide) window.lucide.createIcons();
         }
     }, 150);
+};
+
+// ────────────────────────────────────────────────────────────────
+// Sincronización de tema (Modo Oscuro / Claro) en todos los gráficos
+// ────────────────────────────────────────────────────────────────
+window.updateChartsTheme = function(isDark) {
+    const theme = _getChartTheme();
+
+    if (_dashCharts.chart_tendencia) {
+        const c = _dashCharts.chart_tendencia;
+        if (c.data?.datasets?.[1]) {
+            c.data.datasets[1].borderColor = theme.evaluadosLine;
+            c.data.datasets[1].pointBackgroundColor = theme.evaluadosPoint;
+        }
+        if (c.options?.scales?.y1?.ticks) {
+            c.options.scales.y1.ticks.color = theme.evaluadosTicks;
+        }
+        if (c.options?.scales?.y?.grid) {
+            c.options.scales.y.grid.color = theme.gridSubtle;
+        }
+        if (c.options?.scales?.x?.grid) {
+            c.options.scales.x.grid.color = theme.gridFaint;
+        }
+        if (c.options?.scales?.x?.ticks) {
+            c.options.scales.x.ticks.color = theme.textSecondary;
+        }
+        if (c.options?.plugins?.legend?.labels) {
+            c.options.plugins.legend.labels.color = theme.legendText;
+        }
+        c.update();
+    }
+
+    if (_dashCharts.chart_causas) {
+        const c = _dashCharts.chart_causas;
+        if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = theme.textBold;
+        if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = theme.textSecondary;
+        if (c.options?.scales?.x?.grid) c.options.scales.x.grid.color = theme.gridSubtle;
+        c.update();
+    }
+
+    if (_dashCharts.chart_madre) {
+        const c = _dashCharts.chart_madre;
+        if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = theme.textBold;
+        if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = theme.textSecondary;
+        if (c.options?.scales?.y?.grid) c.options.scales.y.grid.color = theme.gridFaint;
+        if (c.options?.plugins?.legend?.labels) c.options.plugins.legend.labels.color = theme.legendText;
+        c.update();
+    }
+
+    if (_dashCharts.chart_calostro) {
+        const c = _dashCharts.chart_calostro;
+        if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = theme.textSecondary;
+        if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = theme.textSecondary;
+        if (c.options?.scales?.x?.grid) c.options.scales.x.grid.color = theme.gridFaint;
+        if (c.options?.scales?.y?.grid) c.options.scales.y.grid.color = theme.gridFaint;
+        if (c.options?.scales?.x?.title) c.options.scales.x.title.color = theme.textAxisTitle;
+        if (c.options?.scales?.y?.title) c.options.scales.y.title.color = theme.textAxisTitle;
+        if (c.options?.plugins?.legend?.labels) c.options.plugins.legend.labels.color = theme.legendText;
+        c.update();
+    }
+
+    if (_dashCharts.chart_sexo) {
+        const c = _dashCharts.chart_sexo;
+        if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = theme.textBold;
+        if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = theme.textSecondary;
+        if (c.options?.scales?.y?.grid) c.options.scales.y.grid.color = theme.gridFaint;
+        if (c.options?.plugins?.legend?.labels) c.options.plugins.legend.labels.color = theme.legendText;
+        if (c.data?.datasets?.[0]) {
+            c.data.datasets[0].backgroundColor = [theme.sexoMachoBg, PALETTE.pink + 'cc'];
+            c.data.datasets[0].borderColor = [theme.sexoMachoBorder, PALETTE.pink];
+        }
+        c.update();
+    }
+
+    if (_dashCharts.chart_ubicacion) {
+        const c = _dashCharts.chart_ubicacion;
+        if (c.options?.plugins?.legend?.labels) c.options.plugins.legend.labels.color = theme.legendText;
+        c.update();
+    }
+
+    if (_dashCharts.chart_ombligos) {
+        const c = _dashCharts.chart_ombligos;
+        if (c.options?.plugins?.legend?.labels) c.options.plugins.legend.labels.color = theme.legendText;
+        c.update();
+    }
 };

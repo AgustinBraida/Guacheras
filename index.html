@@ -32,7 +32,7 @@
     <!-- Chart.js for Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
     <!-- Estilos -->
-    <link rel="stylesheet" href="styles.css?v=69">
+    <link rel="stylesheet" href="styles.css?v=72">
     <!-- Módulo de Voz (Ocultado temporalmente) -->
     <!-- <link rel="stylesheet" href="voice.css?v=49"> -->
 
@@ -1866,6 +1866,9 @@
             const isDark = html.classList.contains('dark');
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
             renderThemeIcons(isDark);
+            if (window.updateChartsTheme) {
+                window.updateChartsTheme(isDark);
+            }
         }
 
         function renderThemeIcons(isDark) {
@@ -1892,7 +1895,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <!-- Dashboard Module -->
-    <script src="dashboard.js?v=78" defer></script>
+    <script src="dashboard.js?v=79" defer></script>
     <!-- App Script -->
     <script src="app.js?v=78" defer></script>
     <!-- Voice Module (Ocultado temporalmente) -->
@@ -1902,7 +1905,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=78')
+                navigator.serviceWorker.register('./sw.js?v=79')
                     .then(registration => {
                         console.log('[VETFIELD] ServiceWorker registrado. Scope:', registration.scope);
                     })

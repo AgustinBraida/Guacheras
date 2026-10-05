@@ -254,6 +254,8 @@ html.dark .auth-forgot-link,
 html.dark .sexo-stat-label,
 html.dark h1[style*="var(--primary)"],
 html.dark h2[style*="var(--primary)"],
+html.dark div[style*="var(--primary)"],
+html.dark span[style*="var(--primary)"],
 html.dark div[style*="#1a237e"] {
     color: #ffffff !important;
 }
@@ -290,6 +292,7 @@ html.dark .logo-png {
 }
 
 body {
+    zoom: 0.75;
     font-family: 'Inter', sans-serif;
     background-color: var(--bg-body);
     color: var(--text-main);
@@ -311,7 +314,7 @@ body {
 
 /* Sync Bar & Header */
 header {
-    padding: 1rem 1.25rem;
+    padding: 1rem 200px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -362,12 +365,18 @@ header {
 /* Multi-view Container */
 .view-section {
     display: none;
-    padding: 1.25rem;
+    padding: 1.25rem 200px;
     animation: fadeIn 0.4s ease-out;
 }
 
 .view-section.active {
     display: block;
+}
+
+/* Perfil: sin padding lateral, tiene diseño centrado propio */
+#view-perfil {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
 }
 
 @keyframes fadeIn {
@@ -2776,10 +2785,10 @@ html.dark .import-error-reason {
 /* ── Causa Detail Modal (Drill-down del gráfico de causas de muerte) ── */
 .causa-detail-summary {
     display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 1rem;
-    padding: 14px 18px;
+    justify-content: space-around;
+    align-items: center;
+    margin-bottom: 1.2rem;
+    padding: 16px 12px;
     background: rgba(26, 35, 126, 0.05);
     border-radius: 14px;
     border: 1px solid rgba(26, 35, 126, 0.08);
@@ -2792,23 +2801,33 @@ html.dark .causa-detail-summary {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    min-width: 60px;
+    justify-content: center;
+    text-align: center;
+    flex: 1;
+    min-width: 0;
+    gap: 4px;
+    padding: 2px 8px;
+}
+.causa-detail-stat:not(:last-child) {
+    border-right: 1px solid rgba(26, 35, 126, 0.08);
+}
+html.dark .causa-detail-stat:not(:last-child) {
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 .causa-detail-stat-value {
     font-weight: 800;
-    font-size: 1.4rem;
+    font-size: 1.45rem;
     color: var(--primary);
     line-height: 1.2;
 }
 html.dark .causa-detail-stat-value {
-    color: #818cf8;
+    color: #ffffff;
 }
 .causa-detail-stat-label {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
     font-weight: 600;
 }
 .causa-detail-item {
@@ -2838,11 +2857,27 @@ html.dark .causa-detail-item:hover {
     flex-shrink: 0;
 }
 html.dark .causa-detail-rp {
-    color: #818cf8;
+    color: #ffffff;
 }
 .causa-detail-info {
     flex: 1;
     font-size: 0.78rem;
     color: var(--text-secondary);
     line-height: 1.45;
+}
+
+.causa-disease-count {
+    color: var(--primary);
+    font-weight: 700;
+}
+html.dark .causa-disease-count {
+    color: #ffffff !important;
+}
+
+.causa-disease-badge {
+    color: var(--primary);
+    font-weight: 600;
+}
+html.dark .causa-disease-badge {
+    color: #ffffff !important;
 }
