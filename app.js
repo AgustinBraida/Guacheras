@@ -222,6 +222,7 @@ function switchView(viewId, el) {
     if (viewId === 'perfil') {
         const countEl = document.getElementById('profile-records-count');
         if (countEl) countEl.textContent = records.length + ' registros';
+        setTimeout(() => { if (typeof window.loadProductoresList === 'function') window.loadProductoresList(); }, 50);
     }
     if (viewId === 'inicio' && typeof initDashboard === 'function') {
         setTimeout(initDashboard, 250); // Timeout aumentado para mobile
@@ -2542,3 +2543,184 @@ window.autoResolveTwins = autoResolveTwins;
 // ARRANQUE — auth.js llama a appLoadForUser() al confirmar sesión
 // =============================================================
 if (typeof lucide !== 'undefined') lucide.createIcons();
+
+// =============================================================
+// ── GESTIÓN DE PRODUCTORES ───────────────────────────────────
+// =============================================================
+
+let _deleteProductorTarget = null; // { nombre, totalRegistros }
+
+/** Carga y renderiza la lista de productores en el perfil */
+async function loadProductoresList() {
+    const container = document.getElementById('productores-list-container');
+    if (!container) return;
+
+    container.innerHTML = '<div style="text-align:center;padding:1.5rem 0;color:var(--text-secondary);font-size:0.85rem;">Cargando...</div>';
+
+    if (!navigator.onLine) {
+        container.innerHTML = '<div style="text-align:center;padding:1.25rem 0;color:var(--text-secondary);font-size:0.85rem;">Sin conexión. Conectate para ver los productores.</div>';
+        return;
+    }
+
+    // Timeout de 12 segundos para evitar quedarse en "Cargando..." infinito
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    try {
+        const token = localStorage.getItem('vetfield_api_token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch(API_RECORDS + '?action=list_productores', {
+            method: 'GET',
+            headers,
+            signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        let data;
+        try { data = await res.json(); }
+        catch { data = { ok: false, error: 'El servidor devolvió una respuesta inesperada.' }; }
+
+        if (!data.ok) throw new Error(data.error || `Error HTTP ${res.status}`);
+
+        const prods = data.productores || [];
+
+        if (prods.length === 0) {
+            container.innerHTML = '<div style="text-align:center;padding:1.25rem 0;color:var(--text-secondary);font-size:0.85rem;">No tenés productores registrados aún.</div>';
+            return;
+        }
+
+        const rows = prods.map(p => `
+            <div class="prod-list-row">
+                <div class="prod-list-info">
+                    <span class="prod-list-name">${_esc(p.nombre)}</span>
+                    <span class="prod-list-meta">
+                        ${p.total_registros} registro${p.total_registros !== '1' ? 's' : ''}
+                        &nbsp;·&nbsp;
+                        ${p.total_establecimientos} establecimiento${p.total_establecimientos !== '1' ? 's' : ''}
+                    </span>
+                </div>
+                <button class="prod-list-del-btn" title="Eliminar productor"
+                    onclick="openDeleteProductorModal('${_esc(p.nombre).replace(/'/g, "\\'")}', ${p.total_registros})">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                </button>
+            </div>
+        `).join('');
+
+        container.innerHTML = `<div class="prod-list">${rows}</div>`;
+
+    } catch (err) {
+        clearTimeout(timeoutId);
+        const msg = err.name === 'AbortError'
+            ? 'El servidor tardó demasiado. El servidor puede estar iniciando, intentá de nuevo en unos segundos.'
+            : (err.message || 'Error desconocido al cargar productores.');
+        container.innerHTML = `
+            <div style="padding:1rem;border-radius:10px;background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.18);">
+                <p style="color:#dc2626;font-size:0.82rem;font-weight:600;margin:0 0 8px 0;">${_esc(msg)}</p>
+                <button onclick="window.loadProductoresList()"
+                    style="font-size:0.78rem;font-weight:700;color:var(--primary);background:transparent;border:1.5px solid var(--primary);border-radius:8px;padding:5px 12px;cursor:pointer;font-family:inherit;">
+                    Reintentar
+                </button>
+            </div>`;
+    }
+}
+
+/** Sanitiza texto para insertar en HTML */
+function _esc(str) {
+    return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/** Abre el modal de confirmación de borrado */
+function openDeleteProductorModal(nombre, totalRegistros) {
+    _deleteProductorTarget = { nombre, totalRegistros: parseInt(totalRegistros) };
+
+    const subtitleEl = document.getElementById('del-prod-subtitle');
+    if (subtitleEl) {
+        subtitleEl.textContent = `Se eliminarán ${totalRegistros} registros y todos los establecimientos de "${nombre}".`;
+    }
+
+    const input = document.getElementById('del-prod-confirm-input');
+    if (input) { input.value = ''; }
+
+    const btn = document.getElementById('btn-confirm-delete-productor');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = 'Eliminar todo'; }
+
+    const errEl = document.getElementById('del-prod-error');
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+    const modal = document.getElementById('deleteProductorModal');
+    if (modal) {
+        modal.classList.add('active');
+        setTimeout(() => { if (input) input.focus(); }, 200);
+    }
+}
+
+/** Cierra el modal de confirmación */
+function closeDeleteProductorModal(event) {
+    if (event && event.target !== document.getElementById('deleteProductorModal')) return;
+    const modal = document.getElementById('deleteProductorModal');
+    if (modal) modal.classList.remove('active');
+    _deleteProductorTarget = null;
+}
+
+/** Habilita el botón solo si el nombre escrito coincide exactamente */
+function checkDeleteProductorConfirm(input) {
+    if (!_deleteProductorTarget) return;
+    const btn = document.getElementById('btn-confirm-delete-productor');
+    const matches = input.value.trim() === _deleteProductorTarget.nombre;
+    if (btn) {
+        btn.disabled = !matches;
+        btn.style.opacity = matches ? '1' : '0.5';
+        btn.style.cursor = matches ? 'pointer' : 'not-allowed';
+    }
+}
+
+/** Ejecuta el borrado en el servidor */
+async function confirmDeleteProductor(btn) {
+    if (!_deleteProductorTarget) return;
+    const { nombre } = _deleteProductorTarget;
+
+    btn.disabled = true;
+    btn.textContent = 'Eliminando...';
+
+    const errEl = document.getElementById('del-prod-error');
+    if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+    try {
+        const res = await apiFetchApp(API_RECORDS, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'delete_productor', nombre }),
+        });
+
+        if (!res.ok) throw new Error(res.error || 'Error al eliminar el productor.');
+
+        // Actualizar arrays en memoria
+        records = records.filter(r => r.productor !== nombre);
+        productores = productores.filter(p => p !== nombre);
+        delete establecimientos_por_productor[nombre];
+
+        // Refrescar UI
+        updateUI();
+        renderTable();
+
+        const modal = document.getElementById('deleteProductorModal');
+        if (modal) modal.classList.remove('active');
+        _deleteProductorTarget = null;
+
+        showToast(`🗑️ Productor "${nombre}" eliminado correctamente.`);
+        loadProductoresList(); // Refrescar lista
+
+    } catch (err) {
+        if (errEl) { errEl.textContent = err.message; errEl.style.display = ''; }
+        btn.disabled = false;
+        btn.textContent = 'Eliminar todo';
+    }
+}
+
+window.loadProductoresList     = loadProductoresList;
+window.openDeleteProductorModal  = openDeleteProductorModal;
+window.closeDeleteProductorModal = closeDeleteProductorModal;
+window.checkDeleteProductorConfirm = checkDeleteProductorConfirm;
+window.confirmDeleteProductor  = confirmDeleteProductor;
+

@@ -1424,6 +1424,105 @@ nav.bottom-nav {
     margin: 0 auto !important;
 }
 
+/* ── Gestión de Productores ─────────────────────────────────── */
+.prod-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.prod-list-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    transition: background 0.15s;
+}
+
+.prod-list-row:last-child {
+    border-bottom: none;
+}
+
+.prod-list-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.prod-list-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.prod-list-meta {
+    font-size: 0.73rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.prod-list-del-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1.5px solid rgba(220, 38, 38, 0.25);
+    color: #dc2626;
+    border-radius: 9px;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.12s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.prod-list-del-btn:hover {
+    background: #dc2626;
+    color: #fff;
+    border-color: #dc2626;
+    transform: scale(1.08);
+}
+
+.prod-list-del-btn:active {
+    transform: scale(0.96);
+}
+
+/* ── Warning strip in delete modal ─ */
+.del-prod-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: rgba(220, 38, 38, 0.06);
+    border: 1px solid rgba(220, 38, 38, 0.18);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+    color: #b91c1c;
+    line-height: 1.45;
+}
+
+html.dark .prod-list-row {
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .prod-list-del-btn {
+    border-color: rgba(220, 38, 38, 0.35);
+}
+
+html.dark .del-prod-warning {
+    background: rgba(220, 38, 38, 0.1);
+    border-color: rgba(220, 38, 38, 0.25);
+    color: #f87171;
+}
+
 /* Header avatar button */
 .header-avatar-btn {
     background: none;

@@ -32,7 +32,7 @@
     <!-- Chart.js for Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
     <!-- Estilos -->
-    <link rel="stylesheet" href="styles.css?v=72">
+    <link rel="stylesheet" href="styles.css?v=73">
     <!-- Módulo de Voz (Ocultado temporalmente) -->
     <!-- <link rel="stylesheet" href="voice.css?v=49"> -->
 
@@ -1664,7 +1664,50 @@
             </div>
         </div>
 
+        <!-- MODAL: CONFIRMAR ELIMINACION DE PRODUCTOR -->
+        <div id="deleteProductorModal" class="modal-overlay" onclick="closeDeleteProductorModal(event)">
+            <div class="modal-content del-prod-modal" onclick="event.stopPropagation()" style="max-width:440px;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;">
+                    <div>
+                        <div style="width:44px;height:44px;background:rgba(220,38,38,0.1);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                        </div>
+                        <h2 style="color:var(--primary);font-size:1.15rem;font-weight:700;margin:0;">Eliminar Productor</h2>
+                        <p id="del-prod-subtitle" style="color:var(--text-secondary);font-size:0.82rem;margin-top:4px;line-height:1.45;"></p>
+                    </div>
+                    <button onclick="closeDeleteProductorModal()" style="background:var(--bg-body);border:none;padding:8px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+
+                <div class="del-prod-warning">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span>Esta acción eliminará <strong>todos los registros de terneros</strong> y establecimientos de este productor. <strong>No se puede deshacer.</strong></span>
+                </div>
+
+                <div style="margin-top:1.1rem;">
+                    <label style="font-size:0.78rem;font-weight:700;color:var(--text-main);display:block;margin-bottom:6px;">Para confirmar, escribí el nombre del productor:</label>
+                    <input id="del-prod-confirm-input" type="text" placeholder="Nombre del productor..." autocomplete="off"
+                        style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:0.9rem;font-family:inherit;background:var(--input-bg,#f8fafc);color:var(--text-main);box-sizing:border-box;transition:border-color 0.2s;"
+                        oninput="checkDeleteProductorConfirm(this)">
+                    <p id="del-prod-error" style="display:none;color:#dc2626;font-size:0.78rem;font-weight:600;margin-top:6px;"></p>
+                </div>
+
+                <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
+                    <button onclick="closeDeleteProductorModal()" class="btn-auth-primary"
+                        style="background:transparent;color:var(--text-secondary);border:1.5px solid var(--border-color);margin-top:0;box-shadow:none;flex:1;height:46px;font-size:0.9rem;">
+                        Cancelar
+                    </button>
+                    <button id="btn-confirm-delete-productor" onclick="confirmDeleteProductor(this)" disabled
+                        style="flex:1;height:46px;border-radius:12px;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;border:none;font-family:inherit;font-size:0.9rem;font-weight:700;cursor:pointer;transition:opacity 0.2s,transform 0.15s;margin-top:0;opacity:0.5;">
+                        Eliminar todo
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- VISTA: PERFIL -->
+
         <section id="view-perfil" class="view-section">
 
             <!-- Hero -->
@@ -1817,6 +1860,24 @@
                     </svg>
                     Contactar por WhatsApp
                 </a>
+            </div>
+
+            <!-- Gestión de Productores -->
+            <div class="card glass" style="margin-top:0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.85rem;">
+                    <span class="section-label" style="margin-bottom:0;">Gestión de Productores</span>
+                    <button onclick="loadProductoresList()" id="btn-refresh-productores"
+                        title="Actualizar lista"
+                        style="background:transparent;border:none;cursor:pointer;color:var(--text-secondary);padding:4px;border-radius:8px;display:flex;align-items:center;transition:color 0.2s;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    </button>
+                </div>
+                <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:1rem;line-height:1.5;">
+                    Gestioná tu cartera de productores. Eliminar un productor borra también todos sus establecimientos y registros de terneros asociados.
+                </p>
+                <div id="productores-list-container">
+                    <div style="text-align:center;padding:1.5rem 0;color:var(--text-secondary);font-size:0.85rem;">Cargando productores...</div>
+                </div>
             </div>
 
             <!-- Cerrar sesión -->

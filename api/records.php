@@ -24,18 +24,20 @@ $method = $_SERVER['REQUEST_METHOD'];
 // ── Enrutamiento ─────────────────────────────────────────────
 if ($method === 'GET') {
     switch ($action) {
-        case 'list':          action_list($uid);          break;
-        case 'get_options':   action_get_options($uid);   break;
-        case 'backup_export': action_backup_export($uid); break;
+        case 'list':              action_list($uid);              break;
+        case 'get_options':       action_get_options($uid);       break;
+        case 'list_productores':  action_list_productores($uid);  break;
+        case 'backup_export':     action_backup_export($uid);     break;
         default:
             json_response(['ok' => false, 'error' => 'Acción GET desconocida.'], 400);
     }
 } elseif ($method === 'POST') {
     switch ($action) {
-        case 'save':          action_save($uid, $input);   break;
-        case 'update':        action_update($uid, $input); break;
-        case 'delete':        action_delete($uid, $input); break;
-        case 'backup_import': action_backup_import($uid, $input); break;
+        case 'save':             action_save($uid, $input);             break;
+        case 'update':           action_update($uid, $input);           break;
+        case 'delete':           action_delete($uid, $input);           break;
+        case 'delete_productor': action_delete_productor($uid, $input); break;
+        case 'backup_import':    action_backup_import($uid, $input);    break;
         default:
             json_response(['ok' => false, 'error' => 'Acción POST desconocida.'], 400);
     }
@@ -423,6 +425,64 @@ function action_delete(string $uid, array $in): void {
     }
 
     json_response(['ok' => true]);
+}
+
+// ============================================================
+// LIST PRODUCTORES — Lista productores con conteo de registros
+// ============================================================
+function action_list_productores(string $uid): void {
+    $db = getDB();
+    $stmt = $db->prepare(
+        "SELECT p.id, p.nombre,
+                COUNT(DISTINCT e.id)   AS total_establecimientos,
+                COUNT(DISTINCT r.id)   AS total_registros
+         FROM productores p
+         LEFT JOIN establecimientos e ON e.id_productor = p.id AND e.user_id = p.user_id
+         LEFT JOIN registros r        ON r.productor = p.nombre AND r.user_id = p.user_id
+         WHERE p.user_id = ?
+         GROUP BY p.id, p.nombre
+         ORDER BY p.nombre ASC"
+    );
+    $stmt->execute([$uid]);
+    $rows = $stmt->fetchAll();
+    json_response(['ok' => true, 'productores' => $rows]);
+}
+
+// ============================================================
+// DELETE PRODUCTOR — Elimina productor, establecimientos y registros asociados
+// ============================================================
+function action_delete_productor(string $uid, array $in): void {
+    $nombre = trim($in['nombre'] ?? '');
+    if (!$nombre) {
+        json_response(['ok' => false, 'error' => 'Nombre de productor requerido.']);
+    }
+
+    $db = getDB();
+
+    // Verificar que el productor pertenece al usuario
+    $check = $db->prepare("SELECT id FROM productores WHERE user_id = ? AND nombre = ? LIMIT 1");
+    $check->execute([$uid, $nombre]);
+    $prod = $check->fetch();
+    if (!$prod) {
+        json_response(['ok' => false, 'error' => 'Productor no encontrado o sin permisos.'], 403);
+    }
+
+    $id_productor = $prod['id'];
+
+    // Eliminar registros de terneros asociados a este productor
+    $delReg = $db->prepare("DELETE FROM registros WHERE user_id = ? AND productor = ?");
+    $delReg->execute([$uid, $nombre]);
+    $total_registros = $delReg->rowCount();
+
+    // Eliminar establecimientos asociados
+    $delEst = $db->prepare("DELETE FROM establecimientos WHERE user_id = ? AND id_productor = ?");
+    $delEst->execute([$uid, $id_productor]);
+
+    // Eliminar el productor
+    $delProd = $db->prepare("DELETE FROM productores WHERE id = ? AND user_id = ?");
+    $delProd->execute([$id_productor, $uid]);
+
+    json_response(['ok' => true, 'deleted_registros' => $total_registros]);
 }
 
 // ============================================================
