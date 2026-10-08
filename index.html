@@ -1962,7 +1962,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <!-- Dashboard Module -->
-    <script src="dashboard.js?v=80" defer></script>
+    <script src="dashboard.js?v=81" defer></script>
     <!-- App Script -->
     <script src="app.js?v=78" defer></script>
     <!-- Voice Module (Ocultado temporalmente) -->
@@ -1972,7 +1972,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=80')
+                navigator.serviceWorker.register('./sw.js?v=81')
                     .then(registration => {
                         console.log('[VETFIELD] ServiceWorker registrado. Scope:', registration.scope);
                     })

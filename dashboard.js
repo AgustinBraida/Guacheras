@@ -571,6 +571,45 @@ function _getChartTheme() {
     };
 }
 
+// Plugin de Chart.js para corregir el desfase de coordenadas del mouse provocado por CSS zoom (body { zoom: 0.75 })
+function _initChartZoomCoordinateFix() {
+    if (typeof Chart === 'undefined') return;
+    if (!Chart._zoomCoordinateFixRegistered) {
+        Chart._zoomCoordinateFixRegistered = true;
+        Chart.register({
+            id: 'zoomCoordinateFix',
+            beforeEvent(chart, args) {
+                const e = args.event;
+                if (!e) return;
+                const native = e.native;
+                if (!native) return;
+
+                const source = (native.touches && native.touches[0])
+                    || (native.changedTouches && native.changedTouches[0])
+                    || native;
+
+                if (typeof source.clientX !== 'number' || typeof source.clientY !== 'number') return;
+
+                const canvas = chart.canvas;
+                if (!canvas) return;
+
+                const rect = canvas.getBoundingClientRect();
+                if (!rect.width || !rect.height || !chart.width || !chart.height) return;
+
+                // Si las dimensiones del rect en pantalla difieren de las internas del canvas (debido a CSS zoom o transform),
+                // proyectar proporcionalmente la coordenada del mouse al canvas interno del gráfico
+                const scaleX = rect.width / chart.width;
+                const scaleY = rect.height / chart.height;
+                if (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01) {
+                    e.x = ((source.clientX - rect.left) / rect.width) * chart.width;
+                    e.y = ((source.clientY - rect.top) / rect.height) * chart.height;
+                }
+            }
+        });
+    }
+}
+_initChartZoomCoordinateFix();
+
 // Positioner personalizado de Tooltip para seguir al cursor en tiempo real en cualquier punto de las barras
 function _initChartTooltipPositioner() {
     if (typeof Chart !== 'undefined' && Chart.Tooltip) {
@@ -847,6 +886,7 @@ function _renderCausasMuerte(data) {
     _causasGroupData = sorted;
     _causasAllData = data;
 
+    _initChartZoomCoordinateFix();
     _initChartTooltipPositioner();
 
     _dashCharts.chart_causas = new Chart(ctx, {
@@ -874,7 +914,7 @@ function _renderCausasMuerte(data) {
             ...CHART_DEFAULTS,
             indexAxis: 'y',
             interaction: {
-                mode: 'index',
+                mode: 'nearest',
                 axis: 'y',
                 intersect: false
             },
@@ -885,6 +925,7 @@ function _renderCausasMuerte(data) {
                 tooltip: {
                     position: 'followPointer',
                     animation: { duration: 0 },
+                    caretPadding: 6,
                     callbacks: {
                         label: ctx => {
                             const totalMuertos = data.filter(r => r.estado !== 'Vivo').length;
