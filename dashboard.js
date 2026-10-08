@@ -846,6 +846,15 @@ function _renderCausasMuerte(data) {
         options: {
             ...CHART_DEFAULTS,
             indexAxis: 'y',
+            interaction: {
+                mode: 'index',
+                axis: 'y',
+                intersect: false
+            },
+            onHover: (evt) => {
+                const canvas = evt.chart?.canvas || ctx.canvas;
+                if (canvas) canvas.style.cursor = 'pointer';
+            },
             plugins: {
                 ...CHART_DEFAULTS.plugins,
                 legend: { display: false },
@@ -896,9 +905,34 @@ function _renderCausasMuerte(data) {
                 x: { grid: { color: _getChartTheme().gridSubtle, lineWidth: 1 }, ticks: { color: _getChartTheme().textSecondary, font: { family: 'Inter' } } },
                 y: { grid: GRID_NONE,     ticks: { color: _getChartTheme().textBold, font: { family: 'Inter', weight: '600' } } }
             },
-            onClick: function(_evt, elements) {
-                if (elements.length > 0) {
+            onClick: function(evt, elements, chart) {
+                // 1. Elemento directo
+                if (elements && elements.length > 0) {
                     _showCausaDetailModal(elements[0].index);
+                    return;
+                }
+                // 2. Búsqueda por fila en eje Y
+                if (chart && typeof chart.getElementsAtEventForMode === 'function') {
+                    const points = chart.getElementsAtEventForMode(evt, 'index', { axis: 'y', intersect: false }, true);
+                    if (points && points.length > 0) {
+                        _showCausaDetailModal(points[0].index);
+                        return;
+                    }
+                }
+                // 3. Fallback geométrico sobre la escala Y (área completa de cada barra)
+                const yAxis = chart?.scales?.y;
+                if (yAxis && chart.data?.labels && chart.data.labels.length > 0) {
+                    const rect = chart.canvas.getBoundingClientRect();
+                    const clientY = (evt.native ? evt.native.clientY : evt.clientY) || 0;
+                    const clickY = clientY - rect.top;
+                    if (clickY >= yAxis.top && clickY <= yAxis.bottom) {
+                        const total = chart.data.labels.length;
+                        const bandHeight = (yAxis.bottom - yAxis.top) / total;
+                        const idx = Math.floor((clickY - yAxis.top) / bandHeight);
+                        if (idx >= 0 && idx < total) {
+                            _showCausaDetailModal(idx);
+                        }
+                    }
                 }
             }
         }
@@ -941,6 +975,19 @@ function _showCausaDetailModal(groupIndex) {
     });
 
     let html = '';
+
+    // Si hay más de una categoría de muerte, permitir alternar entre ellas con botones/pestañas
+    if (_causasGroupData && _causasGroupData.length > 1) {
+        html += `<div class="causa-category-pills" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:1rem; -webkit-overflow-scrolling:touch;">`;
+        _causasGroupData.forEach((g, idx) => {
+            const isActive = idx === groupIndex;
+            html += `<button type="button" class="causa-pill-btn ${isActive ? 'active' : ''}" onclick="_showCausaDetailModal(${idx})"
+                style="padding:6px 12px; border-radius:10px; font-size:0.78rem; font-weight:700; white-space:nowrap; cursor:pointer; transition:all 0.15s; border:1.5px solid ${isActive ? 'var(--primary)' : 'var(--border-color)'}; background:${isActive ? 'var(--primary)' : 'var(--input-bg)'}; color:${isActive ? '#ffffff' : 'var(--text-secondary)'};">
+                ${g.canonicalName} (${g.count})
+            </button>`;
+        });
+        html += `</div>`;
+    }
 
     // ── Resumen estadístico ──
     html += `<div class="causa-detail-summary">
@@ -1031,6 +1078,16 @@ function closeCausaDetailModal(event) {
     document.getElementById('causaDetailModal').classList.remove('active');
 }
 window.closeCausaDetailModal = closeCausaDetailModal;
+window._showCausaDetailModal = _showCausaDetailModal;
+
+function openCausaDetailModalFromHeader() {
+    if (_causasGroupData && _causasGroupData.length > 0) {
+        _showCausaDetailModal(0);
+    } else if (typeof showToast === 'function') {
+        showToast('ℹ️ No hay registros de muertes con diagnóstico disponibles.');
+    }
+}
+window.openCausaDetailModalFromHeader = openCausaDetailModalFromHeader;
 
 // ────────────────────────────────────────────────────────────────
 // 2. Mortalidad por Ubicación — PieChart

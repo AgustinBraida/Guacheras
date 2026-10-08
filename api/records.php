@@ -155,14 +155,6 @@ function action_list(string $uid): void {
         $params[':fecha'] = $fecha;
     }
 
-    // Auto-corregir registros históricos donde la coma decimal se perdió al importar desde Excel (ej. 103 -> 10.3)
-    try {
-        $db->exec("UPDATE registros SET ig_ternero = ROUND(ig_ternero / 10, 2) WHERE user_id = " . $db->quote($uid) . " AND ig_ternero >= 50 AND ig_ternero <= 500");
-        $db->exec("UPDATE registros SET ig_calostro = ROUND(ig_calostro / 10, 2) WHERE user_id = " . $db->quote($uid) . " AND ig_calostro >= 50 AND ig_calostro <= 500");
-    } catch (Exception $e) {
-        // Ignorar si falla el update
-    }
-
     $sql .= " ORDER BY created_at DESC";
 
     $stmt = $db->prepare($sql);

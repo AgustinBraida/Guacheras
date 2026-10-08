@@ -379,6 +379,17 @@ header {
     padding-right: 1.25rem;
 }
 
+/* Modo celular: restablece el padding normal sin alterar la versión de escritorio */
+@media (max-width: 768px) {
+    header {
+        padding: 1rem 1.25rem;
+    }
+
+    .view-section {
+        padding: 1.25rem;
+    }
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -2979,4 +2990,80 @@ html.dark .causa-disease-count {
 }
 html.dark .causa-disease-badge {
     color: #ffffff !important;
+}
+
+/* Botón de acceso rápido al desglose en el encabezado del gráfico */
+.btn-causa-detail-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(217, 119, 6, 0.12);
+    color: #d97706;
+    border: 1px solid rgba(217, 119, 6, 0.3);
+    padding: 5px 11px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.btn-causa-detail-header:hover {
+    background: rgba(217, 119, 6, 0.22);
+    border-color: #d97706;
+    transform: translateY(-1px);
+}
+
+html.dark .btn-causa-detail-header {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.32);
+}
+
+html.dark .btn-causa-detail-header:hover {
+    background: rgba(245, 158, 11, 0.25);
+    border-color: #fbbf24;
+}
+
+/* Pestañas/Pills para alternar categorías dentro del modal */
+.causa-category-pills {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    margin-bottom: 1rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.causa-pill-btn {
+    transition: all 0.2s ease;
+}
+
+.causa-pill-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* ── Modal de Causas en Modo Celular: centrado y ligeramente elevado ── */
+@media (max-width: 767px) {
+    #causaDetailModal {
+        align-items: center !important;
+        padding: 1rem !important;
+        padding-bottom: 6vh !important; /* Eleva el pop-up hacia arriba para no quedar desplazado abajo */
+    }
+
+    #causaDetailModal .modal-content {
+        border-radius: 1.5rem !important;
+        max-height: 84vh !important;
+        margin-bottom: 0 !important;
+        transform: translateY(18px) scale(0.96) !important;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease !important;
+    }
+
+    #causaDetailModal.active .modal-content {
+        transform: translateY(0) scale(1) !important;
+    }
 }
