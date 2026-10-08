@@ -851,10 +851,7 @@ function _renderCausasMuerte(data) {
                 axis: 'y',
                 intersect: false
             },
-            onHover: (evt) => {
-                const canvas = evt.chart?.canvas || ctx.canvas;
-                if (canvas) canvas.style.cursor = 'pointer';
-            },
+
             plugins: {
                 ...CHART_DEFAULTS.plugins,
                 legend: { display: false },
@@ -890,7 +887,7 @@ function _renderCausasMuerte(data) {
                                     lines.push(`  • ${name}: ${count}`);
                                 });
                                 if (entries.length > 5) {
-                                    lines.push(`  ... y ${entries.length - 5} más (clic para ver)`);
+                                    lines.push(`  ... y ${entries.length - 5} más`);
                                 }
                             }
                             if (generalCount > 0) {
@@ -905,41 +902,11 @@ function _renderCausasMuerte(data) {
                 x: { grid: { color: _getChartTheme().gridSubtle, lineWidth: 1 }, ticks: { color: _getChartTheme().textSecondary, font: { family: 'Inter' } } },
                 y: { grid: GRID_NONE,     ticks: { color: _getChartTheme().textBold, font: { family: 'Inter', weight: '600' } } }
             },
-            onClick: function(evt, elements, chart) {
-                // 1. Elemento directo
-                if (elements && elements.length > 0) {
-                    _showCausaDetailModal(elements[0].index);
-                    return;
-                }
-                // 2. Búsqueda por fila en eje Y
-                if (chart && typeof chart.getElementsAtEventForMode === 'function') {
-                    const points = chart.getElementsAtEventForMode(evt, 'index', { axis: 'y', intersect: false }, true);
-                    if (points && points.length > 0) {
-                        _showCausaDetailModal(points[0].index);
-                        return;
-                    }
-                }
-                // 3. Fallback geométrico sobre la escala Y (área completa de cada barra)
-                const yAxis = chart?.scales?.y;
-                if (yAxis && chart.data?.labels && chart.data.labels.length > 0) {
-                    const rect = chart.canvas.getBoundingClientRect();
-                    const clientY = (evt.native ? evt.native.clientY : evt.clientY) || 0;
-                    const clickY = clientY - rect.top;
-                    if (clickY >= yAxis.top && clickY <= yAxis.bottom) {
-                        const total = chart.data.labels.length;
-                        const bandHeight = (yAxis.bottom - yAxis.top) / total;
-                        const idx = Math.floor((clickY - yAxis.top) / bandHeight);
-                        if (idx >= 0 && idx < total) {
-                            _showCausaDetailModal(idx);
-                        }
-                    }
-                }
-            }
         }
     });
 
-    // Cursor pointer al pasar sobre las barras
-    ctx.canvas.style.cursor = 'pointer';
+    // Cursor default: las barras ya no son clicables
+    ctx.canvas.style.cursor = 'default';
 }
 
 // ────────────────────────────────────────────────────────────────
