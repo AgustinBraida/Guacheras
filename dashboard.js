@@ -1080,7 +1080,18 @@ function closeCausaDetailModal(event) {
 window.closeCausaDetailModal = closeCausaDetailModal;
 window._showCausaDetailModal = _showCausaDetailModal;
 
-function openCausaDetailModalFromHeader() {
+let _lastCausaDetailOpen = 0;
+function openCausaDetailModalFromHeader(e) {
+    if (e) {
+        if (e.stopPropagation) e.stopPropagation();
+        if (e.type === 'touchend' && e.cancelable) {
+            e.preventDefault();
+        }
+    }
+    const now = Date.now();
+    if (now - _lastCausaDetailOpen < 350) return;
+    _lastCausaDetailOpen = now;
+
     if (_causasGroupData && _causasGroupData.length > 0) {
         _showCausaDetailModal(0);
     } else if (typeof showToast === 'function') {
@@ -1618,6 +1629,8 @@ function _renderMortalidadSexo(data) {
                 animation: 200,
                 delay: 200, // Tiempo presionando para iniciar arrastre en móviles
                 delayOnTouchOnly: true, // Sólo requerir delay en pantallas táctiles
+                filter: '.btn-causa-detail-header, .chart-edit-title-btn, button, input, select, textarea, [contenteditable]',
+                preventOnFilter: false,
                 ghostClass: 'is-dragging',
                 onEnd: function() {
                     saveOrder();

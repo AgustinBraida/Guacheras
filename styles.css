@@ -3008,6 +3008,17 @@ html.dark .causa-disease-badge {
     transition: all 0.2s ease;
     white-space: nowrap;
     line-height: 1.2;
+    position: relative;
+    z-index: 10;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.btn-causa-detail-header svg,
+.btn-causa-detail-header span {
+    pointer-events: none;
 }
 
 .btn-causa-detail-header:hover {

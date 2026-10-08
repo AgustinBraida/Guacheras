@@ -32,7 +32,7 @@
     <!-- Chart.js for Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
     <!-- Estilos -->
-    <link rel="stylesheet" href="styles.css?v=75">
+    <link rel="stylesheet" href="styles.css?v=76">
     <!-- Módulo de Voz (Ocultado temporalmente) -->
     <!-- <link rel="stylesheet" href="voice.css?v=49"> -->
 
@@ -1036,7 +1036,7 @@
                                 <div class="db-chart-sub">Infecciones · Digestivos · Factores de Manejo</div>
                             </div>
                             <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-                                <button type="button" class="btn-causa-detail-header" title="Ver desglose detallado de causas" onclick="openCausaDetailModalFromHeader()">
+                                <button type="button" class="btn-causa-detail-header" id="btn-causa-detail-header" title="Ver desglose detallado de causas" onclick="openCausaDetailModalFromHeader(event)" ontouchstart="event.stopPropagation()" ontouchend="openCausaDetailModalFromHeader(event)">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                                     <span>Ver detalle</span>
                                 </button>
