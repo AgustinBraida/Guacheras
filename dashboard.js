@@ -571,6 +571,27 @@ function _getChartTheme() {
     };
 }
 
+// Positioner personalizado de Tooltip para seguir al cursor en tiempo real en cualquier punto de las barras
+function _initChartTooltipPositioner() {
+    if (typeof Chart !== 'undefined' && Chart.Tooltip) {
+        if (!Chart.Tooltip.positioners) Chart.Tooltip.positioners = {};
+        if (!Chart.Tooltip.positioners.followPointer) {
+            Chart.Tooltip.positioners.followPointer = function(elements, eventPosition) {
+                if (!elements || !elements.length) return false;
+                if (eventPosition && typeof eventPosition.x === 'number' && typeof eventPosition.y === 'number') {
+                    return { x: eventPosition.x, y: eventPosition.y };
+                }
+                return typeof this.getCenterPoint === 'function' ? this.getCenterPoint(elements[0]) : false;
+            };
+        }
+        if (Chart.defaults?.plugins?.tooltip) {
+            Chart.defaults.plugins.tooltip.position = 'followPointer';
+            Chart.defaults.plugins.tooltip.animation = { duration: 0 };
+        }
+    }
+}
+_initChartTooltipPositioner();
+
 const CHART_DEFAULTS = {
     responsive: true,
     maintainAspectRatio: false,
@@ -582,6 +603,10 @@ const CHART_DEFAULTS = {
                 get color() { return _isDarkMode() ? '#f1f5f9' : '#475569'; },
                 padding: 14
             }
+        },
+        tooltip: {
+            position: 'followPointer',
+            animation: { duration: 0 }
         }
     }
 };
@@ -822,6 +847,8 @@ function _renderCausasMuerte(data) {
     _causasGroupData = sorted;
     _causasAllData = data;
 
+    _initChartTooltipPositioner();
+
     _dashCharts.chart_causas = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -856,6 +883,8 @@ function _renderCausasMuerte(data) {
                 ...CHART_DEFAULTS.plugins,
                 legend: { display: false },
                 tooltip: {
+                    position: 'followPointer',
+                    animation: { duration: 0 },
                     callbacks: {
                         label: ctx => {
                             const totalMuertos = data.filter(r => r.estado !== 'Vivo').length;
