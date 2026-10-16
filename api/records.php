@@ -88,7 +88,9 @@ function action_update(string $uid, array $in): void {
              sexo = :sexo,
              ombligo = :ombligo,
              tipo_madre = :tipo_madre,
+             tipo_parto = :tipo_parto,
              rp_madre = :rp_madre,
+             tipo_calostro = :tipo_calostro,
              ig_calostro = :ig_calostro,
              estado = :estado,
              causa = :causa,
@@ -108,7 +110,9 @@ function action_update(string $uid, array $in): void {
         ':sexo'            => in_array($in['sexo'] ?? '', ['Macho','Hembra']) ? $in['sexo'] : 'Macho',
         ':ombligo'         => in_array($in['ombligo'] ?? '', ['Bueno','Regular','Malo']) ? $in['ombligo'] : 'Bueno',
         ':tipo_madre'      => in_array($in['tipo_madre'] ?? '', ['Vaca','Vaquillona']) ? $in['tipo_madre'] : 'Vaca',
+        ':tipo_parto'      => in_array($in['tipo_parto'] ?? '', ['Normal','Asistido','Muerto al parto']) ? $in['tipo_parto'] : 'Normal',
         ':rp_madre'        => trim($in['rp_madre']    ?? '') ?: null,
+        ':tipo_calostro'   => in_array($in['tipo_calostro'] ?? '', ['De la madre','Banco de calostro','Calostro mejorado']) ? $in['tipo_calostro'] : 'De la madre',
         ':ig_calostro'     => $ig_calostro,
         ':estado'          => trim($in['estado']      ?? 'Vivo'),
         ':causa'           => trim($in['causa']        ?? '') ?: null,
@@ -165,7 +169,9 @@ function action_list(string $uid): void {
     foreach ($records as &$r) {
         $r['ig_ternero']  = normalize_ig_val($r['ig_ternero']  !== null ? (float)$r['ig_ternero']  : null);
         $r['ig_calostro'] = normalize_ig_val($r['ig_calostro'] !== null ? (float)$r['ig_calostro'] : null);
-        $r['synced']      = true; // Viniendo de la BD siempre están "synced"
+        $r['tipo_parto']    = !empty($r['tipo_parto']) ? $r['tipo_parto'] : 'Normal';
+        $r['tipo_calostro'] = !empty($r['tipo_calostro']) ? $r['tipo_calostro'] : 'De la madre';
+        $r['synced']        = true; // Viniendo de la BD siempre están "synced"
     }
     unset($r);
 
@@ -260,9 +266,17 @@ function action_save(string $uid, array $in): void {
         $tipo_madre = (isset($in['tipo_madre']) && in_array($in['tipo_madre'], ['Vaca', 'Vaquillona'])) 
             ? $in['tipo_madre'] 
             : ($existing['tipo_madre'] ?: 'Vaca');
+
+        $tipo_parto = (isset($in['tipo_parto']) && in_array($in['tipo_parto'], ['Normal', 'Asistido', 'Muerto al parto'])) 
+            ? $in['tipo_parto'] 
+            : (($existing['tipo_parto'] ?? null) ?: 'Normal');
             
         $rp_madre = trim($in['rp_madre'] ?? '') ?: $existing['rp_madre'];
         
+        $tipo_calostro = (isset($in['tipo_calostro']) && in_array($in['tipo_calostro'], ['De la madre', 'Banco de calostro', 'Calostro mejorado'])) 
+            ? $in['tipo_calostro'] 
+            : (($existing['tipo_calostro'] ?? null) ?: 'De la madre');
+
         $ig_calostro = (isset($in['ig_calostro']) && is_numeric($in['ig_calostro'])) 
             ? (float)$in['ig_calostro'] 
             : ($existing['ig_calostro'] !== null ? (float)$existing['ig_calostro'] : null);
@@ -290,7 +304,9 @@ function action_save(string $uid, array $in): void {
                  sexo = :sexo,
                  ombligo = :ombligo,
                  tipo_madre = :tipo_madre,
+                 tipo_parto = :tipo_parto,
                  rp_madre = :rp_madre,
+                 tipo_calostro = :tipo_calostro,
                  ig_calostro = :ig_calostro,
                  estado = :estado,
                  causa = :causa,
@@ -310,7 +326,9 @@ function action_save(string $uid, array $in): void {
             ':sexo'            => $sexo,
             ':ombligo'         => $ombligo,
             ':tipo_madre'      => $tipo_madre,
+            ':tipo_parto'      => $tipo_parto,
             ':rp_madre'        => $rp_madre ?: null,
+            ':tipo_calostro'   => $tipo_calostro,
             ':ig_calostro'     => $ig_calostro,
             ':estado'          => $estado,
             ':causa'           => $causa ?: null,
@@ -348,11 +366,11 @@ function action_save(string $uid, array $in): void {
     $stmt = $db->prepare(
         "INSERT INTO registros
             (user_id, establecimiento, fecha, productor, rp_ternero, ig_ternero,
-             sexo, ombligo, tipo_madre, rp_madre, ig_calostro, estado, causa, 
+             sexo, ombligo, tipo_madre, tipo_parto, rp_madre, tipo_calostro, ig_calostro, estado, causa, 
              causa_categoria, causa_especifica)
          VALUES
             (:uid, :establecimiento, :fecha, :productor, :rp_ternero, :ig_ternero,
-             :sexo, :ombligo, :tipo_madre, :rp_madre, :ig_calostro, :estado, :causa,
+             :sexo, :ombligo, :tipo_madre, :tipo_parto, :rp_madre, :tipo_calostro, :ig_calostro, :estado, :causa,
              :causa_cat, :causa_esp)"
     );
 
@@ -366,7 +384,9 @@ function action_save(string $uid, array $in): void {
         ':sexo'        => in_array($in['sexo'] ?? '', ['Macho','Hembra']) ? $in['sexo'] : 'Macho',
         ':ombligo'     => in_array($in['ombligo'] ?? '', ['Bueno','Regular','Malo']) ? $in['ombligo'] : 'Bueno',
         ':tipo_madre'  => in_array($in['tipo_madre'] ?? '', ['Vaca','Vaquillona']) ? $in['tipo_madre'] : 'Vaca',
+        ':tipo_parto'  => in_array($in['tipo_parto'] ?? '', ['Normal','Asistido','Muerto al parto']) ? $in['tipo_parto'] : 'Normal',
         ':rp_madre'    => trim($in['rp_madre']    ?? '') ?: null,
+        ':tipo_calostro' => in_array($in['tipo_calostro'] ?? '', ['De la madre','Banco de calostro','Calostro mejorado']) ? $in['tipo_calostro'] : 'De la madre',
         ':ig_calostro' => $ig_calostro,
         ':estado'      => trim($in['estado']      ?? 'Vivo'),
         ':causa'       => trim($in['causa']        ?? '') ?: null,
@@ -620,11 +640,13 @@ function action_backup_import(string $uid, array $in): void {
             $sexo        = in_array($r['sexo'] ?? '', ['Macho', 'Hembra']) ? $r['sexo'] : 'Macho';
             $ombligo     = in_array($r['ombligo'] ?? '', ['Bueno', 'Regular', 'Malo']) ? $r['ombligo'] : 'Bueno';
             $tipo_madre  = in_array($r['tipo_madre'] ?? '', ['Vaca', 'Vaquillona']) ? $r['tipo_madre'] : 'Vaca';
-            $rp_madre    = trim($r['rp_madre'] ?? '') ?: null;
-            $estado      = trim($r['estado'] ?? 'Vivo');
-            $causa       = trim($r['causa'] ?? '') ?: null;
-            $causa_cat   = trim($r['causa_categoria'] ?? '') ?: null;
-            $causa_esp   = trim($r['causa_especifica'] ?? '') ?: null;
+            $tipo_parto    = in_array($r['tipo_parto'] ?? '', ['Normal', 'Asistido', 'Muerto al parto']) ? $r['tipo_parto'] : 'Normal';
+            $rp_madre      = trim($r['rp_madre'] ?? '') ?: null;
+            $tipo_calostro = in_array($r['tipo_calostro'] ?? '', ['De la madre', 'Banco de calostro', 'Calostro mejorado']) ? $r['tipo_calostro'] : 'De la madre';
+            $estado        = trim($r['estado'] ?? 'Vivo');
+            $causa         = trim($r['causa'] ?? '') ?: null;
+            $causa_cat     = trim($r['causa_categoria'] ?? '') ?: null;
+            $causa_esp     = trim($r['causa_especifica'] ?? '') ?: null;
             
             if ($estado === 'Vivo') {
                 $causa = null;
@@ -641,7 +663,9 @@ function action_backup_import(string $uid, array $in): void {
                          sexo = :sexo,
                          ombligo = :ombligo,
                          tipo_madre = :tipo_madre,
+                         tipo_parto = :tipo_parto,
                          rp_madre = :rp_madre,
+                         tipo_calostro = :tipo_calostro,
                          ig_calostro = :ig_calostro,
                          estado = :estado,
                          causa = :causa,
@@ -658,7 +682,9 @@ function action_backup_import(string $uid, array $in): void {
                     ':sexo' => $sexo,
                     ':ombligo' => $ombligo,
                     ':tipo_madre' => $tipo_madre,
+                    ':tipo_parto' => $tipo_parto,
                     ':rp_madre' => $rp_madre,
+                    ':tipo_calostro' => $tipo_calostro,
                     ':ig_calostro' => $ig_calostro,
                     ':estado' => $estado,
                     ':causa' => $causa,
@@ -670,11 +696,11 @@ function action_backup_import(string $uid, array $in): void {
                 $stmt_ins = $db->prepare(
                     "INSERT INTO registros
                         (user_id, establecimiento, fecha, productor, rp_ternero, ig_ternero,
-                         sexo, ombligo, tipo_madre, rp_madre, ig_calostro, estado, causa, 
+                         sexo, ombligo, tipo_madre, tipo_parto, rp_madre, tipo_calostro, ig_calostro, estado, causa, 
                          causa_categoria, causa_especifica)
                     VALUES
                         (:uid, :establecimiento, :fecha, :productor, :rp_ternero, :ig_ternero,
-                         :sexo, :ombligo, :tipo_madre, :rp_madre, :ig_calostro, :estado, :causa,
+                         :sexo, :ombligo, :tipo_madre, :tipo_parto, :rp_madre, :tipo_calostro, :ig_calostro, :estado, :causa,
                          :causa_cat, :causa_esp)"
                 );
                 $stmt_ins->execute([
@@ -687,7 +713,9 @@ function action_backup_import(string $uid, array $in): void {
                     ':sexo' => $sexo,
                     ':ombligo' => $ombligo,
                     ':tipo_madre' => $tipo_madre,
+                    ':tipo_parto' => $tipo_parto,
                     ':rp_madre' => $rp_madre,
+                    ':tipo_calostro' => $tipo_calostro,
                     ':ig_calostro' => $ig_calostro,
                     ':estado' => $estado,
                     ':causa' => $causa,

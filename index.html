@@ -1170,6 +1170,24 @@
                     </div>
                 </div>
 
+                <!-- BLOQUE: Tipo de Parto -->
+                <div class="chart-block" data-chart-id="block_parto">
+                    <div class="db-chart-card card glass">
+                        <div class="db-chart-header">
+                            <div style="flex:1;min-width:0;">
+                                <div class="db-chart-title" data-title-key="title_parto" contenteditable="false"
+                                    title="Doble clic para editar título">🩺 Tipo y Dificultad de Parto</div>
+                                <div class="db-chart-sub">Normal vs Asistido vs Muerto al parto</div>
+                            </div>
+                            <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
+                                    data-lucide="edit-3" class="icon-edit"></i></button>
+                        </div>
+                        <div class="db-chart-wrap" style="height:220px;">
+                            <canvas id="chart_parto"></canvas>
+                        </div>
+                    </div>
+                </div>
+
             </div><!-- /#charts-sortable -->
 
         </section>
@@ -1245,7 +1263,7 @@
                 </div>
 
                 <div class="card glass">
-                    <span class="section-label">Datos de la Madre</span>
+                    <span class="section-label">Datos de la Madre y Parto</span>
                     <div class="form-group">
                         <label>Tipo de Madre</label>
                         <select id="f_tipo_madre">
@@ -1254,11 +1272,35 @@
                         </select>
                     </div>
                     <div class="form-group">
+                        <label>Tipo de Parto</label>
+                        <div class="segmented-control" id="f_tipo_parto">
+                            <button type="button" class="segmented-btn active"
+                                onclick="setSegmentedParto(this, 'Normal')">Normal</button>
+                            <button type="button" class="segmented-btn"
+                                onclick="setSegmentedParto(this, 'Asistido')">Asistido</button>
+                            <button type="button" class="segmented-btn"
+                                onclick="setSegmentedParto(this, 'Muerto al parto')">Muerto al parto</button>
+                        </div>
+                        <input type="hidden" id="f_tipo_parto_val" value="Normal">
+                    </div>
+                    <div class="form-group">
                         <label>R.P. Madre</label>
                         <input type="text" id="f_rp_madre" placeholder="ID de la Madre">
                     </div>
                     <div class="form-group">
-                        <label>I.G. Calostro Madre</label>
+                        <label>Tipo de Calostro</label>
+                        <div class="segmented-control" id="f_tipo_calostro">
+                            <button type="button" class="segmented-btn active"
+                                onclick="setSegmented(this, 'De la madre')">De la madre</button>
+                            <button type="button" class="segmented-btn"
+                                onclick="setSegmented(this, 'Banco de calostro')">Banco</button>
+                            <button type="button" class="segmented-btn"
+                                onclick="setSegmented(this, 'Calostro mejorado')">Mejorado</button>
+                        </div>
+                        <input type="hidden" id="f_tipo_calostro_val" value="De la madre">
+                    </div>
+                    <div class="form-group">
+                        <label>I.G. Calostro</label>
                         <div style="position: relative;">
                             <input type="number" step="0.1" id="f_ig_calostro" placeholder="0.0">
                             <span
@@ -1402,7 +1444,7 @@
                 </div>
 
                 <!-- 3. Fila Inferior: Clínica -->
-                <div class="rf-grid rf-grid--3">
+                <div class="rf-grid rf-grid--4">
                     <div class="rf-input-wrap">
                         <i data-lucide="activity" class="rf-input-icon"></i>
                         <select id="filterEstado" onchange="filterTable()" class="rf-select rf-select--icon">
@@ -1417,6 +1459,24 @@
                             <option value="">Madre: Cualquiera</option>
                             <option value="Vaca">Vaca</option>
                             <option value="Vaquillona">Vaquillona</option>
+                        </select>
+                    </div>
+                    <div class="rf-input-wrap">
+                        <i data-lucide="stethoscope" class="rf-input-icon"></i>
+                        <select id="filterTipoParto" onchange="filterTable()" class="rf-select rf-select--icon">
+                            <option value="">Parto: Todos</option>
+                            <option value="Normal">Normal</option>
+                            <option value="Asistido">Asistido</option>
+                            <option value="Muerto al parto">Muerto al parto</option>
+                        </select>
+                    </div>
+                    <div class="rf-input-wrap">
+                        <i data-lucide="droplet" class="rf-input-icon"></i>
+                        <select id="filterTipoCalostro" onchange="filterTable()" class="rf-select rf-select--icon">
+                            <option value="">Calostro: Todos</option>
+                            <option value="De la madre">De la madre</option>
+                            <option value="Banco de calostro">Banco de calostro</option>
+                            <option value="Calostro mejorado">Calostro mejorado</option>
                         </select>
                     </div>
                     <div class="rf-input-wrap">
@@ -1632,8 +1692,8 @@
                             <li><strong>Productor</strong> y <strong>Fecha (AAAA-MM-DD o DD/MM/AAAA)</strong> son obligatorios en cada fila.</li>
                             <li><strong>Establecimiento</strong>, <strong>R.P. Ternero</strong> y <strong>R.P. Madre</strong> son opcionales.</li>
                             <li><strong>Mellizos / Gemelos:</strong> diferéncialos en el R.P. con una letra (ej: <code>4520 A</code> y <code>4520 B</code>).</li>
-                            <li><strong>I.G. Ternero</strong> e <strong>I.G. Calostro Madre</strong> deben ser valores numéricos (ej. 8.5, 23.4).</li>
-                            <li>Campos de opción (ej. Sexo, Ombligo, Madre, Estado) se normalizarán automáticamente.</li>
+                            <li><strong>I.G. Ternero</strong> e <strong>I.G. Calostro</strong> deben ser valores numéricos (ej. 8.5, 23.4).</li>
+                            <li>Campos de opción (ej. Sexo, Ombligo, Madre, Parto, Calostro, Estado) se normalizarán automáticamente.</li>
                         </ul>
                         <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(26,35,126,0.12); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
                             <span>Usa nuestra plantilla modelo para evitar errores:</span>

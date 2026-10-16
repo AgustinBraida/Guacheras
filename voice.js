@@ -118,6 +118,25 @@ const VoiceMapper = {
         if (/\bvaquillon[ae]?\b/i.test(t)) d.tipo_madre = 'Vaquillona';
         else if (/\b(?:tipo\s+madre\s+)?vaca\b/i.test(t)) d.tipo_madre = 'Vaca';
 
+        // ── Tipo Parto ────────────────────────────────────────────
+        if (/\bmuert[ao]\s+al\s+parto\b/i.test(t)) {
+            d.tipo_parto = 'Muerto al parto';
+            if (!d.estado || d.estado === 'Vivo') d.estado = 'Muerto en Establecimiento';
+        } else if (/\b(?:parto\s+)?asistid[ao]\b/i.test(t)) {
+            d.tipo_parto = 'Asistido';
+        } else if (/\b(?:parto\s+)?normal\b/i.test(t)) {
+            d.tipo_parto = 'Normal';
+        }
+
+        // ── Tipo Calostro ─────────────────────────────────────────
+        if (/\b(?:banco\s*(?:de\s*)?calostro|calostro\s*(?:de\s*)?banco)\b/i.test(t)) {
+            d.tipo_calostro = 'Banco de calostro';
+        } else if (/\b(?:calostro\s+mejorado|mejorado|aditivado)\b/i.test(t)) {
+            d.tipo_calostro = 'Calostro mejorado';
+        } else if (/\b(?:calostro\s*(?:de\s*(?:la\s*)?)?madre|de\s+la\s+madre)\b/i.test(t)) {
+            d.tipo_calostro = 'De la madre';
+        }
+
         // ── Estado (orden: más específico → menos específico) ─────
         // 'huachera' cubre la transcripción alternativa de Whisper para 'guachera'
         // 'lugar guachera/huachera' cubre el patrón dictado "Estado muerto, Lugar guachera"
@@ -510,7 +529,9 @@ const VOICE_FIELDS_CONFIG = [
     { key: 'sexo', label: 'Sexo', type: 'select', opts: ['Macho', 'Hembra'] },
     { key: 'ombligo', label: 'Ombligo', type: 'select', opts: ['Bueno', 'Regular', 'Malo'] },
     { key: 'tipo_madre', label: 'Tipo Madre', type: 'select', opts: ['Vaca', 'Vaquillona'] },
+    { key: 'tipo_parto', label: 'Tipo Parto', type: 'select', opts: ['Normal', 'Asistido', 'Muerto al parto'] },
     { key: 'rp_madre', label: 'R.P. Madre', type: 'text' },
+    { key: 'tipo_calostro', label: 'Tipo Calostro', type: 'select', opts: ['De la madre', 'Banco de calostro', 'Calostro mejorado'] },
     { key: 'ig_calostro', label: 'I.G. Calostro', type: 'number' },
     { key: 'estado', label: 'Estado', type: 'select', opts: ['Vivo', 'Muerto en Establecimiento', 'Muerto en Guachería', 'Muerto en Terapia'] },
     { key: 'causa_categoria', label: 'Categoría Causa', type: 'select', opts: ['', 'Enfermedades e Infecciones', 'Problemas Digestivos y Metabólicos', 'Factores Externos y de Manejo', 'Otra Causa'] },

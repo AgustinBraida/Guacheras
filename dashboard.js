@@ -87,13 +87,25 @@ const MOCK_RECORDS = (function generateMockData() {
             estado = 'Vivo'; causa_categoria = ''; causa_especifica = '';
         }
 
+        let tipo_parto = 'Normal';
+        if (estado !== 'Vivo' && rng() < 0.20) {
+            tipo_parto = 'Muerto al parto';
+        } else {
+            tipo_parto = rng() < 0.78 ? 'Normal' : (rng() < 0.95 ? 'Asistido' : 'Muerto al parto');
+        }
+        if (tipo_parto === 'Muerto al parto' && estado === 'Vivo') {
+            tipo_parto = 'Asistido';
+        }
+
+        const tipo_calostro = rng() < 0.70 ? 'De la madre' : (rng() < 0.88 ? 'Banco de calostro' : 'Calostro mejorado');
+
         return {
             id: idx,
             productor: prod, establecimiento: est, fecha,
             rp_ternero: `T-${String(idx).padStart(4,'0')}`,
             ig_ternero, ig_calostro, sexo,
             ombligo: pickOmbligo(estado),
-            tipo_madre, estado,
+            tipo_madre, tipo_parto, tipo_calostro, estado,
             causa_categoria, causa_especifica,
             causa: causa_categoria ? `${causa_categoria} - ${causa_especifica}` : '',
             synced: true,
@@ -449,6 +461,7 @@ function renderDashboard() {
     _renderTendenciaTemporal(data);
     _renderRankingEstablecimientos(data);
     _renderMortalidadSexo(data);
+    _renderTipoParto(data);
 }
 window.renderDashboard = renderDashboard;
 
@@ -1577,6 +1590,44 @@ function _renderMortalidadSexo(data) {
     if (el('sexo_hembras_total')) el('sexo_hembras_total').textContent = hembras.length;
     if (el('sexo_machos_tasa')) el('sexo_machos_tasa').textContent = tasaM.toFixed(1) + '% mort.';
     if (el('sexo_hembras_tasa')) el('sexo_hembras_tasa').textContent = tasaH.toFixed(1) + '% mort.';
+}
+
+// ────────────────────────────────────────────────────────────────
+// 9. Tipo y Dificultad de Parto — Donut Chart
+// ────────────────────────────────────────────────────────────────
+function _renderTipoParto(data) {
+    const ctx = _getCtx('chart_parto');
+    if (!ctx) return;
+
+    const normal  = data.filter(r => (r.tipo_parto || 'Normal') === 'Normal').length;
+    const asistido = data.filter(r => r.tipo_parto === 'Asistido').length;
+    const muertoAlParto = data.filter(r => r.tipo_parto === 'Muerto al parto').length;
+
+    _dashCharts.chart_parto = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Normal', 'Asistido', 'Muerto al parto'],
+            datasets: [{
+                data: [normal, asistido, muertoAlParto],
+                backgroundColor: [PALETTE.secondary + 'cc', PALETTE.warning + 'cc', PALETTE.danger + 'cc'],
+                borderColor: [PALETTE.secondary, PALETTE.warning, PALETTE.danger],
+                borderWidth: 2,
+                hoverOffset: 6,
+            }]
+        },
+        options: {
+            ...CHART_DEFAULTS,
+            cutout: '65%',
+            plugins: {
+                ...CHART_DEFAULTS.plugins,
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${ctx.label}: ${ctx.raw} (${data.length > 0 ? ((ctx.raw/data.length)*100).toFixed(1) : 0}%)`
+                    }
+                }
+            }
+        }
+    });
 }
 
 

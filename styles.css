@@ -607,6 +607,13 @@ textarea::placeholder {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
+#f_tipo_calostro .segmented-btn {
+    font-size: 0.8rem;
+    padding: 0.55rem 0.25rem;
+    line-height: 1.2;
+    text-align: center;
+}
+
 /* ── Causa de Muerte: botones separados con bordes redondeados ── */
 .causa-segmented {
     display: grid;
@@ -2454,10 +2461,21 @@ html.dark .profile-info-row {
     grid-template-columns: 1fr 1fr 1fr;
 }
 
+.rf-grid--4 {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+@media (max-width: 900px) {
+    .rf-grid--4 {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
 @media (max-width: 640px) {
 
     .rf-grid--2,
-    .rf-grid--3 {
+    .rf-grid--3,
+    .rf-grid--4 {
         grid-template-columns: 1fr;
     }
 }

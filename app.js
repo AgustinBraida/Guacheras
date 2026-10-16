@@ -241,6 +241,20 @@ function setSegmented(btn, val) {
     }
 }
 
+function setSegmentedParto(btn, val) {
+    setSegmented(btn, val);
+    if (val === 'Muerto al parto') {
+        const vivoRadio = document.querySelector('input[name="survival"][value="Vivo"]');
+        const muertoRadio = document.querySelector('input[name="survival"][value="Muerto en Establecimiento"]');
+        if (vivoRadio && vivoRadio.checked && muertoRadio) {
+            muertoRadio.checked = true;
+            muertoRadio.dataset.dirty = 'true';
+            if (typeof toggleCausa === 'function') toggleCausa(true);
+        }
+    }
+}
+window.setSegmentedParto = setSegmentedParto;
+
 const opcionesCausa = {
     'Enfermedades e Infecciones': ['Colibacilosis', 'Salmonelosis', 'Rotavirus', 'Coronavirus', 'Criptosporidiosis', 'Onfalitis', 'Neumonía'],
     'Problemas Digestivos y Metabólicos': ['Diarrea', 'Torsión de abomaso', 'Úlcera de abomaso', 'Intoxicación'],
@@ -558,6 +572,16 @@ function bindEntryForm() {
             if (tipoMadreInput && (tipoMadreInput.dataset.dirty === 'true' || matchedRecord.tipo_madre === undefined || matchedRecord.tipo_madre === null)) {
                 updatedRecord.tipo_madre = tipoMadreInput.value;
             }
+            // tipo_parto: update if dirty
+            const tipoPartoInput = document.getElementById('f_tipo_parto_val');
+            if (tipoPartoInput && (tipoPartoInput.dataset.dirty === 'true' || matchedRecord.tipo_parto === undefined || matchedRecord.tipo_parto === null)) {
+                updatedRecord.tipo_parto = tipoPartoInput.value;
+            }
+            // tipo_calostro: update if dirty
+            const tipoCalostroInput = document.getElementById('f_tipo_calostro_val');
+            if (tipoCalostroInput && (tipoCalostroInput.dataset.dirty === 'true' || matchedRecord.tipo_calostro === undefined || matchedRecord.tipo_calostro === null)) {
+                updatedRecord.tipo_calostro = tipoCalostroInput.value;
+            }
             // rp_madre: update if filled
             const rpMadreVal = document.getElementById('f_rp_madre').value.trim();
             if (rpMadreVal !== '') {
@@ -679,7 +703,9 @@ function bindEntryForm() {
                 sexo:            document.getElementById('f_sexo_val').value,
                 ombligo:         document.getElementById('f_ombligo_val').value,
                 tipo_madre:      document.getElementById('f_tipo_madre').value,
+                tipo_parto:      (document.getElementById('f_tipo_parto_val')?.value) || 'Normal',
                 rp_madre:        document.getElementById('f_rp_madre').value,
+                tipo_calostro:   (document.getElementById('f_tipo_calostro_val')?.value) || 'De la madre',
                 ig_calostro:     document.getElementById('f_ig_calostro').value,
                 estado:          document.querySelector('input[name="survival"]:checked').value,
                 causa:           isVivo ? '' : (catVal && espVal ? `${catVal} - ${espVal}` : (catVal || espVal || '')),
@@ -741,6 +767,24 @@ function bindEntryForm() {
         renderFieldDatalists();
         form.reset();
         form.querySelectorAll('[data-dirty]').forEach(el => delete el.dataset.dirty);
+        // Resetear segmented control de tipo de parto a Normal
+        const partoParent = document.getElementById('f_tipo_parto');
+        if (partoParent) {
+            partoParent.querySelectorAll('.segmented-btn').forEach((b, idx) => {
+                b.classList.toggle('active', idx === 0);
+            });
+            const pVal = document.getElementById('f_tipo_parto_val');
+            if (pVal) pVal.value = 'Normal';
+        }
+        // Resetear segmented control de tipo de calostro a De la madre
+        const calostroParent = document.getElementById('f_tipo_calostro');
+        if (calostroParent) {
+            calostroParent.querySelectorAll('.segmented-btn').forEach((b, idx) => {
+                b.classList.toggle('active', idx === 0);
+            });
+            const cVal = document.getElementById('f_tipo_calostro_val');
+            if (cVal) cVal.value = 'De la madre';
+        }
         initForm();
         toggleCausa(false);
         updateUI();
@@ -840,6 +884,14 @@ function openDetail(recordId) {
             </select>
         </div>
         <div class="form-group">
+            <label>Tipo de Parto</label>
+            <select id="edit_tipo_parto">
+                <option value="Normal" ${(!r.tipo_parto || r.tipo_parto === 'Normal') ? 'selected' : ''}>Normal</option>
+                <option value="Asistido" ${r.tipo_parto === 'Asistido' ? 'selected' : ''}>Asistido</option>
+                <option value="Muerto al parto" ${r.tipo_parto === 'Muerto al parto' ? 'selected' : ''}>Muerto al parto</option>
+            </select>
+        </div>
+        <div class="form-group">
             <label>Supervivencia</label>
             <select id="edit_estado" onchange="toggleEditCausa(this.value)">
                 ${estadoOptionsHtml}
@@ -878,7 +930,15 @@ function openDetail(recordId) {
             <input id="edit_rp_madre" value="${escHtml(r.rp_madre || '')}">
         </div>
         <div class="form-group">
-            <label>I.G. Calostro Madre</label>
+            <label>Tipo de Calostro</label>
+            <select id="edit_tipo_calostro">
+                <option value="De la madre" ${(!r.tipo_calostro || r.tipo_calostro === 'De la madre') ? 'selected' : ''}>De la madre</option>
+                <option value="Banco de calostro" ${r.tipo_calostro === 'Banco de calostro' ? 'selected' : ''}>Banco de calostro</option>
+                <option value="Calostro mejorado" ${r.tipo_calostro === 'Calostro mejorado' ? 'selected' : ''}>Calostro mejorado</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>I.G. Calostro</label>
             <input id="edit_ig_calostro" type="number" step="0.1" value="${r.ig_calostro ?? ''}">
         </div>
         <div id="edit_save_error" style="color:#dc2626; font-size:0.85rem; display:none; text-align:center; padding: 10px;"></div>
@@ -960,6 +1020,7 @@ async function saveDetail() {
         sexo:            document.getElementById('edit_sexo').value,
         ombligo:         document.getElementById('edit_ombligo').value,
         tipo_madre:      document.getElementById('edit_tipo_madre').value,
+        tipo_parto:      document.getElementById('edit_tipo_parto')?.value || 'Normal',
         estado:          estado,
         causa_categoria: causaCat,
         causa_especifica: causaEsp,
@@ -968,6 +1029,7 @@ async function saveDetail() {
         establecimiento: document.getElementById('edit_establecimiento').value.trim(),
         rp_ternero:      document.getElementById('edit_rp_ternero').value.trim(),
         rp_madre:        document.getElementById('edit_rp_madre').value.trim(),
+        tipo_calostro:   document.getElementById('edit_tipo_calostro')?.value || 'De la madre',
         ig_calostro:     document.getElementById('edit_ig_calostro').value,
     };
 
@@ -1099,6 +1161,8 @@ function getFilteredRecords() {
     const dateTo         = document.getElementById('filterDateTo')?.value || '';
     const estadoFilter   = document.getElementById('filterEstado')?.value || '';
     const madreFilter    = document.getElementById('filterCategoriaMadre')?.value || '';
+    const tipoPartoFilter = document.getElementById('filterTipoParto')?.value || '';
+    const tipoCalostroFilter = document.getElementById('filterTipoCalostro')?.value || '';
     const riesgoFilter   = document.getElementById('filterRiesgoSanitario')?.value || '';
 
     return records.filter(r => {
@@ -1116,6 +1180,12 @@ function getFilteredRecords() {
         
         let matchMadre = true;
         if (madreFilter && r.tipo_madre !== madreFilter) matchMadre = false;
+
+        let matchParto = true;
+        if (tipoPartoFilter && (r.tipo_parto || 'Normal') !== tipoPartoFilter) matchParto = false;
+
+        let matchCalostro = true;
+        if (tipoCalostroFilter && (r.tipo_calostro || 'De la madre') !== tipoCalostroFilter) matchCalostro = false;
         
         let matchRiesgo = true;
         if (riesgoFilter === 'Alto') {
@@ -1127,7 +1197,7 @@ function getFilteredRecords() {
             if (!isMissingIg && !isLowIg && !isBadNavel) matchRiesgo = false;
         }
 
-        return matchEstablecimiento && matchRp && matchProductor && matchDate && matchEstado && matchMadre && matchRiesgo;
+        return matchEstablecimiento && matchRp && matchProductor && matchDate && matchEstado && matchMadre && matchParto && matchCalostro && matchRiesgo;
     });
 }
 
@@ -1168,7 +1238,7 @@ function setQuickDate(range) {
 
 function clearFilters() {
     ['filterProductor', 'searchEstablecimiento', 'searchRp', 'filterDateFrom', 'filterDateTo', 
-     'filterEstado', 'filterCategoriaMadre', 'filterRiesgoSanitario'].forEach(id => {
+     'filterEstado', 'filterCategoriaMadre', 'filterTipoParto', 'filterTipoCalostro', 'filterRiesgoSanitario'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -1184,6 +1254,8 @@ function saveReportFilter() {
         dateTo: document.getElementById('filterDateTo')?.value || '',
         estado: document.getElementById('filterEstado')?.value || '',
         madre: document.getElementById('filterCategoriaMadre')?.value || '',
+        parto: document.getElementById('filterTipoParto')?.value || '',
+        calostro: document.getElementById('filterTipoCalostro')?.value || '',
         riesgo: document.getElementById('filterRiesgoSanitario')?.value || ''
     };
     localStorage.setItem('vf_saved_filter', JSON.stringify(filterState));
@@ -1204,6 +1276,8 @@ function loadReportFilter() {
     if (document.getElementById('filterDateTo')) document.getElementById('filterDateTo').value = filterState.dateTo || '';
     if (document.getElementById('filterEstado')) document.getElementById('filterEstado').value = filterState.estado || '';
     if (document.getElementById('filterCategoriaMadre')) document.getElementById('filterCategoriaMadre').value = filterState.madre || '';
+    if (document.getElementById('filterTipoParto')) document.getElementById('filterTipoParto').value = filterState.parto || '';
+    if (document.getElementById('filterTipoCalostro')) document.getElementById('filterTipoCalostro').value = filterState.calostro || '';
     if (document.getElementById('filterRiesgoSanitario')) document.getElementById('filterRiesgoSanitario').value = filterState.riesgo || '';
     
     filterTable();
@@ -1290,7 +1364,12 @@ function renderTable() {
                 <div style="font-weight:700;">${r.productor || '-'}</div>
                 <div style="font-size:0.75rem;opacity:0.7;">${r.establecimiento}</div>
             </td>
-            <td style="font-size:0.9rem;">${r.rp_ternero || '-'}</td>
+            <td style="font-size:0.9rem;">
+                <div style="font-weight:600;">${r.rp_ternero || '-'}</div>
+                <div style="font-size:0.7rem;color:var(--text-secondary);font-weight:600;margin-top:2px;">
+                    Parto: <span style="color:${(r.tipo_parto === 'Muerto al parto') ? '#dc2626' : (r.tipo_parto === 'Asistido' ? '#d97706' : 'var(--secondary)')};">${r.tipo_parto || 'Normal'}</span>
+                </div>
+            </td>
             <td>
                 <div style="font-weight:700;color:var(--primary);">${r.ig_ternero ?? '-'}%</div>
                 <span style="display:inline-block;margin-top:3px;padding:2px 8px;border-radius:99px;font-size:0.68rem;font-weight:700;
@@ -1319,6 +1398,8 @@ function initReportFilters() {
         'filterDateTo',
         'filterEstado',
         'filterCategoriaMadre',
+        'filterTipoParto',
+        'filterTipoCalostro',
         'filterRiesgoSanitario',
     ];
     changeIds.forEach(id => {
@@ -1393,11 +1474,11 @@ async function generatePDF() {
 
     doc.autoTable({
         startY: 105,
-        head: [['Establecimiento', 'R.P.', 'I.G.', 'Estado', 'Sexo', 'Ombligo']],
-        body: filteredRecords.map(r => [r.establecimiento, r.rp_ternero, r.ig_ternero + '%', r.estado, r.sexo, r.ombligo]),
+        head: [['Establecimiento', 'R.P.', 'I.G.', 'Estado', 'Parto', 'Calostro', 'Sexo', 'Ombligo']],
+        body: filteredRecords.map(r => [r.establecimiento, r.rp_ternero, (r.ig_ternero ? r.ig_ternero + '%' : '-'), r.estado, r.tipo_parto || 'Normal', r.tipo_calostro || 'De la madre', r.sexo, r.ombligo]),
         theme: 'grid',
         headStyles: { fillColor: [26, 35, 126], textColor: [255, 255, 255], fontStyle: 'bold' },
-        styles: { fontSize: 9, cellPadding: 4 },
+        styles: { fontSize: 8.5, cellPadding: 3.5 },
         alternateRowStyles: { fillColor: [248, 250, 252] },
     });
 
@@ -1562,8 +1643,10 @@ async function generateXlsxReport(res) {
             "Sexo": r.sexo || "-",
             "Estado Ombligo": r.ombligo || "-",
             "Tipo Madre": r.tipo_madre || "-",
+            "Tipo de Parto": r.tipo_parto || "Normal",
             "R.P. Madre": r.rp_madre || "-",
-            "I.G. Calostro Madre (mg/dL)": r.ig_calostro !== null ? Number(r.ig_calostro) : "-",
+            "Tipo de Calostro": r.tipo_calostro || "De la madre",
+            "I.G. Calostro (mg/dL)": r.ig_calostro !== null ? Number(r.ig_calostro) : "-",
             "Estado": r.estado || "-",
             "Causa Muerte": r.causa || "-",
             "Categoría Causa": r.causa_categoria || "-",
@@ -1635,9 +1718,11 @@ I.G. Ternero:      ${r.ig_ternero !== null ? r.ig_ternero + '%' : "-"}
 Sexo:              ${r.sexo || "-"}
 Estado Ombligo:    ${r.ombligo || "-"}
 
-DATOS DE LA MADRE:
+DATOS DE LA MADRE, PARTO Y CALOSTRO:
 Tipo de Madre:     ${r.tipo_madre || "-"}
+Tipo de Parto:     ${r.tipo_parto || "Normal"}
 R.P. Madre:        ${r.rp_madre || "-"}
+Tipo de Calostro:  ${r.tipo_calostro || "De la madre"}
 I.G. Calostro:     ${r.ig_calostro !== null ? r.ig_calostro + ' mg/dL' : "-"}
 
 ESTADO SANITARIO:
@@ -1787,8 +1872,10 @@ function downloadExcelTemplate() {
             "Sexo",
             "Ombligo",
             "Tipo Madre",
+            "Tipo de Parto",
             "R.P. Madre",
-            "I.G. Calostro Madre",
+            "Tipo de Calostro",
+            "I.G. Calostro",
             "Estado",
             "Causa Categoría",
             "Causa Específica"
@@ -1802,7 +1889,9 @@ function downloadExcelTemplate() {
             "Macho",
             "Bueno",
             "Vaca",
+            "Normal",
             "8832",
+            "De la madre",
             "22.5",
             "Vivo",
             "",
@@ -1817,7 +1906,9 @@ function downloadExcelTemplate() {
             "Hembra",
             "Regular",
             "Vaquillona",
+            "Asistido",
             "8835",
+            "Banco de calostro",
             "18.1",
             "Muerto en Terapia",
             "Enfermedades e Infecciones",
@@ -1995,6 +2086,20 @@ function handleImportExcelFile(event) {
                 return "Vaca";
             }
 
+            function sanitizeTipoParto(val) {
+                const str = trimValue(val).toLowerCase();
+                if (str.includes("muert") || str.includes("mortin") || str.includes("natim")) return "Muerto al parto";
+                if (str.includes("asist") || str.includes("distoc") || str.includes("ayud") || str.includes("fuerz") || str.includes("trac")) return "Asistido";
+                return "Normal";
+            }
+
+            function sanitizeTipoCalostro(val) {
+                const str = trimValue(val).toLowerCase();
+                if (str.includes("banco") || str.includes("congel") || str.includes("reserva")) return "Banco de calostro";
+                if (str.includes("mejorad") || str.includes("aditiv") || str.includes("enriquec") || str.includes("pasteuriz") || str.includes("suplement")) return "Calostro mejorado";
+                return "De la madre";
+            }
+
             function sanitizeEstado(val) {
                 const str = trimValue(val).toLowerCase();
                 if (str.includes("establecimiento") || str.includes("est")) return "Muerto en Establecimiento";
@@ -2152,7 +2257,9 @@ function handleImportExcelFile(event) {
                 const sexo = sanitizeSexo(findValue(row, ["sexo", "gender"]));
                 const ombligo = sanitizeOmbligo(findValue(row, ["ombligo", "estado ombligo", "navel"]));
                 const tipo_madre = sanitizeTipoMadre(findValue(row, ["tipo madre", "tipo_madre", "madre tipo"]));
+                const tipo_parto = sanitizeTipoParto(findValue(row, ["tipo de parto", "tipo parto", "tipo_parto", "parto"]));
                 const rp_madre = trimValue(findValue(row, ["rp madre", "rp_madre", "rp de la madre", "madre id"])) || "";
+                const tipo_calostro = sanitizeTipoCalostro(findValue(row, ["tipo de calostro", "tipo calostro", "tipo_calostro", "calostro tipo", "origen calostro"]));
                 const ig_calostro = parseNumeric(findIgMadre(row), true);
                 const estado = sanitizeEstado(findValue(row, ["estado", "supervivencia", "status"]));
                 
@@ -2172,7 +2279,9 @@ function handleImportExcelFile(event) {
                     sexo,
                     ombligo,
                     tipo_madre,
+                    tipo_parto,
                     rp_madre: rp_madre || null,
+                    tipo_calostro,
                     ig_calostro: ig_calostro,
                     estado,
                     causa: estado !== 'Vivo' ? causa || null : null,
