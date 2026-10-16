@@ -639,7 +639,9 @@ const CHART_DEFAULTS = {
         legend: {
             labels: {
                 font: { family: 'Inter', size: 11 },
-                get color() { return _isDarkMode() ? '#f1f5f9' : '#475569'; },
+                _color: null,
+                get color() { return this._color !== null ? this._color : (_isDarkMode() ? '#f1f5f9' : '#475569'); },
+                set color(val) { this._color = val; },
                 padding: 14
             }
         },
@@ -1695,6 +1697,82 @@ function _renderMortalidadSexo(data) {
 // EXPORTAR A PDF
 // ═══════════════════════════════════════════════════════════════
 
+// ────────────────────────────────────────────────────────────────
+// Helper: Alternar tema de gráficos para exportación a PDF (alto contraste en negro)
+// ────────────────────────────────────────────────────────────────
+function _setChartsForExport(forPdf = true) {
+    if (forPdf) {
+        // 1. Modo PDF: Forzar texto principal, ejes y leyendas a negro (#000000)
+        Object.values(_dashCharts).forEach(c => {
+            if (!c) return;
+            if (c.options?.plugins?.legend?.labels) {
+                c.options.plugins.legend.labels.color = '#000000';
+            }
+            if (c.options?.scales) {
+                Object.values(c.options.scales).forEach(s => {
+                    if (!s) return;
+                    if (s.ticks) s.ticks.color = '#000000';
+                    if (s.title) s.title.color = '#000000';
+                    if (s.grid)  s.grid.color  = '#e2e8f0';
+                });
+            }
+        });
+
+        if (_dashCharts.chart_tendencia) {
+            const c = _dashCharts.chart_tendencia;
+            if (c.data?.datasets?.[1]) {
+                c.data.datasets[1].borderColor = PALETTE.primary;
+                c.data.datasets[1].pointBackgroundColor = PALETTE.primary;
+            }
+            if (c.options?.scales?.y?.ticks) {
+                c.options.scales.y.ticks.color = '#b91c1c'; // Rojo oscuro de alta legibilidad
+            }
+            if (c.options?.scales?.y1?.ticks) {
+                c.options.scales.y1.ticks.color = '#000000';
+            }
+        }
+
+        if (_dashCharts.chart_causas) {
+            const c = _dashCharts.chart_causas;
+            if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = '#000000';
+            if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = '#000000';
+        }
+
+        if (_dashCharts.chart_madre) {
+            const c = _dashCharts.chart_madre;
+            if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = '#000000';
+            if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = '#000000';
+        }
+
+        if (_dashCharts.chart_calostro) {
+            const c = _dashCharts.chart_calostro;
+            if (c.options?.scales?.x?.title) c.options.scales.x.title.color = '#000000';
+            if (c.options?.scales?.y?.title) c.options.scales.y.title.color = '#000000';
+            if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = '#000000';
+            if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = '#000000';
+        }
+
+        if (_dashCharts.chart_sexo) {
+            const c = _dashCharts.chart_sexo;
+            if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = '#000000';
+            if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = '#000000';
+            if (c.data?.datasets?.[0]) {
+                c.data.datasets[0].backgroundColor = [PALETTE.primary + 'cc', PALETTE.pink + 'cc'];
+                c.data.datasets[0].borderColor = [PALETTE.primary, PALETTE.pink];
+            }
+        }
+
+        Object.values(_dashCharts).forEach(c => {
+            if (c) c.update('none');
+        });
+    } else {
+        // 2. Restaurar el tema de pantalla activo (Oscuro o Claro)
+        if (typeof window.updateChartsTheme === 'function') {
+            window.updateChartsTheme(_isDarkMode());
+        }
+    }
+}
+
 window.exportDashboardPDF = function(btnEl) {
     // La descarga de gráficos como PDF es exclusiva del Plan Premium (o cuentas legacy).
     const _sess = typeof AuthManager !== 'undefined' ? AuthManager.getSession() : null;
@@ -1718,16 +1796,20 @@ window.exportDashboardPDF = function(btnEl) {
     // Pequeño timeout para permitir que la UI actualice el botón
     setTimeout(() => {
         try {
+            // Aplicar tema de alto contraste para PDF (textos, leyendas y ejes en negro)
+            _setChartsForExport(true);
+
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
             
             // Título
             doc.setFontSize(18);
+            doc.setTextColor(0);
             doc.text("Reporte Analítico - VETFIELD PRO", 14, 20);
             
             // Fecha y Filtros
             doc.setFontSize(10);
-            doc.setTextColor(100);
+            doc.setTextColor(50);
             doc.text(`Fecha de generación: ${new Date().toLocaleDateString()}`, 14, 28);
             
             let filtrosStr = [];
@@ -1738,6 +1820,7 @@ window.exportDashboardPDF = function(btnEl) {
             
             if (filtrosStr.length > 0) {
                 doc.setFontSize(9);
+                doc.setTextColor(40);
                 doc.text(`Filtros: ${filtrosStr.join(' | ')}`, 14, 34);
             }
             
@@ -1776,19 +1859,14 @@ window.exportDashboardPDF = function(btnEl) {
                         tCtx.fillStyle = '#ffffff';
                         tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
-                        // 2. Dibujar el gráfico original (pixel-perfect)
+                        // 2. Dibujar el gráfico con tema PDF (textos y números en negro)
                         tCtx.drawImage(canvas, 0, 0);
 
                         // ─── FIX CRÍTICO: Corregir el espacio de coordenadas ──────────────
-                        // Chart.js internamente usa ctx.scale(dpr, dpr) en el canvas real,
-                        // por lo que element.x / tooltipPosition() devuelven valores en
-                        // espacio CSS-pixel (p.ej. 0-400 en pantalla 2x).
-                        // El tempCanvas trabaja en píxeles físicos (p.ej. 0-800).
-                        // Sin escalar, los números aparecen a la mitad de la posición correcta.
                         const _dpr = window.devicePixelRatio || 1;
                         tCtx.scale(_dpr, _dpr);
 
-                        // 3. Dibujar etiquetas de datos visibles para el PDF
+                        // 3. Dibujar etiquetas de datos visibles para el PDF (en negro)
                         const chartInstance = window.Chart ? window.Chart.getChart(canvas) : null;
                         if (chartInstance) {
                             const chartId = canvas.id;
@@ -1810,24 +1888,24 @@ window.exportDashboardPDF = function(btnEl) {
                                     let drawBg        = false;
                                     let customYOffset = 0;
                                     let customXOffset = 0;
-                                    let textColor     = '#ffffff';
-                                    let strokeColor   = 'rgba(0,0,0,0.55)';
+                                    let textColor     = '#000000'; // Todo texto y número en negro
+                                    let strokeColor   = '#ffffff'; // Contorno blanco para contraste sobre barras/gajos
                                     let fontSize      = 12;
 
                                     // ── Tendencia Temporal (line) ─────────────────────────
                                     if (chartId === 'chart_tendencia') {
                                         if (i === 0) {
-                                            // Tasa Mortalidad → muertes absolutas, centradas sobre el nodo, offset constante +5px visual
+                                            // Tasa Mortalidad → muertes absolutas, centradas sobre el nodo
                                             const total = chartInstance.data.datasets[1]?.data[index] ?? 0;
                                             text = String(Math.round((parseFloat(dataVal) / 100) * (total || 1)));
-                                            customYOffset = -18; // offset fijo arriba del nodo
-                                            textColor     = PALETTE.danger;
+                                            customYOffset = -18;
+                                            textColor     = '#000000';
                                             strokeColor   = null;
                                             drawBg        = true;
                                         } else {
                                             // Total evaluados → debajo del nodo
                                             customYOffset = 18;
-                                            textColor     = _getChartTheme().evaluadosText;
+                                            textColor     = '#000000';
                                             strokeColor   = null;
                                             drawBg        = true;
                                         }
@@ -1835,14 +1913,12 @@ window.exportDashboardPDF = function(btnEl) {
 
                                     // ── Causas de Muerte (bar horizontal) ────────────────
                                     } else if (chartId === 'chart_causas') {
-                                        // Etiqueta de frecuencia al final de la barra, dentro, contraste blanco
-                                        // element.base = inicio de la barra; element.x = fin de la barra
                                         const barEnd = element.x ?? pos.x;
                                         pos = { x: barEnd, y: pos.y };
                                         align         = 'right';
-                                        customXOffset = -8; // margen interno desde el extremo derecho
-                                        textColor     = '#ffffff';
-                                        strokeColor   = 'rgba(0,0,0,0.5)';
+                                        customXOffset = -8;
+                                        textColor     = '#000000';
+                                        strokeColor   = '#ffffff';
                                         fontSize      = 11;
 
                                     // ── Donut Ubicación ──────────────────────────────────
@@ -1850,23 +1926,22 @@ window.exportDashboardPDF = function(btnEl) {
                                         const total   = chartInstance.data.datasets[0].data.reduce((a, b) => a + b, 0);
                                         const pct     = total > 0 ? ((dataVal / total) * 100).toFixed(0) : 0;
                                         text          = `${dataVal}\n(${pct}%)`;
-                                        textColor     = '#ffffff';
-                                        strokeColor   = 'rgba(0,0,0,0.6)';
+                                        textColor     = '#000000';
+                                        strokeColor   = '#ffffff';
                                         fontSize      = 11;
 
                                     // ── Desempeño por Tipo de Madre (bar stacked) ────────
                                     } else if (chartId === 'chart_madre') {
                                         const elH = element.height ?? 0;
                                         if (elH <= 24) {
-                                            // Barra muy pequeña → etiqueta fuera con bg
                                             align         = 'left';
                                             customXOffset = (element.width ?? 30) / 2 + 6;
-                                            textColor     = _getChartTheme().textBold;
+                                            textColor     = '#000000';
                                             strokeColor   = null;
                                             drawBg        = true;
                                         } else {
-                                            // Dentro de la barra
-                                            textColor  = '#ffffff';
+                                            textColor   = '#000000';
+                                            strokeColor = '#ffffff';
                                         }
                                         fontSize = 12;
 
@@ -1875,8 +1950,8 @@ window.exportDashboardPDF = function(btnEl) {
                                         const total = chartInstance.data.datasets[0].data.reduce((a, b) => a + b, 0);
                                         const pct   = total > 0 ? ((dataVal / total) * 100).toFixed(0) : 0;
                                         text        = `${dataVal}\n(${pct}%)`;
-                                        textColor   = '#ffffff';
-                                        strokeColor = 'rgba(0,0,0,0.6)';
+                                        textColor   = '#000000';
+                                        strokeColor = '#ffffff';
                                         fontSize    = 11;
 
                                     // ── Mortalidad por Sexo (bar grouped) ───────────────
@@ -1885,11 +1960,12 @@ window.exportDashboardPDF = function(btnEl) {
                                         if (elH <= 24) {
                                             align         = 'left';
                                             customXOffset = (element.width ?? 30) / 2 + 6;
-                                            textColor     = _getChartTheme().textBold;
+                                            textColor     = '#000000';
                                             strokeColor   = null;
                                             drawBg        = true;
                                         } else {
-                                            textColor  = '#ffffff';
+                                            textColor   = '#000000';
+                                            strokeColor = '#ffffff';
                                         }
                                         text    = dataVal + '%';
                                         fontSize = 12;
@@ -1908,17 +1984,21 @@ window.exportDashboardPDF = function(btnEl) {
 
                                     if (drawBg) {
                                         const maxW = Math.max(...lines.map(l => tCtx.measureText(l).width));
-                                        const bgH  = lineH * lines.length + 8;
+                                        const bgH  = lineH * lines.length + 6;
                                         let bgX    = finalX;
                                         if (align === 'center') bgX -= maxW / 2;
                                         else if (align === 'right') bgX -= maxW;
-                                        tCtx.fillStyle = _getChartTheme().badgeBg;
+                                        tCtx.fillStyle   = 'rgba(255, 255, 255, 0.95)';
+                                        tCtx.strokeStyle = '#94a3b8';
+                                        tCtx.lineWidth   = 1;
                                         if (tCtx.roundRect) {
                                             tCtx.beginPath();
                                             tCtx.roundRect(bgX - 4, finalY - bgH / 2, maxW + 8, bgH, 4);
                                             tCtx.fill();
+                                            tCtx.stroke();
                                         } else {
                                             tCtx.fillRect(bgX - 4, finalY - bgH / 2, maxW + 8, bgH);
+                                            tCtx.strokeRect(bgX - 4, finalY - bgH / 2, maxW + 8, bgH);
                                         }
                                     }
 
@@ -1926,7 +2006,7 @@ window.exportDashboardPDF = function(btnEl) {
                                         const ly = finalY + (li - (lines.length - 1) / 2) * lineH;
                                         if (strokeColor) {
                                             tCtx.strokeStyle = strokeColor;
-                                            tCtx.lineWidth   = 2.5;
+                                            tCtx.lineWidth   = 3;
                                             tCtx.strokeText(line, finalX, ly);
                                         }
                                         tCtx.fillStyle = textColor;
@@ -1972,7 +2052,7 @@ window.exportDashboardPDF = function(btnEl) {
                             html: table,
                             startY: yPos,
                             theme: 'grid',
-                            styles: { font: 'helvetica', fontSize: 9 },
+                            styles: { font: 'helvetica', fontSize: 9, textColor: [0, 0, 0] },
                             headStyles: { fillColor: [26, 35, 126] },
                             didParseCell: function(data) {
                                 if (data.column.index === 3) {
@@ -2012,10 +2092,15 @@ window.exportDashboardPDF = function(btnEl) {
                 });
             });
             
+            // Restaurar tema original de los gráficos
+            _setChartsForExport(false);
+
             doc.save('Vetfield_Reporte_Analitico.pdf');
         } catch(e) {
             console.error('Error exporting PDF:', e);
             alert('Hubo un error al generar el PDF.');
+        } finally {
+            _setChartsForExport(false);
         }
         
         if (btnEl) {

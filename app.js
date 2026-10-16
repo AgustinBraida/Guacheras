@@ -1093,6 +1093,7 @@ function closeModal() {
 
 function getFilteredRecords() {
     const searchTerm     = document.getElementById('searchEstablecimiento')?.value.toLowerCase() || '';
+    const searchRp       = document.getElementById('searchRp')?.value.trim().toLowerCase() || '';
     const productorFilter = document.getElementById('filterProductor')?.value || '';
     const dateFrom       = document.getElementById('filterDateFrom')?.value || '';
     const dateTo         = document.getElementById('filterDateTo')?.value || '';
@@ -1102,6 +1103,7 @@ function getFilteredRecords() {
 
     return records.filter(r => {
         const matchEstablecimiento = !searchTerm || (r.establecimiento && r.establecimiento.toLowerCase().includes(searchTerm));
+        const matchRp             = !searchRp || (r.rp_ternero && String(r.rp_ternero).toLowerCase().includes(searchRp));
         const matchProductor      = !productorFilter || r.productor === productorFilter;
         
         let matchDate = true;
@@ -1125,7 +1127,7 @@ function getFilteredRecords() {
             if (!isMissingIg && !isLowIg && !isBadNavel) matchRiesgo = false;
         }
 
-        return matchEstablecimiento && matchProductor && matchDate && matchEstado && matchMadre && matchRiesgo;
+        return matchEstablecimiento && matchRp && matchProductor && matchDate && matchEstado && matchMadre && matchRiesgo;
     });
 }
 
@@ -1165,7 +1167,7 @@ function setQuickDate(range) {
 }
 
 function clearFilters() {
-    ['filterProductor', 'searchEstablecimiento', 'filterDateFrom', 'filterDateTo', 
+    ['filterProductor', 'searchEstablecimiento', 'searchRp', 'filterDateFrom', 'filterDateTo', 
      'filterEstado', 'filterCategoriaMadre', 'filterRiesgoSanitario'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -1177,6 +1179,7 @@ function saveReportFilter() {
     const filterState = {
         productor: document.getElementById('filterProductor')?.value || '',
         establecimiento: document.getElementById('searchEstablecimiento')?.value || '',
+        rp: document.getElementById('searchRp')?.value || '',
         dateFrom: document.getElementById('filterDateFrom')?.value || '',
         dateTo: document.getElementById('filterDateTo')?.value || '',
         estado: document.getElementById('filterEstado')?.value || '',
@@ -1196,6 +1199,7 @@ function loadReportFilter() {
     
     if (document.getElementById('filterProductor')) document.getElementById('filterProductor').value = filterState.productor || '';
     if (document.getElementById('searchEstablecimiento')) document.getElementById('searchEstablecimiento').value = filterState.establecimiento || '';
+    if (document.getElementById('searchRp')) document.getElementById('searchRp').value = filterState.rp || '';
     if (document.getElementById('filterDateFrom')) document.getElementById('filterDateFrom').value = filterState.dateFrom || '';
     if (document.getElementById('filterDateTo')) document.getElementById('filterDateTo').value = filterState.dateTo || '';
     if (document.getElementById('filterEstado')) document.getElementById('filterEstado').value = filterState.estado || '';
@@ -1336,6 +1340,10 @@ function initReportFilters() {
     // Input en tiempo real para búsqueda de Establecimiento
     const estEl = document.getElementById('searchEstablecimiento');
     if (estEl) estEl.addEventListener('input', filterTable);
+
+    // Input en tiempo real para búsqueda de R.P.
+    const rpEl = document.getElementById('searchRp');
+    if (rpEl) rpEl.addEventListener('input', filterTable);
 }
 
 // ─── PDF ─────────────────────────────────────────────────────
@@ -1378,6 +1386,8 @@ async function generatePDF() {
     const avgIg  = (filteredRecords.reduce((a, b) => a + parseFloat(b.ig_ternero || 0), 0) / (total || 1)).toFixed(2);
     let subtext  = `Total Registros: ${total} | I.G. Promedio: ${avgIg}%`;
     if (productorFilter) subtext += ` | Productor: ${productorFilter}`;
+    const searchRpFilter = document.getElementById('searchRp')?.value.trim() || '';
+    if (searchRpFilter)  subtext += ` | R.P.: ${searchRpFilter}`;
 
     doc.text(subtext, 30, 87);
 

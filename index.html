@@ -1358,8 +1358,8 @@
                     </button>
                 </div>
 
-                <!-- 1. Fila Superior: Productor & Establecimiento -->
-                <div class="rf-grid rf-grid--2">
+                <!-- 1. Fila Superior: Productor, Establecimiento y R.P. -->
+                <div class="rf-grid rf-grid--3">
                     <div class="rf-input-wrap">
                         <i data-lucide="users" class="rf-input-icon"></i>
                         <select id="filterProductor" onchange="filterTable()" class="rf-select rf-select--icon">
@@ -1372,6 +1372,12 @@
                             placeholder="Buscar Establecimiento..." oninput="filterTable()"
                             class="rf-input rf-input--icon">
                         <datalist id="establecimiento-filter-list"></datalist>
+                    </div>
+                    <div class="rf-input-wrap">
+                        <i data-lucide="hash" class="rf-input-icon"></i>
+                        <input type="text" id="searchRp"
+                            placeholder="Buscar por R.P...." oninput="filterTable()"
+                            class="rf-input rf-input--icon">
                     </div>
                 </div>
 
