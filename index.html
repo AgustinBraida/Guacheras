@@ -32,7 +32,7 @@
     <!-- Chart.js for Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
     <!-- Estilos -->
-    <link rel="stylesheet" href="styles.css?v=76">
+    <link rel="stylesheet" href="styles.css?v=77">
     <!-- Módulo de Voz (Ocultado temporalmente) -->
     <!-- <link rel="stylesheet" href="voice.css?v=49"> -->
 
@@ -1300,6 +1300,18 @@
                         <input type="hidden" id="f_tipo_calostro_val" value="De la madre">
                     </div>
                     <div class="form-group">
+                        <label>Método de Calostrado</label>
+                        <div class="segmented-control" id="f_metodo_calostrado">
+                            <button type="button" class="segmented-btn active"
+                                onclick="setSegmented(this, 'Con mamadera')">Mamadera</button>
+                            <button type="button" class="segmented-btn"
+                                onclick="setSegmented(this, 'Con sonda')">Sonda</button>
+                            <button type="button" class="segmented-btn"
+                                onclick="setSegmented(this, 'Mamó solo')">Mamó solo</button>
+                        </div>
+                        <input type="hidden" id="f_metodo_calostrado_val" value="Con mamadera">
+                    </div>
+                    <div class="form-group">
                         <label>I.G. Calostro</label>
                         <div style="position: relative;">
                             <input type="number" step="0.1" id="f_ig_calostro" placeholder="0.0">
@@ -1328,6 +1340,24 @@
                         <input type="radio" name="survival" value="Muerto en Terapia" onchange="toggleCausa(true)">
                         <span>Muerto en Terapia</span>
                     </label>
+
+                    <!-- Bloque para Animales Vivos: Estado de Salud / Morbilidad -->
+                    <div id="seccion_estado_salud" class="form-group" style="margin-top: 1.25rem;">
+                        <label style="font-weight: 600; color: var(--text-main);">Condición Sanitaria / Salud (Animal Vivo)</label>
+                        <select id="f_estado_salud" onchange="toggleDetalleSalud(this.value)">
+                            <option value="Sano, sin problemas aparentes">Sano, sin problemas aparentes</option>
+                            <option value="Está enfermo actualmente">Está enfermo actualmente (escribir enfermedad)</option>
+                            <option value="Tuvo una enfermedad anteriormente">Tuvo una enfermedad anteriormente (escribir enfermedad)</option>
+                            <option value="Nació con algún problema o malformación">Nació con algún problema o malformación (escribir problema)</option>
+                        </select>
+
+                        <div id="f_detalle_salud_group" class="hidden" style="margin-top: 0.85rem;">
+                            <label id="f_detalle_salud_label" style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">Especifique el problema o enfermedad</label>
+                            <input type="text" id="f_detalle_salud" list="salud_sugerencias_list" 
+                                placeholder="Escriba o elija una sugerencia..." autocomplete="off">
+                            <datalist id="salud_sugerencias_list"></datalist>
+                        </div>
+                    </div>
 
                     <div id="causaGroup" class="form-group hidden" style="margin-top: 1.5rem;">
                         <label>Causa de Muerte <span
@@ -1480,10 +1510,29 @@
                         </select>
                     </div>
                     <div class="rf-input-wrap">
+                        <i data-lucide="milk" class="rf-input-icon"></i>
+                        <select id="filterMetodoCalostrado" onchange="filterTable()" class="rf-select rf-select--icon">
+                            <option value="">Calostrado: Todos</option>
+                            <option value="Con mamadera">Con mamadera</option>
+                            <option value="Con sonda">Con sonda</option>
+                            <option value="Mamó solo">Mamó solo</option>
+                        </select>
+                    </div>
+                    <div class="rf-input-wrap">
                         <i data-lucide="shield-alert" class="rf-input-icon"></i>
                         <select id="filterRiesgoSanitario" onchange="filterTable()" class="rf-select rf-select--icon">
                             <option value="">Riesgo Sanitario: Todos</option>
                             <option value="Alto">Alto Riesgo (I.G. &lt;= 10 o Ombligo M/R)</option>
+                        </select>
+                    </div>
+                    <div class="rf-input-wrap">
+                        <i data-lucide="activity" class="rf-input-icon"></i>
+                        <select id="filterEstadoSalud" onchange="filterTable()" class="rf-select rf-select--icon">
+                            <option value="">Salud: Todos</option>
+                            <option value="Sano">Sano (sin problemas)</option>
+                            <option value="Enfermo">Enfermo actualmente</option>
+                            <option value="Previa">Tuvo enfermedad previa</option>
+                            <option value="Malformacion">Con problema al nacer</option>
                         </select>
                     </div>
                 </div>
@@ -1693,7 +1742,7 @@
                             <li><strong>Establecimiento</strong>, <strong>R.P. Ternero</strong> y <strong>R.P. Madre</strong> son opcionales.</li>
                             <li><strong>Mellizos / Gemelos:</strong> diferéncialos en el R.P. con una letra (ej: <code>4520 A</code> y <code>4520 B</code>).</li>
                             <li><strong>I.G. Ternero</strong> e <strong>I.G. Calostro</strong> deben ser valores numéricos (ej. 8.5, 23.4).</li>
-                            <li>Campos de opción (ej. Sexo, Ombligo, Madre, Parto, Calostro, Estado) se normalizarán automáticamente.</li>
+                            <li>Campos de opción (ej. Sexo, Ombligo, Madre, Parto, Calostro, Calostrado, Estado, Salud) se normalizarán automáticamente.</li>
                         </ul>
                         <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(26,35,126,0.12); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
                             <span>Usa nuestra plantilla modelo para evitar errores:</span>
@@ -2028,9 +2077,9 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <!-- Dashboard Module -->
-    <script src="dashboard.js?v=81" defer></script>
+    <script src="dashboard.js?v=84" defer></script>
     <!-- App Script -->
-    <script src="app.js?v=78" defer></script>
+    <script src="app.js?v=85" defer></script>
     <!-- Voice Module (Ocultado temporalmente) -->
     <!-- <script src="voice.js?v=62" defer></script> -->
 
@@ -2038,7 +2087,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=81')
+                navigator.serviceWorker.register('./sw.js?v=85')
                     .then(registration => {
                         console.log('[VETFIELD] ServiceWorker registrado. Scope:', registration.scope);
                     })

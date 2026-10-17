@@ -607,7 +607,8 @@ textarea::placeholder {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-#f_tipo_calostro .segmented-btn {
+#f_tipo_calostro .segmented-btn,
+#f_metodo_calostrado .segmented-btn {
     font-size: 0.8rem;
     padding: 0.55rem 0.25rem;
     line-height: 1.2;
@@ -2789,6 +2790,144 @@ html.dark .export-option-card:has(input:checked) {
     transform: none;
 }
 
+/* ── Cajas de agrupación dentro del modal (#detailModal) ── */
+.modal-section-card {
+    background: #f0f4fa; /* Tono suave azul pastel / hielo para separar cada bloque */
+    border: 1.5px solid #d4e0f0;
+    border-radius: 14px;
+    padding: 1.15rem 1.25rem;
+    margin-bottom: 0.85rem;
+    box-shadow: 0 1px 3px rgba(26, 35, 126, 0.03);
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+html.dark .modal-section-card {
+    background: #1e293b; /* Tono suave pizarra oscuro, menos pesado que el azul marino intenso */
+    border: 1.5px solid rgba(147, 197, 253, 0.18);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.modal-section-card .section-label {
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #1e3a8a;
+    margin-bottom: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1.5px dashed #cbd5e1;
+    padding-bottom: 0.45rem;
+}
+
+html.dark .modal-section-card .section-label {
+    color: #93c5fd;
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Grilla perfectamente simétrica y alineada para los campos */
+.modal-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.85rem 1rem;
+    align-items: start;
+    width: 100%;
+}
+
+.modal-card-grid .col-span-2 {
+    grid-column: span 2 !important;
+}
+
+.modal-card-grid .form-group {
+    margin-bottom: 0 !important;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* Altura y estilo uniforme de etiquetas para alinear todos los campos en el mismo eje Y */
+.modal-card-grid label {
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    color: var(--text-main) !important;
+    margin-bottom: 0.35rem !important;
+    display: block !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    height: 1.25rem !important;
+    line-height: 1.25rem !important;
+}
+
+/* Inputs y Selects: idéntica altura (42px), bordes, padding y sombras */
+.modal-card-grid input,
+.modal-card-grid select {
+    display: block !important;
+    width: 100% !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    line-height: 42px !important;
+    padding: 0 0.85rem !important;
+    font-size: 0.92rem !important;
+    border-radius: 10px !important;
+    border: 1.5px solid #cbd5e1 !important;
+    background: #ffffff !important;
+    color: var(--text-main) !important;
+    box-sizing: border-box !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+
+.modal-card-grid input[type="date"] {
+    padding: 0 0.75rem !important;
+    line-height: normal !important;
+}
+
+.modal-card-grid select {
+    padding-right: 1.75rem !important;
+    cursor: pointer;
+}
+
+.modal-card-grid input:focus,
+.modal-card-grid select:focus {
+    border-color: var(--primary) !important;
+    outline: none !important;
+    background: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.12) !important;
+}
+
+/* Modo oscuro para los campos del modal */
+html.dark .modal-card-grid input,
+html.dark .modal-card-grid select {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+    color: var(--text-main) !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+html.dark .modal-card-grid input:focus,
+html.dark .modal-card-grid select:focus {
+    background: #172033 !important;
+    border-color: #93c5fd !important;
+    box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.15) !important;
+}
+
+@media (max-width: 580px) {
+    .modal-section-card {
+        padding: 0.9rem 1rem;
+        margin-bottom: 0.75rem;
+    }
+    .modal-card-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+    .modal-card-grid .col-span-2 {
+        grid-column: span 1 !important;
+    }
+}
+
 /* ── Ajustes responsivos para pantallas de computadora (Desktops/Tablets) ── */
 @media (min-width: 768px) {
     .modal-overlay {
@@ -2814,6 +2953,7 @@ html.dark .export-option-card:has(input:checked) {
 
     /* Modal específico con scroll interno (#detailModal) para mantener header y footer fijos */
     #detailModal .modal-content {
+        max-width: 680px;
         overflow: hidden !important;
     }
 
@@ -2822,24 +2962,14 @@ html.dark .export-option-card:has(input:checked) {
         opacity: 1;
     }
 
-    /* Layout en dos columnas para los campos del formulario dentro del modal */
+    /* Layout con cajas agrupadas para el formulario dentro del modal (#detailModal) */
     #modalBody {
-        display: grid !important;
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 0.75rem 1.25rem !important; /* Separación entre filas (row-gap) y columnas (col-gap) */
-        max-height: 65vh !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+        max-height: 68vh !important;
         overflow-y: auto !important;
-        padding-right: 10px !important;
-    }
-
-    /* Reducir márgenes innecesarios en formularios de dos columnas */
-    #modalBody .form-group {
-        margin-bottom: 0 !important;
-    }
-
-    /* El mensaje de error debe abarcar las dos columnas */
-    #edit_save_error {
-        grid-column: span 2;
+        padding-right: 8px !important;
     }
 
     /* Botones de acción del modal lado a lado (horizontal) */
@@ -2847,7 +2977,7 @@ html.dark .export-option-card:has(input:checked) {
         flex-direction: row !important;
         justify-content: flex-end !important;
         gap: 1rem !important;
-        margin-top: 1.5rem !important;
+        margin-top: 1.25rem !important;
     }
 
     .modal-actions button {

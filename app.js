@@ -73,6 +73,7 @@ async function appLoadForUser(uid) {
 
     initForm();
     initReportFilters();
+    refreshSaludDatalist();
     updateUI();
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
@@ -169,6 +170,8 @@ function initForm() {
 
     // Asegurar que el form de entrada tenga su listener (safety net)
     bindEntryForm();
+    const isMuertoChecked = !!document.querySelector('input[name="survival"]:checked')?.value?.includes('Muerto');
+    toggleCausa(isMuertoChecked);
 }
 
 function renderFieldDatalists() {
@@ -311,9 +314,137 @@ function selectCausaCategory(btn, cat) {
     }
 }
 
+// ─── Sugerencias Predefinidas y Aprendizaje Dinámico de Salud ─────────────
+const PRELOADED_SALUD_SUGGESTIONS = [
+    // Enfermedades comunes
+    'Diarrea neonatal',
+    'Neumonía',
+    'Onfalitis',
+    'Rotavirus',
+    'Coronavirus',
+    'Criptosporidiosis',
+    'Colibacilosis',
+    'Salmonelosis',
+    'Torsión de abomaso',
+    'Úlcera de abomaso',
+    'Intoxicación',
+    'Acidosis / Timpanismo',
+    'Hipotermia',
+    'Estrés calórico',
+    'Falsa vía',
+    'Traumática',
+    // Malformaciones / Problemas al nacer
+    'Atresia ani',
+    'Paladar hendido',
+    'Hernia umbilical',
+    'Contractura de tendones',
+    'Debilidad congénita / Ternero tonto'
+];
+
+function refreshSaludDatalist(targetDatalistId = 'salud_sugerencias_list') {
+    const dl = document.getElementById(targetDatalistId);
+    if (!dl) return;
+    
+    let customTerms = [];
+    try {
+        customTerms = JSON.parse(localStorage.getItem('vf_custom_salud_terms') || '[]');
+    } catch(e) {}
+
+    const fromRecords = (typeof records !== 'undefined') 
+        ? records.map(r => r.detalle_salud).filter(d => d && typeof d === 'string' && d.trim()) 
+        : [];
+
+    const allTerms = Array.from(new Set([...PRELOADED_SALUD_SUGGESTIONS, ...customTerms, ...fromRecords]))
+        .map(t => t.trim())
+        .filter(t => t.length > 0)
+        .sort((a, b) => a.localeCompare(b, 'es'));
+
+    dl.innerHTML = allTerms.map(t => `<option value="${t}"></option>`).join('');
+}
+window.refreshSaludDatalist = refreshSaludDatalist;
+
+function saveCustomSaludTerm(term) {
+    if (!term || typeof term !== 'string') return;
+    const clean = term.trim();
+    if (!clean) return;
+    try {
+        let customTerms = JSON.parse(localStorage.getItem('vf_custom_salud_terms') || '[]');
+        if (!customTerms.some(t => t.toLowerCase() === clean.toLowerCase())) {
+            customTerms.push(clean);
+            localStorage.setItem('vf_custom_salud_terms', JSON.stringify(customTerms));
+        }
+    } catch(e) {}
+    refreshSaludDatalist();
+}
+window.saveCustomSaludTerm = saveCustomSaludTerm;
+
+function toggleDetalleSalud(val) {
+    const group = document.getElementById('f_detalle_salud_group');
+    const label = document.getElementById('f_detalle_salud_label');
+    const input = document.getElementById('f_detalle_salud');
+    if (!group) return;
+
+    if (!val || val === 'Sano, sin problemas aparentes') {
+        group.classList.add('hidden');
+        if (input) {
+            input.value = '';
+            input.required = false;
+        }
+    } else {
+        group.classList.remove('hidden');
+        if (input) input.required = true;
+        if (label && input) {
+            if (val.includes('malformación') || val.includes('problema')) {
+                label.textContent = 'Especifique el problema o malformación al nacer:';
+                input.placeholder = 'Ej: Paladar hendido, Atresia ani, Hernia umbilical...';
+            } else if (val.includes('actualmente')) {
+                label.textContent = 'Especifique la enfermedad o cuadro clínico actual:';
+                input.placeholder = 'Ej: Diarrea neonatal, Neumonía, Onfalitis, Rotavirus...';
+            } else if (val.includes('anteriormente')) {
+                label.textContent = 'Especifique la enfermedad previa superada:';
+                input.placeholder = 'Ej: Criptosporidiosis, Diarrea, Neumonía...';
+            }
+        }
+        refreshSaludDatalist();
+    }
+}
+window.toggleDetalleSalud = toggleDetalleSalud;
+
+function toggleEditDetalleSalud(val) {
+    const group = document.getElementById('edit_detalle_salud_group');
+    const label = document.getElementById('edit_detalle_salud_label');
+    const input = document.getElementById('edit_detalle_salud');
+    if (!group) return;
+    if (!val || val === 'Sano, sin problemas aparentes') {
+        group.style.display = 'none';
+        if (input) input.value = '';
+    } else {
+        group.style.display = '';
+        if (label && input) {
+            if (val.includes('malformación') || val.includes('problema')) {
+                label.textContent = 'Especifique el problema o malformación al nacer:';
+                input.placeholder = 'Ej: Paladar hendido, Atresia ani, Hernia umbilical...';
+            } else if (val.includes('actualmente')) {
+                label.textContent = 'Especifique la enfermedad o cuadro clínico actual:';
+                input.placeholder = 'Ej: Diarrea neonatal, Neumonía, Onfalitis, Rotavirus...';
+            } else if (val.includes('anteriormente')) {
+                label.textContent = 'Especifique la enfermedad previa superada:';
+                input.placeholder = 'Ej: Criptosporidiosis, Diarrea, Neumonía...';
+            }
+        }
+    }
+}
+window.toggleEditDetalleSalud = toggleEditDetalleSalud;
+
 function toggleCausa(show) {
+    const seccionSalud = document.getElementById('seccion_estado_salud');
+    if (seccionSalud) {
+        seccionSalud.classList.toggle('hidden', show);
+    }
     const group = document.getElementById('causaGroup');
-    group.classList.toggle('hidden', !show);
+    if (group) {
+        group.classList.toggle('hidden', !show);
+    }
     
     const specificSelect = document.getElementById('f_causa_especifica');
     const customInput = document.getElementById('f_causa_especifica_custom');
@@ -341,6 +472,15 @@ function toggleCausa(show) {
         if (customInput) {
             customInput.value = '';
             customInput.required = false;
+        }
+        toggleDetalleSalud(document.getElementById('f_estado_salud')?.value);
+    } else {
+        const detGroup = document.getElementById('f_detalle_salud_group');
+        if (detGroup) detGroup.classList.add('hidden');
+        const detInput = document.getElementById('f_detalle_salud');
+        if (detInput) {
+            detInput.value = '';
+            detInput.required = false;
         }
     }
 }
@@ -582,6 +722,11 @@ function bindEntryForm() {
             if (tipoCalostroInput && (tipoCalostroInput.dataset.dirty === 'true' || matchedRecord.tipo_calostro === undefined || matchedRecord.tipo_calostro === null)) {
                 updatedRecord.tipo_calostro = tipoCalostroInput.value;
             }
+            // metodo_calostrado: update if dirty
+            const metodoCalostroInput = document.getElementById('f_metodo_calostrado_val');
+            if (metodoCalostroInput && (metodoCalostroInput.dataset.dirty === 'true' || matchedRecord.metodo_calostrado === undefined || matchedRecord.metodo_calostrado === null)) {
+                updatedRecord.metodo_calostrado = metodoCalostroInput.value;
+            }
             // rp_madre: update if filled
             const rpMadreVal = document.getElementById('f_rp_madre').value.trim();
             if (rpMadreVal !== '') {
@@ -606,7 +751,14 @@ function bindEntryForm() {
                     updatedRecord.causa = '';
                     updatedRecord.causa_categoria = '';
                     updatedRecord.causa_especifica = '';
+                    const estSalud = document.getElementById('f_estado_salud')?.value || 'Sano, sin problemas aparentes';
+                    const detSalud = estSalud !== 'Sano, sin problemas aparentes' ? (document.getElementById('f_detalle_salud')?.value.trim() || '') : '';
+                    updatedRecord.estado_salud = estSalud;
+                    updatedRecord.detalle_salud = detSalud || null;
+                    if (detSalud) saveCustomSaludTerm(detSalud);
                 } else {
+                    updatedRecord.estado_salud = null;
+                    updatedRecord.detalle_salud = null;
                     const catVal = document.getElementById('f_causa_categoria_val').value;
                     const espVal = catVal === 'Otra Causa'
                         ? document.getElementById('f_causa_especifica_custom').value.trim()
@@ -622,8 +774,14 @@ function bindEntryForm() {
                         : (updatedRecord.causa_categoria || updatedRecord.causa_especifica || '');
                 }
             } else {
-                // If survival wasn't changed but the original state was not Vivo, check if category or specific cause were changed
-                if (matchedRecord.estado !== 'Vivo') {
+                // If survival wasn't changed
+                if (matchedRecord.estado === 'Vivo') {
+                    const estSalud = document.getElementById('f_estado_salud')?.value || 'Sano, sin problemas aparentes';
+                    const detSalud = estSalud !== 'Sano, sin problemas aparentes' ? (document.getElementById('f_detalle_salud')?.value.trim() || '') : '';
+                    updatedRecord.estado_salud = estSalud;
+                    updatedRecord.detalle_salud = detSalud || null;
+                    if (detSalud) saveCustomSaludTerm(detSalud);
+                } else {
                     const catVal = document.getElementById('f_causa_categoria_val').value;
                     const espVal = catVal === 'Otra Causa'
                         ? document.getElementById('f_causa_especifica_custom').value.trim()
@@ -694,6 +852,10 @@ function bindEntryForm() {
                 ? document.getElementById('f_causa_especifica_custom').value.trim()
                 : document.getElementById('f_causa_especifica').value);
 
+            const estSaludVal = isVivo ? (document.getElementById('f_estado_salud')?.value || 'Sano, sin problemas aparentes') : null;
+            const detSaludVal = (isVivo && estSaludVal !== 'Sano, sin problemas aparentes') ? (document.getElementById('f_detalle_salud')?.value.trim() || '') : null;
+            if (detSaludVal) saveCustomSaludTerm(detSaludVal);
+
             const newRecord = {
                 establecimiento: establecimientoVal,
                 fecha:           fechaVal,
@@ -706,8 +868,11 @@ function bindEntryForm() {
                 tipo_parto:      (document.getElementById('f_tipo_parto_val')?.value) || 'Normal',
                 rp_madre:        document.getElementById('f_rp_madre').value,
                 tipo_calostro:   (document.getElementById('f_tipo_calostro_val')?.value) || 'De la madre',
+                metodo_calostrado: (document.getElementById('f_metodo_calostrado_val')?.value) || 'Con mamadera',
                 ig_calostro:     document.getElementById('f_ig_calostro').value,
                 estado:          document.querySelector('input[name="survival"]:checked').value,
+                estado_salud:    estSaludVal,
+                detalle_salud:   detSaludVal,
                 causa:           isVivo ? '' : (catVal && espVal ? `${catVal} - ${espVal}` : (catVal || espVal || '')),
                 causa_categoria: catVal,
                 causa_especifica:espVal,
@@ -785,6 +950,20 @@ function bindEntryForm() {
             const cVal = document.getElementById('f_tipo_calostro_val');
             if (cVal) cVal.value = 'De la madre';
         }
+        // Resetear segmented control de método de calostrado a Con mamadera
+        const metodoCalostroParent = document.getElementById('f_metodo_calostrado');
+        if (metodoCalostroParent) {
+            metodoCalostroParent.querySelectorAll('.segmented-btn').forEach((b, idx) => {
+                b.classList.toggle('active', idx === 0);
+            });
+            const mcVal = document.getElementById('f_metodo_calostrado_val');
+            if (mcVal) mcVal.value = 'Con mamadera';
+        }
+        const estSaludEl = document.getElementById('f_estado_salud');
+        if (estSaludEl) estSaludEl.value = 'Sano, sin problemas aparentes';
+        const detSaludEl = document.getElementById('f_detalle_salud');
+        if (detSaludEl) detSaludEl.value = '';
+        toggleDetalleSalud('Sano, sin problemas aparentes');
         initForm();
         toggleCausa(false);
         updateUI();
@@ -853,93 +1032,141 @@ function openDetail(recordId) {
 
     const body = document.getElementById('modalBody');
     body.innerHTML = `
-        <div class="form-group">
-            <label>Productor</label>
-            <input id="edit_productor" value="${escHtml(r.productor || '')}">
+        <!-- CAJA 1: INFORMACIÓN GENERAL -->
+        <div class="modal-section-card">
+            <span class="section-label">Información General</span>
+            <div class="modal-card-grid">
+                <div class="form-group col-span-2">
+                    <label>Productor</label>
+                    <input id="edit_productor" list="productor-list" value="${escHtml(r.productor || '')}">
+                </div>
+                <div class="form-group">
+                    <label>Fecha</label>
+                    <input id="edit_fecha" type="date" value="${escHtml(r.fecha || '')}">
+                </div>
+                <div class="form-group">
+                    <label>Establecimiento</label>
+                    <input id="edit_establecimiento" list="establecimiento-list" value="${escHtml(r.establecimiento || '')}">
+                </div>
+            </div>
         </div>
-        <div class="form-group">
-            <label>Nivel I.G. (%)</label>
-            <input id="edit_ig_ternero" type="number" step="0.1" value="${r.ig_ternero ?? ''}">
+
+        <!-- CAJA 2: DATOS DEL TERNERO -->
+        <div class="modal-section-card">
+            <span class="section-label">Datos del Ternero</span>
+            <div class="modal-card-grid">
+                <div class="form-group">
+                    <label>R.P. Ternero</label>
+                    <input id="edit_rp_ternero" value="${escHtml(r.rp_ternero || '')}">
+                </div>
+                <div class="form-group">
+                    <label>Nivel I.G. (%)</label>
+                    <input id="edit_ig_ternero" type="number" step="0.1" value="${r.ig_ternero ?? ''}">
+                </div>
+                <div class="form-group">
+                    <label>Sexo</label>
+                    <select id="edit_sexo">
+                        <option value="Macho" ${r.sexo === 'Macho' ? 'selected' : ''}>Macho</option>
+                        <option value="Hembra" ${r.sexo === 'Hembra' ? 'selected' : ''}>Hembra</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Estado Ombligo</label>
+                    <select id="edit_ombligo">
+                        <option value="Bueno" ${r.ombligo === 'Bueno' ? 'selected' : ''}>Bueno</option>
+                        <option value="Regular" ${r.ombligo === 'Regular' ? 'selected' : ''}>Regular</option>
+                        <option value="Malo" ${r.ombligo === 'Malo' ? 'selected' : ''}>Malo</option>
+                    </select>
+                </div>
+            </div>
         </div>
-        <div class="form-group">
-            <label>Sexo</label>
-            <select id="edit_sexo">
-                <option value="Macho" ${r.sexo === 'Macho' ? 'selected' : ''}>Macho</option>
-                <option value="Hembra" ${r.sexo === 'Hembra' ? 'selected' : ''}>Hembra</option>
-            </select>
+
+        <!-- CAJA 3: DATOS DE LA MADRE Y PARTO -->
+        <div class="modal-section-card">
+            <span class="section-label">Datos de la Madre y Parto</span>
+            <div class="modal-card-grid">
+                <div class="form-group">
+                    <label>Tipo Madre</label>
+                    <select id="edit_tipo_madre">
+                        <option value="Vaca" ${r.tipo_madre === 'Vaca' ? 'selected' : ''}>Vaca</option>
+                        <option value="Vaquillona" ${r.tipo_madre === 'Vaquillona' ? 'selected' : ''}>Vaquillona</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Parto</label>
+                    <select id="edit_tipo_parto">
+                        <option value="Normal" ${(!r.tipo_parto || r.tipo_parto === 'Normal') ? 'selected' : ''}>Normal</option>
+                        <option value="Asistido" ${r.tipo_parto === 'Asistido' ? 'selected' : ''}>Asistido</option>
+                        <option value="Muerto al parto" ${r.tipo_parto === 'Muerto al parto' ? 'selected' : ''}>Muerto al parto</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>R.P. Madre</label>
+                    <input id="edit_rp_madre" value="${escHtml(r.rp_madre || '')}">
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Calostro</label>
+                    <select id="edit_tipo_calostro">
+                        <option value="De la madre" ${(!r.tipo_calostro || r.tipo_calostro === 'De la madre') ? 'selected' : ''}>De la madre</option>
+                        <option value="Banco de calostro" ${r.tipo_calostro === 'Banco de calostro' ? 'selected' : ''}>Banco de calostro</option>
+                        <option value="Calostro mejorado" ${r.tipo_calostro === 'Calostro mejorado' ? 'selected' : ''}>Calostro mejorado</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Método de Calostrado</label>
+                    <select id="edit_metodo_calostrado">
+                        <option value="Con mamadera" ${(!r.metodo_calostrado || r.metodo_calostrado === 'Con mamadera') ? 'selected' : ''}>Con mamadera</option>
+                        <option value="Con sonda" ${r.metodo_calostrado === 'Con sonda' ? 'selected' : ''}>Con sonda</option>
+                        <option value="Mamó solo" ${r.metodo_calostrado === 'Mamó solo' ? 'selected' : ''}>Mamó solo</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>I.G. Calostro</label>
+                    <input id="edit_ig_calostro" type="number" step="0.1" value="${r.ig_calostro ?? ''}">
+                </div>
+            </div>
         </div>
-        <div class="form-group">
-            <label>Estado Ombligo</label>
-            <select id="edit_ombligo">
-                <option value="Bueno" ${r.ombligo === 'Bueno' ? 'selected' : ''}>Bueno</option>
-                <option value="Regular" ${r.ombligo === 'Regular' ? 'selected' : ''}>Regular</option>
-                <option value="Malo" ${r.ombligo === 'Malo' ? 'selected' : ''}>Malo</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Tipo Madre</label>
-            <select id="edit_tipo_madre">
-                <option value="Vaca" ${r.tipo_madre === 'Vaca' ? 'selected' : ''}>Vaca</option>
-                <option value="Vaquillona" ${r.tipo_madre === 'Vaquillona' ? 'selected' : ''}>Vaquillona</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Tipo de Parto</label>
-            <select id="edit_tipo_parto">
-                <option value="Normal" ${(!r.tipo_parto || r.tipo_parto === 'Normal') ? 'selected' : ''}>Normal</option>
-                <option value="Asistido" ${r.tipo_parto === 'Asistido' ? 'selected' : ''}>Asistido</option>
-                <option value="Muerto al parto" ${r.tipo_parto === 'Muerto al parto' ? 'selected' : ''}>Muerto al parto</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Supervivencia</label>
-            <select id="edit_estado" onchange="toggleEditCausa(this.value)">
-                ${estadoOptionsHtml}
-            </select>
-        </div>
-        <div class="form-group" id="edit_causa_cat_group" style="${r.estado !== 'Vivo' ? '' : 'display:none;'}">
-            <label>Categoría Muerte</label>
-            <select id="edit_causa_categoria" onchange="refreshEditCausaEsp(this.value)">
-                ${causaCatOptionsHtml}
-            </select>
-        </div>
-        <div class="form-group" id="edit_causa_esp_group" style="${(r.estado !== 'Vivo' && r.causa_categoria && r.causa_categoria !== 'Otra Causa') ? '' : 'display:none;'}">
-            <label>Causa Específica</label>
-            <select id="edit_causa_especifica">
-                ${causaEspOptionsHtml}
-            </select>
-        </div>
-        <div class="form-group" id="edit_causa_custom_group" style="${(r.estado !== 'Vivo' && r.causa_categoria === 'Otra Causa') ? '' : 'display:none;'}">
-            <label>Especifique la Causa</label>
-            <input id="edit_causa_especifica_custom" value="${escHtml(r.causa_categoria === 'Otra Causa' ? r.causa_especifica || '' : '')}">
-        </div>
-        <div class="form-group">
-            <label>Fecha</label>
-            <input id="edit_fecha" type="date" value="${escHtml(r.fecha || '')}">
-        </div>
-        <div class="form-group">
-            <label>Establecimiento</label>
-            <input id="edit_establecimiento" value="${escHtml(r.establecimiento || '')}">
-        </div>
-        <div class="form-group">
-            <label>R.P. Ternero</label>
-            <input id="edit_rp_ternero" value="${escHtml(r.rp_ternero || '')}">
-        </div>
-        <div class="form-group">
-            <label>R.P. Madre</label>
-            <input id="edit_rp_madre" value="${escHtml(r.rp_madre || '')}">
-        </div>
-        <div class="form-group">
-            <label>Tipo de Calostro</label>
-            <select id="edit_tipo_calostro">
-                <option value="De la madre" ${(!r.tipo_calostro || r.tipo_calostro === 'De la madre') ? 'selected' : ''}>De la madre</option>
-                <option value="Banco de calostro" ${r.tipo_calostro === 'Banco de calostro' ? 'selected' : ''}>Banco de calostro</option>
-                <option value="Calostro mejorado" ${r.tipo_calostro === 'Calostro mejorado' ? 'selected' : ''}>Calostro mejorado</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>I.G. Calostro</label>
-            <input id="edit_ig_calostro" type="number" step="0.1" value="${r.ig_calostro ?? ''}">
+
+        <!-- CAJA 4: ESTADO DE SUPERVIVENCIA -->
+        <div class="modal-section-card">
+            <span class="section-label">Estado de Supervivencia</span>
+            <div class="modal-card-grid">
+                <div class="form-group col-span-2">
+                    <label>Supervivencia</label>
+                    <select id="edit_estado" onchange="toggleEditCausa(this.value)">
+                        ${estadoOptionsHtml}
+                    </select>
+                </div>
+                <div class="form-group col-span-2" id="edit_salud_group" style="${r.estado === 'Vivo' ? '' : 'display:none;'}">
+                    <label>Condición Sanitaria / Salud (Animal Vivo)</label>
+                    <select id="edit_estado_salud" onchange="toggleEditDetalleSalud(this.value)">
+                        <option value="Sano, sin problemas aparentes" ${(!r.estado_salud || r.estado_salud === 'Sano, sin problemas aparentes') ? 'selected' : ''}>Sano, sin problemas aparentes</option>
+                        <option value="Nació con algún problema o malformación" ${r.estado_salud === 'Nació con algún problema o malformación' ? 'selected' : ''}>Nació con algún problema o malformación</option>
+                        <option value="Está enfermo actualmente" ${r.estado_salud === 'Está enfermo actualmente' ? 'selected' : ''}>Está enfermo actualmente</option>
+                        <option value="Tuvo una enfermedad anteriormente" ${r.estado_salud === 'Tuvo una enfermedad anteriormente' ? 'selected' : ''}>Tuvo una enfermedad anteriormente</option>
+                    </select>
+                </div>
+                <div class="form-group col-span-2" id="edit_detalle_salud_group" style="${(r.estado === 'Vivo' && r.estado_salud && r.estado_salud !== 'Sano, sin problemas aparentes') ? '' : 'display:none;'}">
+                    <label id="edit_detalle_salud_label">Especifique el problema o enfermedad</label>
+                    <input id="edit_detalle_salud" list="salud_sugerencias_list" value="${escHtml(r.detalle_salud || '')}" placeholder="Escriba o elija una sugerencia...">
+                </div>
+                <div class="form-group ${(!r.causa_categoria || r.causa_categoria === 'Otra Causa') ? 'col-span-2' : ''}" id="edit_causa_cat_group" style="${r.estado !== 'Vivo' ? '' : 'display:none;'}">
+                    <label>Categoría Muerte</label>
+                    <select id="edit_causa_categoria" onchange="refreshEditCausaEsp(this.value)">
+                        ${causaCatOptionsHtml}
+                    </select>
+                </div>
+                <div class="form-group" id="edit_causa_esp_group" style="${(r.estado !== 'Vivo' && r.causa_categoria && r.causa_categoria !== 'Otra Causa') ? '' : 'display:none;'}">
+                    <label>Causa Específica</label>
+                    <select id="edit_causa_especifica">
+                        ${causaEspOptionsHtml}
+                    </select>
+                </div>
+                <div class="form-group col-span-2" id="edit_causa_custom_group" style="${(r.estado !== 'Vivo' && r.causa_categoria === 'Otra Causa') ? '' : 'display:none;'}">
+                    <label>Especifique la Causa</label>
+                    <input id="edit_causa_especifica_custom" value="${escHtml(r.causa_categoria === 'Otra Causa' ? r.causa_especifica || '' : '')}">
+                </div>
+            </div>
         </div>
         <div id="edit_save_error" style="color:#dc2626; font-size:0.85rem; display:none; text-align:center; padding: 10px;"></div>
     `;
@@ -955,18 +1182,26 @@ function toggleEditCausa(estado) {
     const catGroup = document.getElementById('edit_causa_cat_group');
     const espGroup = document.getElementById('edit_causa_esp_group');
     const customGroup = document.getElementById('edit_causa_custom_group');
+    const saludGroup = document.getElementById('edit_salud_group');
+    const detalleSaludGroup = document.getElementById('edit_detalle_salud_group');
     if (!catGroup) return;
     if (estado === 'Vivo') {
         catGroup.style.display = 'none';
         espGroup.style.display = 'none';
         if (customGroup) customGroup.style.display = 'none';
+        if (saludGroup) saludGroup.style.display = '';
+        toggleEditDetalleSalud(document.getElementById('edit_estado_salud')?.value);
     } else {
+        if (saludGroup) saludGroup.style.display = 'none';
+        if (detalleSaludGroup) detalleSaludGroup.style.display = 'none';
         catGroup.style.display = '';
         const cat = document.getElementById('edit_causa_categoria').value;
         if (cat === 'Otra Causa') {
+            catGroup.classList.add('col-span-2');
             espGroup.style.display = 'none';
             if (customGroup) customGroup.style.display = '';
         } else {
+            catGroup.classList.toggle('col-span-2', !cat);
             espGroup.style.display = cat ? '' : 'none';
             if (customGroup) customGroup.style.display = 'none';
         }
@@ -974,19 +1209,23 @@ function toggleEditCausa(estado) {
 }
 
 function refreshEditCausaEsp(cat) {
+    const catGroup = document.getElementById('edit_causa_cat_group');
     const espGroup = document.getElementById('edit_causa_esp_group');
     const espSelect = document.getElementById('edit_causa_especifica');
     const customGroup = document.getElementById('edit_causa_custom_group');
     if (!espGroup) return;
     if (!cat) {
+        if (catGroup) catGroup.classList.add('col-span-2');
         espGroup.style.display = 'none';
         if (customGroup) customGroup.style.display = 'none';
         return;
     }
     if (cat === 'Otra Causa') {
+        if (catGroup) catGroup.classList.add('col-span-2');
         espGroup.style.display = 'none';
         if (customGroup) customGroup.style.display = '';
     } else {
+        if (catGroup) catGroup.classList.remove('col-span-2');
         if (customGroup) customGroup.style.display = 'none';
         espGroup.style.display = '';
         if (espSelect) {
@@ -998,6 +1237,7 @@ function refreshEditCausaEsp(cat) {
     }
 }
 
+
 async function saveDetail() {
     const r = records.find(rec => (rec.id || rec._local_id) === _currentEditId);
     if (!r) return;
@@ -1006,6 +1246,10 @@ async function saveDetail() {
     const saveBtn = document.getElementById('modal-save-btn');
 
     const estado = document.getElementById('edit_estado').value;
+    const estSaludEdit = estado === 'Vivo' ? (document.getElementById('edit_estado_salud')?.value || 'Sano, sin problemas aparentes') : null;
+    const detSaludEdit = (estado === 'Vivo' && estSaludEdit !== 'Sano, sin problemas aparentes') ? (document.getElementById('edit_detalle_salud')?.value.trim() || '') : null;
+    if (detSaludEdit) saveCustomSaludTerm(detSaludEdit);
+
     const causaCat = estado !== 'Vivo' ? (document.getElementById('edit_causa_categoria')?.value || '') : '';
     const causaEsp = estado !== 'Vivo' && causaCat 
         ? (causaCat === 'Otra Causa' 
@@ -1022,6 +1266,8 @@ async function saveDetail() {
         tipo_madre:      document.getElementById('edit_tipo_madre').value,
         tipo_parto:      document.getElementById('edit_tipo_parto')?.value || 'Normal',
         estado:          estado,
+        estado_salud:    estSaludEdit,
+        detalle_salud:   detSaludEdit,
         causa_categoria: causaCat,
         causa_especifica: causaEsp,
         causa:           causaCat && causaEsp ? `${causaCat} - ${causaEsp}` : (causaCat || causaEsp || ''),
@@ -1030,6 +1276,7 @@ async function saveDetail() {
         rp_ternero:      document.getElementById('edit_rp_ternero').value.trim(),
         rp_madre:        document.getElementById('edit_rp_madre').value.trim(),
         tipo_calostro:   document.getElementById('edit_tipo_calostro')?.value || 'De la madre',
+        metodo_calostrado: document.getElementById('edit_metodo_calostrado')?.value || 'Con mamadera',
         ig_calostro:     document.getElementById('edit_ig_calostro').value,
     };
 
@@ -1163,7 +1410,9 @@ function getFilteredRecords() {
     const madreFilter    = document.getElementById('filterCategoriaMadre')?.value || '';
     const tipoPartoFilter = document.getElementById('filterTipoParto')?.value || '';
     const tipoCalostroFilter = document.getElementById('filterTipoCalostro')?.value || '';
+    const metodoCalostroFilter = document.getElementById('filterMetodoCalostrado')?.value || '';
     const riesgoFilter   = document.getElementById('filterRiesgoSanitario')?.value || '';
+    const saludFilter    = document.getElementById('filterEstadoSalud')?.value || '';
 
     return records.filter(r => {
         const matchEstablecimiento = !searchTerm || (r.establecimiento && r.establecimiento.toLowerCase().includes(searchTerm));
@@ -1186,6 +1435,9 @@ function getFilteredRecords() {
 
         let matchCalostro = true;
         if (tipoCalostroFilter && (r.tipo_calostro || 'De la madre') !== tipoCalostroFilter) matchCalostro = false;
+
+        let matchMetodoCalostro = true;
+        if (metodoCalostroFilter && (r.metodo_calostrado || 'Con mamadera') !== metodoCalostroFilter) matchMetodoCalostro = false;
         
         let matchRiesgo = true;
         if (riesgoFilter === 'Alto') {
@@ -1197,7 +1449,20 @@ function getFilteredRecords() {
             if (!isMissingIg && !isLowIg && !isBadNavel) matchRiesgo = false;
         }
 
-        return matchEstablecimiento && matchRp && matchProductor && matchDate && matchEstado && matchMadre && matchParto && matchCalostro && matchRiesgo;
+        let matchSalud = true;
+        if (saludFilter) {
+            if (saludFilter === 'Sano') {
+                matchSalud = r.estado === 'Vivo' && (!r.estado_salud || r.estado_salud === 'Sano, sin problemas aparentes');
+            } else if (saludFilter === 'Enfermo') {
+                matchSalud = r.estado === 'Vivo' && r.estado_salud === 'Está enfermo actualmente';
+            } else if (saludFilter === 'Previa') {
+                matchSalud = r.estado === 'Vivo' && r.estado_salud === 'Tuvo una enfermedad anteriormente';
+            } else if (saludFilter === 'Malformacion') {
+                matchSalud = r.estado === 'Vivo' && r.estado_salud === 'Nació con algún problema o malformación';
+            }
+        }
+
+        return matchEstablecimiento && matchRp && matchProductor && matchDate && matchEstado && matchMadre && matchParto && matchCalostro && matchMetodoCalostro && matchRiesgo && matchSalud;
     });
 }
 
@@ -1238,7 +1503,7 @@ function setQuickDate(range) {
 
 function clearFilters() {
     ['filterProductor', 'searchEstablecimiento', 'searchRp', 'filterDateFrom', 'filterDateTo', 
-     'filterEstado', 'filterCategoriaMadre', 'filterTipoParto', 'filterTipoCalostro', 'filterRiesgoSanitario'].forEach(id => {
+     'filterEstado', 'filterCategoriaMadre', 'filterTipoParto', 'filterTipoCalostro', 'filterMetodoCalostrado', 'filterRiesgoSanitario', 'filterEstadoSalud'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -1256,7 +1521,9 @@ function saveReportFilter() {
         madre: document.getElementById('filterCategoriaMadre')?.value || '',
         parto: document.getElementById('filterTipoParto')?.value || '',
         calostro: document.getElementById('filterTipoCalostro')?.value || '',
-        riesgo: document.getElementById('filterRiesgoSanitario')?.value || ''
+        calostrado: document.getElementById('filterMetodoCalostrado')?.value || '',
+        riesgo: document.getElementById('filterRiesgoSanitario')?.value || '',
+        salud: document.getElementById('filterEstadoSalud')?.value || ''
     };
     localStorage.setItem('vf_saved_filter', JSON.stringify(filterState));
     showToast('Filtro guardado en favoritos');
@@ -1278,7 +1545,9 @@ function loadReportFilter() {
     if (document.getElementById('filterCategoriaMadre')) document.getElementById('filterCategoriaMadre').value = filterState.madre || '';
     if (document.getElementById('filterTipoParto')) document.getElementById('filterTipoParto').value = filterState.parto || '';
     if (document.getElementById('filterTipoCalostro')) document.getElementById('filterTipoCalostro').value = filterState.calostro || '';
+    if (document.getElementById('filterMetodoCalostrado')) document.getElementById('filterMetodoCalostrado').value = filterState.calostrado || '';
     if (document.getElementById('filterRiesgoSanitario')) document.getElementById('filterRiesgoSanitario').value = filterState.riesgo || '';
+    if (document.getElementById('filterEstadoSalud')) document.getElementById('filterEstadoSalud').value = filterState.salud || '';
     
     filterTable();
 }
@@ -1350,6 +1619,13 @@ function renderTable() {
             if (!isNaN(d)) fechaStr = d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' });
         }
 
+        let saludBadge = '';
+        if (vivo && r.estado_salud && r.estado_salud !== 'Sano, sin problemas aparentes') {
+            const shortLabel = r.estado_salud === 'Está enfermo actualmente' ? 'Enfermo' : (r.estado_salud === 'Tuvo una enfermedad anteriormente' ? 'Recuperado' : 'Problema al nacer');
+            const det = r.detalle_salud ? `: ${escHtml(r.detalle_salud)}` : '';
+            saludBadge = `<div style="font-size:0.68rem;color:#b45309;font-weight:600;margin-top:3px;background:rgba(245,158,11,0.12);padding:2px 6px;border-radius:4px;display:inline-block;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(r.estado_salud + (r.detalle_salud ? ' - ' + r.detalle_salud : ''))}">⚠️ ${shortLabel}${det}</div>`;
+        }
+
         const tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
         tr.onclick = () => openDetail(rid);
@@ -1375,6 +1651,7 @@ function renderTable() {
                 <span style="display:inline-block;margin-top:3px;padding:2px 8px;border-radius:99px;font-size:0.68rem;font-weight:700;
                     background:${vivo?'rgba(16,185,129,0.12)':'rgba(220,38,38,0.1)'};
                     color:${vivo?'var(--secondary)':'#dc2626'};">${r.estado}</span>
+                ${saludBadge}
             </td>
         `;
         tbody.appendChild(tr);
@@ -1400,7 +1677,9 @@ function initReportFilters() {
         'filterCategoriaMadre',
         'filterTipoParto',
         'filterTipoCalostro',
+        'filterMetodoCalostrado',
         'filterRiesgoSanitario',
+        'filterEstadoSalud',
     ];
     changeIds.forEach(id => {
         const el = document.getElementById(id);
@@ -1474,8 +1753,14 @@ async function generatePDF() {
 
     doc.autoTable({
         startY: 105,
-        head: [['Establecimiento', 'R.P.', 'I.G.', 'Estado', 'Parto', 'Calostro', 'Sexo', 'Ombligo']],
-        body: filteredRecords.map(r => [r.establecimiento, r.rp_ternero, (r.ig_ternero ? r.ig_ternero + '%' : '-'), r.estado, r.tipo_parto || 'Normal', r.tipo_calostro || 'De la madre', r.sexo, r.ombligo]),
+        head: [['Establecimiento', 'R.P.', 'I.G.', 'Estado / Salud', 'Parto', 'Calostro', 'Vía', 'Sexo', 'Ombligo']],
+        body: filteredRecords.map(r => {
+            let estText = r.estado;
+            if (r.estado === 'Vivo' && r.estado_salud && r.estado_salud !== 'Sano, sin problemas aparentes') {
+                estText += ` (${r.detalle_salud || r.estado_salud})`;
+            }
+            return [r.establecimiento, r.rp_ternero, (r.ig_ternero ? r.ig_ternero + '%' : '-'), estText, r.tipo_parto || 'Normal', r.tipo_calostro || 'De la madre', r.metodo_calostrado || 'Con mamadera', r.sexo, r.ombligo];
+        }),
         theme: 'grid',
         headStyles: { fillColor: [26, 35, 126], textColor: [255, 255, 255], fontStyle: 'bold' },
         styles: { fontSize: 8.5, cellPadding: 3.5 },
@@ -1646,8 +1931,11 @@ async function generateXlsxReport(res) {
             "Tipo de Parto": r.tipo_parto || "Normal",
             "R.P. Madre": r.rp_madre || "-",
             "Tipo de Calostro": r.tipo_calostro || "De la madre",
+            "Método de Calostrado": r.metodo_calostrado || "Con mamadera",
             "I.G. Calostro (mg/dL)": r.ig_calostro !== null ? Number(r.ig_calostro) : "-",
             "Estado": r.estado || "-",
+            "Condición Salud (Vivo)": (r.estado === 'Vivo') ? (r.estado_salud || "Sano, sin problemas aparentes") : "-",
+            "Detalle Enfermedad (Vivo)": (r.estado === 'Vivo') ? (r.detalle_salud || "-") : "-",
             "Causa Muerte": r.causa || "-",
             "Categoría Causa": r.causa_categoria || "-",
             "Especificación Causa": r.causa_especifica || "-"
@@ -1722,12 +2010,15 @@ DATOS DE LA MADRE, PARTO Y CALOSTRO:
 Tipo de Madre:     ${r.tipo_madre || "-"}
 Tipo de Parto:     ${r.tipo_parto || "Normal"}
 R.P. Madre:        ${r.rp_madre || "-"}
-Tipo de Calostro:  ${r.tipo_calostro || "De la madre"}
-I.G. Calostro:     ${r.ig_calostro !== null ? r.ig_calostro + ' mg/dL' : "-"}
+Tipo de Calostro:      ${r.tipo_calostro || "De la madre"}
+Método de Calostrado:  ${r.metodo_calostrado || "Con mamadera"}
+I.G. Calostro:         ${r.ig_calostro !== null ? r.ig_calostro + ' mg/dL' : "-"}
 
 ESTADO SANITARIO:
-Supervivencia:     ${r.estado || "-"}
-Causa de Muerte:   ${r.causa || "-"}
+Supervivencia:          ${r.estado || "-"}
+Condición de Salud:     ${(r.estado === 'Vivo') ? (r.estado_salud || "Sano, sin problemas aparentes") : "-"}
+Problema o Enfermedad:  ${(r.estado === 'Vivo') ? (r.detalle_salud || "-") : "-"}
+Causa de Muerte:        ${r.causa || "-"}
 Categoría Causa:   ${r.causa_categoria || "-"}
 Específica Causa:  ${r.causa_especifica || "-"}
 ==================================================
@@ -1875,8 +2166,11 @@ function downloadExcelTemplate() {
             "Tipo de Parto",
             "R.P. Madre",
             "Tipo de Calostro",
+            "Método de Calostrado",
             "I.G. Calostro",
             "Estado",
+            "Condición Salud (Vivo)",
+            "Detalle Enfermedad (Vivo)",
             "Causa Categoría",
             "Causa Específica"
         ];
@@ -1892,8 +2186,11 @@ function downloadExcelTemplate() {
             "Normal",
             "8832",
             "De la madre",
+            "Con mamadera",
             "22.5",
             "Vivo",
+            "Sano, sin problemas aparentes",
+            "",
             "",
             ""
         ];
@@ -1906,16 +2203,39 @@ function downloadExcelTemplate() {
             "Hembra",
             "Regular",
             "Vaquillona",
-            "Asistido",
+            "Normal",
             "8835",
-            "Banco de calostro",
+            "De la madre",
+            "Con mamadera",
             "18.1",
+            "Vivo",
+            "Está enfermo actualmente",
+            "Diarrea neonatal",
+            "",
+            ""
+        ];
+        const row3 = [
+            "Estancia Santa Julia",
+            "Lote 4",
+            "2026-06-01",
+            "4914",
+            "7.8",
+            "Macho",
+            "Malo",
+            "Vaca",
+            "Asistido",
+            "8840",
+            "Banco de calostro",
+            "Con sonda",
+            "14.5",
             "Muerto en Terapia",
+            "",
+            "",
             "Enfermedades e Infecciones",
             "Neumonía"
         ];
         
-        const data = [headers, row1, row2];
+        const data = [headers, row1, row2, row3];
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(data);
         XLSX.utils.book_append_sheet(wb, ws, "Plantilla Importación");
@@ -2100,6 +2420,27 @@ function handleImportExcelFile(event) {
                 return "De la madre";
             }
 
+            function sanitizeMetodoCalostrado(val) {
+                const str = trimValue(val).toLowerCase();
+                if (str.includes("sonda") || str.includes("tubo") || str.includes("entub") || str.includes("esofag")) return "Con sonda";
+                if (str.includes("solo") || str.includes("sola") || str.includes("pie") || str.includes("teta") || str.includes("natural")) return "Mamó solo";
+                return "Con mamadera";
+            }
+
+            function sanitizeEstadoSalud(val) {
+                const str = trimValue(val).toLowerCase();
+                if (str.includes("malform") || str.includes("nacio con") || str.includes("defecto") || str.includes("congenit")) {
+                    return "Nació con algún problema o malformación";
+                }
+                if (str.includes("actual") || str.includes("hoy") || str.includes("cursando") || str.includes("enfermo")) {
+                    return "Está enfermo actualmente";
+                }
+                if (str.includes("anterior") || str.includes("pasad") || str.includes("tuvo") || str.includes("recuperad") || str.includes("previ")) {
+                    return "Tuvo una enfermedad anteriormente";
+                }
+                return "Sano, sin problemas aparentes";
+            }
+
             function sanitizeEstado(val) {
                 const str = trimValue(val).toLowerCase();
                 if (str.includes("establecimiento") || str.includes("est")) return "Muerto en Establecimiento";
@@ -2260,8 +2601,18 @@ function handleImportExcelFile(event) {
                 const tipo_parto = sanitizeTipoParto(findValue(row, ["tipo de parto", "tipo parto", "tipo_parto", "parto"]));
                 const rp_madre = trimValue(findValue(row, ["rp madre", "rp_madre", "rp de la madre", "madre id"])) || "";
                 const tipo_calostro = sanitizeTipoCalostro(findValue(row, ["tipo de calostro", "tipo calostro", "tipo_calostro", "calostro tipo", "origen calostro"]));
+                const metodo_calostrado = sanitizeMetodoCalostrado(findValue(row, ["metodo de calostrado", "metodo calostrado", "metodo_calostrado", "calostrado", "via de calostrado", "via calostrado", "forma calostrado", "modo calostrado"]));
                 const ig_calostro = parseNumeric(findIgMadre(row), true);
                 const estado = sanitizeEstado(findValue(row, ["estado", "supervivencia", "status"]));
+                const raw_estado_salud = findValue(row, ["condicion salud", "condición salud", "estado salud", "estado_salud", "salud", "morbilidad"]);
+                const raw_detalle_salud = trimValue(findValue(row, ["detalle enfermedad", "detalle salud", "detalle_salud", "enfermedad vivo", "problema vivo", "diagnostico vivo", "diagnóstico vivo", "malformacion", "malformación"]));
+                let estado_salud = null;
+                let detalle_salud = null;
+                if (estado === 'Vivo') {
+                    estado_salud = sanitizeEstadoSalud(raw_estado_salud || (raw_detalle_salud ? "Está enfermo actualmente" : "Sano, sin problemas aparentes"));
+                    detalle_salud = (estado_salud !== 'Sano, sin problemas aparentes') ? (raw_detalle_salud || null) : null;
+                    if (detalle_salud) saveCustomSaludTerm(detalle_salud);
+                }
                 
                 const raw_causa_cat = findValue(row, ["causa categoria", "causa categoría", "causa_categoria", "categoria", "categoría", "categoria muerte", "categoría muerte", "grupo causa"]);
                 const raw_causa_esp = findValue(row, ["causa especifica", "causa específica", "causa_especifica", "subcausa", "sub causa", "diagnostico", "diagnóstico", "enfermedad", "motivo", "causa muerte", "causa"]);
@@ -2282,8 +2633,11 @@ function handleImportExcelFile(event) {
                     tipo_parto,
                     rp_madre: rp_madre || null,
                     tipo_calostro,
+                    metodo_calostrado,
                     ig_calostro: ig_calostro,
                     estado,
+                    estado_salud,
+                    detalle_salud,
                     causa: estado !== 'Vivo' ? causa || null : null,
                     causa_categoria: estado !== 'Vivo' ? causa_cat || null : null,
                     causa_especifica: estado !== 'Vivo' ? causa_esp || null : null
