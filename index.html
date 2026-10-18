@@ -1000,6 +1000,7 @@
                                 </div>
                                 <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
                                     <div class="tendencia-toggle">
+                                        <button id="btn-tendencia-dia" class="tendencia-toggle-btn" onclick="setTendenciaMode('dia')">Día</button>
                                         <button id="btn-tendencia-semanal" class="tendencia-toggle-btn active" onclick="setTendenciaMode('semanal')">Semanal</button>
                                         <button id="btn-tendencia-mensual" class="tendencia-toggle-btn" onclick="setTendenciaMode('mensual')">Mensual</button>
                                     </div>
@@ -2154,7 +2155,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <!-- Dashboard Module -->
-    <script src="dashboard.js?v=87" defer></script>
+    <script src="dashboard.js?v=88" defer></script>
     <!-- App Script -->
     <script src="app.js?v=88" defer></script>
     <!-- Voice Module (Ocultado temporalmente) -->
@@ -2164,7 +2165,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=91')
+                navigator.serviceWorker.register('./sw.js?v=92')
                     .then(registration => {
                         console.log('[VETFIELD] ServiceWorker registrado. Scope:', registration.scope);
                     })

@@ -1547,7 +1547,7 @@ function _renderSaludOmbligos(data) {
 // 6. Tendencia Temporal — AreaChart (Line)
 // ────────────────────────────────────────────────────────────────
 let _tendenciaData = null;
-let _tendenciaMode = 'semanal'; // 'semanal' | 'mensual'
+let _tendenciaMode = 'semanal'; // 'dia' | 'semanal' | 'mensual'
 
 function _renderTendenciaTemporal(data) {
     _tendenciaData = data;
@@ -1557,15 +1557,23 @@ function _renderTendenciaTemporal(data) {
 function setTendenciaMode(mode) {
     _tendenciaMode = mode;
     // Actualizar botones
+    const btnD = document.getElementById('btn-tendencia-dia');
     const btnS = document.getElementById('btn-tendencia-semanal');
     const btnM = document.getElementById('btn-tendencia-mensual');
+    if (btnD) btnD.classList.toggle('active', mode === 'dia');
     if (btnS) btnS.classList.toggle('active', mode === 'semanal');
     if (btnM) btnM.classList.toggle('active', mode === 'mensual');
     // Actualizar subtítulo
     const sub = document.getElementById('tendencia-sub');
-    if (sub) sub.textContent = mode === 'semanal'
-        ? 'Evolución semanal de la tasa de mortalidad'
-        : 'Evolución mensual de la tasa de mortalidad';
+    if (sub) {
+        if (mode === 'dia') {
+            sub.textContent = 'Evolución diaria de la tasa de mortalidad (mes actual)';
+        } else if (mode === 'semanal') {
+            sub.textContent = 'Evolución semanal de la tasa de mortalidad';
+        } else {
+            sub.textContent = 'Evolución mensual de la tasa de mortalidad';
+        }
+    }
     if (_tendenciaData) _buildTendenciaChart(_tendenciaData, mode);
 }
 window.setTendenciaMode = setTendenciaMode;
@@ -1581,15 +1589,43 @@ function _buildTendenciaChart(data, mode) {
     }
 
     const grouped = {};
-    data.forEach(r => {
+    let sourceRecords = data;
+
+    if (mode === 'dia') {
+        const now = new Date();
+        const currYear = now.getFullYear();
+        const currMonth = now.getMonth();
+        const todayDay = now.getDate();
+
+        // Inicializar todos los días del mes actual desde el 1 hasta el día actual
+        for (let d = 1; d <= todayDay; d++) {
+            const key = `${currYear}-${String(currMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            grouped[key] = { total: 0, muertos: 0 };
+        }
+
+        // Respetar filtros activos de productor y establecimiento sobre el dataset completo
+        if (typeof records !== 'undefined' && Array.isArray(records)) {
+            const { productor, establecimiento } = (typeof _dashFilters !== 'undefined') ? _dashFilters : {};
+            sourceRecords = records.filter(r => {
+                if (productor && r.productor !== productor) return false;
+                if (establecimiento && r.establecimiento !== establecimiento) return false;
+                return true;
+            });
+        }
+    }
+
+    sourceRecords.forEach(r => {
         if (!r.fecha) return;
-        const d = new Date(r.fecha);
         let key;
-        if (mode === 'mensual') {
-            // Clave: YYYY-MM
+        if (mode === 'dia') {
+            key = String(r.fecha).substring(0, 10);
+            if (!grouped[key]) return; // Solo días del mes actual hasta hoy
+        } else if (mode === 'mensual') {
+            const d = new Date(r.fecha.includes('T') ? r.fecha : r.fecha + 'T12:00:00');
             key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         } else {
             // Clave: lunes de esa semana (YYYY-MM-DD)
+            const d = new Date(r.fecha.includes('T') ? r.fecha : r.fecha + 'T12:00:00');
             const day = d.getDay();
             const diff = (day === 0) ? -6 : 1 - day;
             d.setDate(d.getDate() + diff);
@@ -1600,10 +1636,15 @@ function _buildTendenciaChart(data, mode) {
         if (r.estado !== 'Vivo') grouped[key].muertos++;
     });
 
-    const limit = mode === 'mensual' ? 12 : 26;
+    const limit = mode === 'mensual' ? 12 : (mode === 'dia' ? 31 : 26);
     const sorted = Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0])).slice(-limit);
 
     const labels = sorted.map(([k]) => {
+        if (mode === 'dia') {
+            const [y, m, d] = k.split('-');
+            const dateObj = new Date(+y, +m - 1, +d, 12, 0, 0);
+            return dateObj.toLocaleDateString('es', { day: 'numeric', month: 'short' });
+        }
         if (mode === 'mensual') {
             const [y, m] = k.split('-');
             // Solo nombre del mes, sin año
@@ -1668,7 +1709,7 @@ function _buildTendenciaChart(data, mode) {
                     callbacks: {
                         label: ctx => {
                             if (ctx.datasetIndex === 0) {
-                                return ` Muertos: ${muertos[ctx.dataIndex]}`;
+                                return ` Tasa Mortalidad: ${ctx.raw}% (Muertos: ${muertos[ctx.dataIndex]})`;
                             }
                             return ` ${ctx.dataset.label}: ${ctx.raw}`;
                         }
@@ -1685,7 +1726,7 @@ function _buildTendenciaChart(data, mode) {
                         minRotation: 45,
                         font: { size: 10, family: 'Inter' },
                         autoSkip: true,
-                        maxTicksLimit: 14
+                        maxTicksLimit: mode === 'dia' ? 31 : 14
                     }
                 },
                 y:  {
