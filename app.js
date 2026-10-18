@@ -110,7 +110,18 @@ function applyIgMetodo(metodo) {
         kpiIgSub.textContent = `${unitText} promedio`;
     }
 
-    // 4. Refrescar dashboard y gráficos con la nueva unidad y umbrales correspondientes
+    // 4. Título del gráfico de correlación si no fue modificado manualmente
+    const titleEl = document.querySelector('[data-title-key="title_calostro"]');
+    if (titleEl) {
+        const savedTitles = JSON.parse(localStorage.getItem('vf_chart_titles') || '{}');
+        if (!savedTitles['title_calostro'] || savedTitles['title_calostro'].includes('I.G. Calostro') || savedTitles['title_calostro'].includes('Grados Brix')) {
+            titleEl.textContent = isBrix
+                ? '🍼 Correlación Grados Brix vs Supervivencia'
+                : '🍼 Correlación I.G. Calostro vs Supervivencia';
+        }
+    }
+
+    // 5. Refrescar dashboard y gráficos con la nueva unidad y umbrales correspondientes
     if (typeof window.refreshDashboardIgMetodo === 'function') {
         window.refreshDashboardIgMetodo(isBrix ? 'brix' : 'mgdl');
     }

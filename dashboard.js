@@ -186,15 +186,29 @@ let _causasAllData = null;
 // Umbrales configurables por el veterinario (se persisten en localStorage)
 const _KPI_THRESHOLDS_KEY = 'vetfield_kpi_thresholds';
 
+function _getIgMetodo() {
+    try {
+        if (typeof AuthManager !== 'undefined' && typeof AuthManager.getIgMetodo === 'function') {
+            return AuthManager.getIgMetodo();
+        }
+        if (window.AuthManager && typeof window.AuthManager.getIgMetodo === 'function') {
+            return window.AuthManager.getIgMetodo();
+        }
+        const sess = JSON.parse(localStorage.getItem('vetfield_session') || '{}');
+        if (sess && sess.igMetodo) return sess.igMetodo;
+    } catch {}
+    return 'brix';
+}
+
 function _getDefaultIgThresholds(metodo) {
-    const isBrix = (metodo || (typeof AuthManager !== 'undefined' ? AuthManager.getIgMetodo() : 'brix')) === 'brix';
+    const isBrix = (metodo || _getIgMetodo()) === 'brix';
     return isBrix ? { high: 22, mid: 18 } : { high: 15, mid: 10 };
 }
 
 let _kpiThresholds = (() => {
     try {
         const saved = JSON.parse(localStorage.getItem(_KPI_THRESHOLDS_KEY) || '{}');
-        const metodo = typeof AuthManager !== 'undefined' ? AuthManager.getIgMetodo() : 'brix';
+        const metodo = _getIgMetodo();
         const defIg = _getDefaultIgThresholds(metodo);
         const highKey = metodo === 'brix' ? 'igHigh_brix' : 'igHigh_mgdl';
         const midKey  = metodo === 'brix' ? 'igMid_brix'  : 'igMid_mgdl';
@@ -321,7 +335,7 @@ function saveKpiRanges(type) {
         }
         _kpiThresholds.igHigh = high;
         _kpiThresholds.igMid  = mid;
-        const metodo = typeof AuthManager !== 'undefined' ? AuthManager.getIgMetodo() : 'brix';
+        const metodo = _getIgMetodo();
         const highKey = metodo === 'brix' ? 'igHigh_brix' : 'igHigh_mgdl';
         const midKey  = metodo === 'brix' ? 'igMid_brix'  : 'igMid_mgdl';
         _kpiThresholds[highKey] = high;
@@ -337,7 +351,7 @@ window.saveKpiRanges = saveKpiRanges;
 
 // Recalcular y refrescar umbrales cuando el usuario cambia su preferencia de medición
 function refreshDashboardIgMetodo(metodo) {
-    const isBrix = (metodo || (typeof AuthManager !== 'undefined' ? AuthManager.getIgMetodo() : 'brix')) === 'brix';
+    const isBrix = (metodo || _getIgMetodo()) === 'brix';
     const defIg = _getDefaultIgThresholds(isBrix ? 'brix' : 'mgdl');
     try {
         const saved = JSON.parse(localStorage.getItem(_KPI_THRESHOLDS_KEY) || '{}');
@@ -350,11 +364,23 @@ function refreshDashboardIgMetodo(metodo) {
         _kpiThresholds.igMid  = defIg.mid;
     }
     _initKpiPanelInputs();
+
+    // Actualizar título del gráfico en la interfaz
+    const titleEl = document.querySelector('[data-title-key="title_calostro"]');
+    if (titleEl) {
+        const savedTitles = JSON.parse(localStorage.getItem('vf_chart_titles') || '{}');
+        if (!savedTitles['title_calostro'] || savedTitles['title_calostro'].includes('I.G. Calostro') || savedTitles['title_calostro'].includes('Grados Brix')) {
+            titleEl.textContent = isBrix
+                ? '🍼 Correlación Grados Brix vs Supervivencia'
+                : '🍼 Correlación I.G. Calostro vs Supervivencia';
+        }
+    }
+
     const data = _getDashRecords();
     if (data && data.length > 0) {
         _renderKPIs(data);
-        if (typeof _renderScatterCalostro === 'function') {
-            _renderScatterCalostro(data);
+        if (typeof _renderCorrelacionCalostro === 'function') {
+            _renderCorrelacionCalostro(data);
         }
     }
 }
@@ -366,6 +392,19 @@ function initDashboard() {
     _bindDashFilterEvents();
     _initKpiPanelInputs();
     _setupBackdropClick();
+
+    // Sincronizar título de gráfico según método activo
+    const isBrix = _getIgMetodo() === 'brix';
+    const titleEl = document.querySelector('[data-title-key="title_calostro"]');
+    if (titleEl) {
+        const savedTitles = JSON.parse(localStorage.getItem('vf_chart_titles') || '{}');
+        if (!savedTitles['title_calostro'] || savedTitles['title_calostro'].includes('I.G. Calostro') || savedTitles['title_calostro'].includes('Grados Brix')) {
+            titleEl.textContent = isBrix
+                ? '🍼 Correlación Grados Brix vs Supervivencia'
+                : '🍼 Correlación I.G. Calostro vs Supervivencia';
+        }
+    }
+
     renderDashboard();
 }
 window.initDashboard = initDashboard;
@@ -581,7 +620,7 @@ function _renderKPIs(data) {
             : avgIg >= _kpiThresholds.igMid
                 ? '⚡ Aceptable'
                 : '⚠️ Bajo';
-        const unit = (typeof AuthManager !== 'undefined' && AuthManager.getIgMetodo() === 'brix') ? '% Brix' : 'mg/dL';
+        const unit = _getIgMetodo() === 'brix' ? '% Brix' : 'mg/dL';
         el('kpi_ig_sub').textContent = `${igLevel} · ${unit}`;
         // Aplicar color de estado a la card IG
         const igCard = el('kpi_ig_card');
@@ -1331,8 +1370,10 @@ function _renderCorrelacionCalostro(data) {
                 tooltip: {
                     callbacks: {
                         label: ctx => {
-                            const unit = (typeof AuthManager !== 'undefined' && AuthManager.getIgMetodo() === 'brix') ? '% Brix' : 'mg/dL';
-                            return ` Calostro: ${ctx.raw.x} ${unit} | I.G. Ternero: ${ctx.raw.y}%`;
+                            const isBrix = _getIgMetodo() === 'brix';
+                            return isBrix
+                                ? ` Grados Brix: ${ctx.raw.x}% | I.G. Ternero: ${ctx.raw.y}%`
+                                : ` Calostro: ${ctx.raw.x} mg/dL | I.G. Ternero: ${ctx.raw.y}%`;
                         }
                     }
                 }
@@ -1341,8 +1382,8 @@ function _renderCorrelacionCalostro(data) {
                 x: { 
                     title: { 
                         display: true, 
-                        text: (typeof AuthManager !== 'undefined' && AuthManager.getIgMetodo() === 'brix') 
-                            ? 'I.G. Calostro Madre (% Brix)' 
+                        text: _getIgMetodo() === 'brix' 
+                            ? 'Grados Brix (% Brix)' 
                             : 'I.G. Calostro Madre (mg/dL)', 
                         color: _getChartTheme().textAxisTitle, 
                         font: { family: 'Inter' } 

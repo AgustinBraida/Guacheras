@@ -944,4 +944,6 @@ function authToggleEye(inputId, btn) {
     }
 }
 
+window.AuthManager = AuthManager;
+window.AuthUI = AuthUI;
 document.addEventListener('DOMContentLoaded', () => AuthUI.init());
