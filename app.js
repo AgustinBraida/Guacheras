@@ -192,6 +192,60 @@ function saveOfflineRecords(recs) {
     localStorage.setItem(KEYS.offline, JSON.stringify(recs));
 }
 
+// ─── Renderizar Opciones de Supervivencia Dinámicas ──────────
+function renderSurvivalRadios(preferredValue) {
+    const container = document.getElementById('survival-radio-options');
+    if (!container) return;
+
+    const currentChecked = preferredValue || document.querySelector('input[name="survival"]:checked')?.value || 'Vivo';
+
+    const lugares = (typeof window.getLugaresMuerte === 'function')
+        ? window.getLugaresMuerte()
+        : [
+            { nombre: 'Establecimiento', activo: true },
+            { nombre: 'Guachería',       activo: true },
+            { nombre: 'Terapia',         activo: true }
+        ];
+
+    const activeLugares = lugares.filter(l => l && l.activo && l.nombre);
+
+    let html = `
+        <label class="radio-option">
+            <input type="radio" name="survival" value="Vivo" ${currentChecked === 'Vivo' ? 'checked' : ''} onchange="toggleCausa(false)">
+            <span>Vivo</span>
+        </label>
+    `;
+
+    let matchedCurrent = (currentChecked === 'Vivo');
+    activeLugares.forEach(l => {
+        const val = `Muerto en ${l.nombre}`;
+        const isChecked = (currentChecked === val);
+        if (isChecked) matchedCurrent = true;
+        html += `
+            <label class="radio-option">
+                <input type="radio" name="survival" value="${val}" ${isChecked ? 'checked' : ''} onchange="toggleCausa(true)">
+                <span>${val}</span>
+            </label>
+        `;
+    });
+
+    // Si el valor seleccionado es histórico o está temporalmente inactivo, conservarlo visible
+    if (!matchedCurrent && currentChecked && currentChecked !== 'Vivo') {
+        html += `
+            <label class="radio-option">
+                <input type="radio" name="survival" value="${currentChecked}" checked onchange="toggleCausa(true)">
+                <span>${currentChecked} <span style="font-size:0.75rem; opacity:0.7;">(inactivo)</span></span>
+            </label>
+        `;
+    }
+
+    container.innerHTML = html;
+
+    const isMuerto = !!document.querySelector('input[name="survival"]:checked')?.value?.includes('Muerto');
+    if (typeof toggleCausa === 'function') toggleCausa(isMuerto);
+}
+window.renderSurvivalRadios = renderSurvivalRadios;
+
 // ─── Inicializar formulario ──────────────────────────────────
 function initForm() {
     const today = new Date().toISOString().split('T')[0];
@@ -217,8 +271,9 @@ function initForm() {
 
     // Asegurar que el form de entrada tenga su listener (safety net)
     bindEntryForm();
-    const isMuertoChecked = !!document.querySelector('input[name="survival"]:checked')?.value?.includes('Muerto');
-    toggleCausa(isMuertoChecked);
+
+    // Renderizar radios dinámicos según configuración activa
+    renderSurvivalRadios();
 }
 
 function renderFieldDatalists() {
@@ -273,6 +328,9 @@ function switchView(viewId, el) {
         const countEl = document.getElementById('profile-records-count');
         if (countEl) countEl.textContent = records.length + ' registros';
         setTimeout(() => { if (typeof window.loadProductoresList === 'function') window.loadProductoresList(); }, 50);
+        if (typeof AuthUI !== 'undefined' && typeof AuthUI.renderProfileLugares === 'function') {
+            AuthUI.renderProfileLugares();
+        }
     }
     if (viewId === 'inicio' && typeof initDashboard === 'function') {
         setTimeout(initDashboard, 250); // Timeout aumentado para mobile
@@ -295,7 +353,10 @@ function setSegmentedParto(btn, val) {
     setSegmented(btn, val);
     if (val === 'Muerto al parto') {
         const vivoRadio = document.querySelector('input[name="survival"][value="Vivo"]');
-        const muertoRadio = document.querySelector('input[name="survival"][value="Muerto en Establecimiento"]');
+        let muertoRadio = document.querySelector('input[name="survival"][value="Muerto en Establecimiento"]');
+        if (!muertoRadio) {
+            muertoRadio = document.querySelector('input[name="survival"]:not([value="Vivo"])');
+        }
         if (vivoRadio && vivoRadio.checked && muertoRadio) {
             muertoRadio.checked = true;
             muertoRadio.dataset.dirty = 'true';
@@ -897,7 +958,13 @@ function openDetail(recordId) {
     document.getElementById('modalTitle').textContent    = `Ternero R.P. ${r.rp_ternero || 'S/N'}`;
     document.getElementById('modalSubtitle').textContent = `${r.establecimiento || ''} • ${r.fecha || ''}`;
 
-    const estadoOpts = ['Vivo', 'Muerto en Establecimiento', 'Muerto en Guachería', 'Muerto en Terapia'];
+    const activeLugares = (typeof window.getLugaresMuerte === 'function' ? window.getLugaresMuerte() : [])
+        .filter(l => l && l.activo && l.nombre)
+        .map(l => `Muerto en ${l.nombre}`);
+    const estadoOpts = ['Vivo', ...activeLugares];
+    if (r.estado && !estadoOpts.includes(r.estado)) {
+        estadoOpts.push(r.estado); // Preservar estado existente si está inactivo
+    }
     const estadoOptionsHtml = estadoOpts.map(o =>
         `<option value="${o}" ${r.estado === o ? 'selected' : ''}>${o}</option>`
     ).join('');
@@ -2337,10 +2404,19 @@ function handleImportExcelFile(event) {
 
             function sanitizeEstado(val) {
                 const str = trimValue(val).toLowerCase();
+                const configLug = (typeof window.getLugaresMuerte === 'function' ? window.getLugaresMuerte() : []);
+                for (const lug of configLug) {
+                    if (lug && lug.activo && lug.nombre && str.includes(lug.nombre.toLowerCase())) {
+                        return `Muerto en ${lug.nombre}`;
+                    }
+                }
                 if (str.includes("establecimiento") || str.includes("est")) return "Muerto en Establecimiento";
                 if (str.includes("guacheria") || str.includes("guach")) return "Muerto en Guachería";
                 if (str.includes("terapia") || str.includes("ter")) return "Muerto en Terapia";
-                if (str.includes("muert") || str.includes("fallec")) return "Muerto en Establecimiento";
+                if (str.includes("muert") || str.includes("fallec")) {
+                    const first = configLug.find(l => l && l.activo)?.nombre || "Establecimiento";
+                    return `Muerto en ${first}`;
+                }
                 return "Vivo";
             }
 

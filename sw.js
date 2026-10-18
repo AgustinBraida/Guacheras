@@ -1,10 +1,10 @@
 // ============================================================
-// VETFIELD PRO — Service Worker v59 (Offline Resiliente)
+// VETFIELD PRO — Service Worker v91 (Offline Resiliente)
 // IMPORTANTE: Incrementar CACHE_VERSION al hacer deploy de cambios
 // para forzar la actualización del caché en los dispositivos.
 // ============================================================
 
-const CACHE_VERSION = 'v90';
+const CACHE_VERSION = 'v91';
 const CACHE_NAME = 'vetfield-guacheras-' + CACHE_VERSION;
 
 // ── Recursos CRÍTICOS locales (deben estar todos disponibles) ──

@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `avatar_url`           VARCHAR(500)  DEFAULT NULL            COMMENT 'URL pública del avatar subido al servidor',
   `banner_url`           VARCHAR(500)  DEFAULT NULL            COMMENT 'URL pública del banner subido al servidor',
   `ig_metodo`            ENUM('brix','mgdl') NOT NULL DEFAULT 'brix' COMMENT 'Preferencia medición I.G. Calostro: brix (% Brix) o mgdl (mg/dL)',
+  `lugares_muerte`       TEXT          DEFAULT NULL            COMMENT 'JSON array con lugares de muerte configurados y activos',
   `created_at`           DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_email`     (`email`),
@@ -35,6 +36,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
 -- ALTER TABLE `usuarios` ADD COLUMN `avatar_url` VARCHAR(500) DEFAULT NULL COMMENT 'URL pública del avatar subido al servidor';
 -- ALTER TABLE `usuarios` ADD COLUMN `banner_url` VARCHAR(500) DEFAULT NULL COMMENT 'URL pública del banner subido al servidor';
 -- ALTER TABLE `usuarios` ADD COLUMN `ig_metodo` ENUM('brix','mgdl') NOT NULL DEFAULT 'brix' COMMENT 'Preferencia medición I.G. Calostro';
+-- ALTER TABLE `usuarios` ADD COLUMN `lugares_muerte` TEXT DEFAULT NULL COMMENT 'JSON array con lugares de muerte configurados';
 
 
 -- ─── TABLA: sesiones ────────────────────────────────────────

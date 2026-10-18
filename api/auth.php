@@ -167,9 +167,18 @@ function action_login(array $in): void {
         json_response(['ok' => false, 'error' => 'Demasiados intentos fallidos. Esperá 5 minutos antes de volver a intentar.'], 429);
     }
 
-    $db   = getDB();
+    $db = getDB();
+
+    // Detectar si la columna lugares_muerte existe en usuarios
+    $has_col_lugares = false;
+    try {
+        $chk_col = $db->query("SHOW COLUMNS FROM usuarios LIKE 'lugares_muerte'");
+        $has_col_lugares = ($chk_col && $chk_col->rowCount() > 0);
+    } catch (Exception $e) { $has_col_lugares = false; }
+
+    $col_lugares = $has_col_lugares ? ", lugares_muerte" : "";
     $stmt = $db->prepare(
-        "SELECT id, nombre, email, password_hash, role, status, plan, created_at, mp_subscription_id, plan_expires_at, ig_metodo FROM usuarios WHERE email = ?"
+        "SELECT id, nombre, email, password_hash, role, status, plan, created_at, mp_subscription_id, plan_expires_at, ig_metodo $col_lugares FROM usuarios WHERE email = ?"
     );
     $stmt->execute([$email]);
     $user = $stmt->fetch();
@@ -213,6 +222,7 @@ function action_login(array $in): void {
             'has_mp_subscription' => !empty($user['mp_subscription_id']),
             'plan_expires_at' => $user['plan_expires_at'],
             'ig_metodo'  => $user['ig_metodo'] ?? 'brix',
+            'lugares_muerte' => (!empty($user['lugares_muerte'])) ? json_decode($user['lugares_muerte'], true) : null,
         ]
     ]);
 }
@@ -249,6 +259,7 @@ function action_get_session(): void {
             'has_mp_subscription' => !empty($user['mp_subscription_id']),
             'plan_expires_at' => $user['plan_expires_at'],
             'ig_metodo'  => $user['ig_metodo'] ?? 'brix',
+            'lugares_muerte' => (!empty($user['lugares_muerte'])) ? json_decode($user['lugares_muerte'], true) : null,
         ]
     ]);
 }
@@ -272,36 +283,54 @@ function action_update_profile(array $in): void {
 
     $db = getDB();
 
+    // Detectar si la columna lugares_muerte existe en usuarios
+    $has_col_lugares = false;
+    try {
+        $chk_col = $db->query("SHOW COLUMNS FROM usuarios LIKE 'lugares_muerte'");
+        $has_col_lugares = ($chk_col && $chk_col->rowCount() > 0);
+    } catch (Exception $e) { $has_col_lugares = false; }
+
+    $lugares_json = null;
+    if (isset($in['lugares_muerte']) && is_array($in['lugares_muerte'])) {
+        $lugares_json = json_encode($in['lugares_muerte'], JSON_UNESCAPED_UNICODE);
+    }
+
     // Verificar que el email no le pertenezca a otro usuario
     $chk = $db->prepare("SELECT id FROM usuarios WHERE email = ? AND id != ?");
     $chk->execute([$email, $session['id']]);
     if ($chk->fetch())
         json_response(['ok' => false, 'error' => 'Ese email ya está en uso por otra cuenta.']);
 
+    $update_fields = ["nombre = ?", "email = ?"];
+    $update_params = [$nombre, $email];
+
     if ($password && strlen($password) > 0) {
         if (strlen($password) < 8 || !preg_match('/[A-Z]/', $password) || !preg_match('/[0-9]/', $password))
             json_response(['ok' => false, 'error' => 'La contraseña debe tener mínimo 8 caracteres, una mayúscula y un número.']);
 
         $hash = password_hash($password, PASSWORD_BCRYPT);
-        if ($ig_metodo !== null) {
-            $stmt = $db->prepare("UPDATE usuarios SET nombre = ?, email = ?, password_hash = ?, ig_metodo = ? WHERE id = ?");
-            $stmt->execute([$nombre, $email, $hash, $ig_metodo, $session['id']]);
-        } else {
-            $stmt = $db->prepare("UPDATE usuarios SET nombre = ?, email = ?, password_hash = ? WHERE id = ?");
-            $stmt->execute([$nombre, $email, $hash, $session['id']]);
-        }
-    } else {
-        if ($ig_metodo !== null) {
-            $stmt = $db->prepare("UPDATE usuarios SET nombre = ?, email = ?, ig_metodo = ? WHERE id = ?");
-            $stmt->execute([$nombre, $email, $ig_metodo, $session['id']]);
-        } else {
-            $stmt = $db->prepare("UPDATE usuarios SET nombre = ?, email = ? WHERE id = ?");
-            $stmt->execute([$nombre, $email, $session['id']]);
-        }
+        $update_fields[] = "password_hash = ?";
+        $update_params[] = $hash;
     }
 
+    if ($ig_metodo !== null) {
+        $update_fields[] = "ig_metodo = ?";
+        $update_params[] = $ig_metodo;
+    }
+
+    if ($has_col_lugares && $lugares_json !== null) {
+        $update_fields[] = "lugares_muerte = ?";
+        $update_params[] = $lugares_json;
+    }
+
+    $update_params[] = $session['id'];
+    $sql_update = "UPDATE usuarios SET " . implode(", ", $update_fields) . " WHERE id = ?";
+    $stmt = $db->prepare($sql_update);
+    $stmt->execute($update_params);
+
     // Devolver datos actualizados
-    $updated = $db->prepare("SELECT id, nombre, email, role, plan, created_at, mp_subscription_id, plan_expires_at, ig_metodo FROM usuarios WHERE id = ?");
+    $col_lug = $has_col_lugares ? ", lugares_muerte" : "";
+    $updated = $db->prepare("SELECT id, nombre, email, role, plan, created_at, mp_subscription_id, plan_expires_at, ig_metodo $col_lug FROM usuarios WHERE id = ?");
     $updated->execute([$session['id']]);
     $user = $updated->fetch();
 
@@ -317,6 +346,7 @@ function action_update_profile(array $in): void {
             'has_mp_subscription' => !empty($user['mp_subscription_id']),
             'plan_expires_at' => $user['plan_expires_at'],
             'ig_metodo'  => $user['ig_metodo'] ?? 'brix',
+            'lugares_muerte' => (!empty($user['lugares_muerte'])) ? json_decode($user['lugares_muerte'], true) : null,
         ]
     ]);
 }

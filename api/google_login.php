@@ -67,9 +67,18 @@ if (!$google_id || !$email) {
 
 $db = getDB();
 
+// Detectar si la columna lugares_muerte existe en usuarios
+$has_col_lugares = false;
+try {
+    $chk_col = $db->query("SHOW COLUMNS FROM usuarios LIKE 'lugares_muerte'");
+    $has_col_lugares = ($chk_col && $chk_col->rowCount() > 0);
+} catch (Exception $e) { $has_col_lugares = false; }
+
+$col_lugares = $has_col_lugares ? ", lugares_muerte" : "";
+
 // ── Buscar usuario por google_id o email ─────────────────────
 $stmt = $db->prepare(
-    "SELECT id, nombre, email, role, plan, created_at, status, ig_metodo
+    "SELECT id, nombre, email, role, plan, created_at, status, ig_metodo $col_lugares
        FROM usuarios
       WHERE google_id = ? OR email = ?
       LIMIT 1"
@@ -157,5 +166,6 @@ json_response([
         'plan'       => $user['plan'] ?? null,
         'created_at' => $user['created_at'],
         'ig_metodo'  => $user['ig_metodo'] ?? 'brix',
+        'lugares_muerte' => (!empty($user['lugares_muerte'])) ? json_decode($user['lugares_muerte'], true) : null,
     ]
 ]);

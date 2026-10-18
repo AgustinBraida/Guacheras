@@ -512,7 +512,7 @@
 
     <!-- Auth Module (carga primero) -->
 
-    <script src="auth.js?v=53" defer></script>
+    <script src="auth.js?v=54" defer></script>
 </head>
 
 <body>
@@ -1329,23 +1329,25 @@
 
                 <div class="card glass">
                     <span class="section-label">Estado de Supervivencia</span>
-                    <label class="radio-option">
-                        <input type="radio" name="survival" value="Vivo" checked onchange="toggleCausa(false)">
-                        <span>Vivo</span>
-                    </label>
-                    <label class="radio-option">
-                        <input type="radio" name="survival" value="Muerto en Establecimiento"
-                            onchange="toggleCausa(true)">
-                        <span>Muerto en Establecimiento</span>
-                    </label>
-                    <label class="radio-option">
-                        <input type="radio" name="survival" value="Muerto en Guachería" onchange="toggleCausa(true)">
-                        <span>Muerto en Guachería</span>
-                    </label>
-                    <label class="radio-option">
-                        <input type="radio" name="survival" value="Muerto en Terapia" onchange="toggleCausa(true)">
-                        <span>Muerto en Terapia</span>
-                    </label>
+                    <div id="survival-radio-options">
+                        <label class="radio-option">
+                            <input type="radio" name="survival" value="Vivo" checked onchange="toggleCausa(false)">
+                            <span>Vivo</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="survival" value="Muerto en Establecimiento"
+                                onchange="toggleCausa(true)">
+                            <span>Muerto en Establecimiento</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="survival" value="Muerto en Guachería" onchange="toggleCausa(true)">
+                            <span>Muerto en Guachería</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="survival" value="Muerto en Terapia" onchange="toggleCausa(true)">
+                            <span>Muerto en Terapia</span>
+                        </label>
+                    </div>
 
                     <!-- Bloque para Animales Vivos: Estado de Salud / Morbilidad -->
                     <div id="seccion_estado_salud" class="form-group" style="margin-top: 1.25rem;">
@@ -1968,6 +1970,27 @@
                             Seleccioná la unidad que prefieres usar para registrar y evaluar la calidad del calostro.
                         </span>
                     </div>
+                    <div class="form-group" style="margin-top: 1.25rem;">
+                        <label style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 4px;">
+                            <span>Lugares de Muerte Configurados</span>
+                            <span style="font-size:0.75rem; font-weight:400; color:var(--text-secondary);">Marcá los que deseas mostrar</span>
+                        </label>
+                        <span style="font-size:0.75rem; color:var(--text-secondary); display:block; margin-bottom:0.75rem;">
+                            Activá o desactivá los lugares donde se registran muertes, o agregá lugares propios de tus establecimientos.
+                        </span>
+
+                        <!-- Lista de lugares con checkboxes -->
+                        <div id="profile-lugares-list" class="profile-lugares-container"></div>
+
+                        <!-- Form para agregar nuevo lugar -->
+                        <div style="display:flex; gap:8px; margin-top:6px;">
+                            <input type="text" id="new-lugar-input" placeholder="Nuevo lugar (ej: Maternidad, Preparto...)" style="flex:1;">
+                            <button type="button" id="btn-add-lugar" class="btn-save" style="width:auto; padding:0.6rem 1.1rem; font-size:0.85rem; border-radius:10px; margin-top:0; display:inline-flex; align-items:center; gap:6px;">
+                                <i data-lucide="plus" style="width:15px;height:15px;"></i>
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
                     <p id="profile-error" class="auth-error-msg"></p>
                     <button type="submit" id="btn-save-profile" class="btn-save">
                         <i data-lucide="save"></i>
@@ -2131,9 +2154,9 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <!-- Dashboard Module -->
-    <script src="dashboard.js?v=86" defer></script>
+    <script src="dashboard.js?v=87" defer></script>
     <!-- App Script -->
-    <script src="app.js?v=87" defer></script>
+    <script src="app.js?v=88" defer></script>
     <!-- Voice Module (Ocultado temporalmente) -->
     <!-- <script src="voice.js?v=62" defer></script> -->
 
@@ -2141,7 +2164,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=85')
+                navigator.serviceWorker.register('./sw.js?v=91')
                     .then(registration => {
                         console.log('[VETFIELD] ServiceWorker registrado. Scope:', registration.scope);
                     })

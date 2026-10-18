@@ -73,6 +73,13 @@ const AuthManager = {
     getSession() { const r = localStorage.getItem(SESSION_KEY); return r ? JSON.parse(r) : null; },
 
     _saveSession(user, token) {
+        let lugaresMuerte = user.lugares_muerte || null;
+        if (!lugaresMuerte) {
+            try {
+                const prev = localStorage.getItem('vetfield_lugares_muerte');
+                if (prev) lugaresMuerte = JSON.parse(prev);
+            } catch(e) {}
+        }
         localStorage.setItem(SESSION_KEY, JSON.stringify({
             id: user.id,
             name: user.nombre,
@@ -83,7 +90,11 @@ const AuthManager = {
             hasMpSubscription: !!user.has_mp_subscription,
             planExpiresAt: user.plan_expires_at || null,
             igMetodo: user.ig_metodo || 'brix',
+            lugaresMuerte: lugaresMuerte || null
         }));
+        if (lugaresMuerte) {
+            localStorage.setItem('vetfield_lugares_muerte', JSON.stringify(lugaresMuerte));
+        }
         if (token) localStorage.setItem(API_TOKEN_KEY, token);
     },
 
@@ -91,6 +102,26 @@ const AuthManager = {
     getIgMetodo() {
         const sess = this.getSession();
         return (sess && sess.igMetodo) ? sess.igMetodo : 'brix';
+    },
+
+    // Devuelve la lista de lugares de muerte configurados [{nombre, activo}]
+    getLugaresMuerte() {
+        const sess = this.getSession();
+        if (sess && Array.isArray(sess.lugaresMuerte) && sess.lugaresMuerte.length > 0) {
+            return sess.lugaresMuerte;
+        }
+        try {
+            const local = localStorage.getItem('vetfield_lugares_muerte');
+            if (local) {
+                const parsed = JSON.parse(local);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+        } catch(e) {}
+        return [
+            { nombre: 'Establecimiento', activo: true },
+            { nombre: 'Guachería',       activo: true },
+            { nombre: 'Terapia',         activo: true }
+        ];
     },
 
     logout() {
@@ -192,7 +223,7 @@ const AuthManager = {
         });
     },
 
-    async updateProfile({ name, email, password, igMetodo }) {
+    async updateProfile({ name, email, password, igMetodo, lugaresMuerte }) {
         const sess = this.getSession();
         if (!sess) return { ok: false, error: 'Sin sesión.' };
         name = name.trim();
@@ -202,6 +233,7 @@ const AuthManager = {
 
         const body = { action: 'update_profile', nombre: name, email };
         if (igMetodo && (igMetodo === 'brix' || igMetodo === 'mgdl')) body.ig_metodo = igMetodo;
+        if (lugaresMuerte && Array.isArray(lugaresMuerte)) body.lugares_muerte = lugaresMuerte;
         if (password && password.trim()) {
             const v = validatePassword(password);
             if (!v.valid) return { ok: false, error: v.message };
@@ -210,6 +242,9 @@ const AuthManager = {
 
         const data = await apiFetch(API_AUTH, { method: 'POST', body: JSON.stringify(body) });
         if (data.ok && data.user) {
+            if (lugaresMuerte && !data.user.lugares_muerte) {
+                data.user.lugares_muerte = lugaresMuerte;
+            }
             this._saveSession(data.user, null); // token no cambia en update_profile
         }
         return data;
@@ -397,6 +432,10 @@ const AuthUI = {
         // Actualizar la unidad mostrada en la app según preferencia
         if (typeof window.applyIgMetodo === 'function') window.applyIgMetodo(sess.igMetodo || 'brix');
 
+        // Renderizado interactivo de lugares de muerte configurados
+        this._workingLugares = JSON.parse(JSON.stringify(AuthManager.getLugaresMuerte()));
+        this.renderProfileLugares();
+
         // Renderizado del plan y botón de suscripción/cancelación
         const plan = sess.plan !== undefined ? sess.plan : 'inicio';
         const displayPlanEl = document.getElementById('profile-display-plan');
@@ -545,6 +584,15 @@ const AuthUI = {
         // Profile save
         document.getElementById('profile-edit-form')?.addEventListener('submit', async e => { e.preventDefault(); await this._doProfileSave(); });
 
+        // Agregar lugar de muerte desde input en perfil
+        document.getElementById('btn-add-lugar')?.addEventListener('click', () => this.addLugarFromInput());
+        document.getElementById('new-lugar-input')?.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.addLugarFromInput();
+            }
+        });
+
         // Profile password strength
         document.getElementById('edit-new-password')?.addEventListener('input', e => {
             const bar = document.getElementById('profile-pwd-strength');
@@ -679,6 +727,88 @@ const AuthUI = {
         });
     },
 
+    _workingLugares: null,
+
+    renderProfileLugares() {
+        const container = document.getElementById('profile-lugares-list');
+        if (!container) return;
+
+        if (!this._workingLugares) {
+            this._workingLugares = JSON.parse(JSON.stringify(AuthManager.getLugaresMuerte()));
+        }
+
+        if (this._workingLugares.length === 0) {
+            container.innerHTML = `<div style="text-align:center; font-size:0.8rem; color:var(--text-secondary); padding:0.75rem;">No hay lugares configurados. Agregá uno debajo.</div>`;
+            return;
+        }
+
+        const escapeText = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+        let html = '';
+        this._workingLugares.forEach((lug, idx) => {
+            html += `
+                <div class="profile-lugar-row" data-index="${idx}">
+                    <label class="profile-lugar-label">
+                        <input type="checkbox" class="profile-lugar-checkbox" ${lug.activo ? 'checked' : ''} 
+                            onchange="AuthUI.toggleLugarActivo(${idx}, this.checked)">
+                        <span>${escapeText(lug.nombre)}</span>
+                    </label>
+                    <span class="profile-lugar-tag">Muerto en ${escapeText(lug.nombre)}</span>
+                    <button type="button" class="profile-lugar-del-btn" title="Eliminar lugar" onclick="AuthUI.deleteLugar(${idx})">
+                        <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+                    </button>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+        if (window.lucide) window.lucide.createIcons();
+    },
+
+    toggleLugarActivo(idx, isChecked) {
+        if (!this._workingLugares || !this._workingLugares[idx]) return;
+        this._workingLugares[idx].activo = isChecked;
+    },
+
+    deleteLugar(idx) {
+        if (!this._workingLugares || !this._workingLugares[idx]) return;
+        const nombre = this._workingLugares[idx].nombre;
+        if (confirm(`¿Eliminar el lugar "${nombre}" de la configuración?`)) {
+            this._workingLugares.splice(idx, 1);
+            this.renderProfileLugares();
+        }
+    },
+
+    addLugarFromInput() {
+        const input = document.getElementById('new-lugar-input');
+        if (!input) return;
+        let val = input.value.trim();
+        if (!val) return;
+
+        // Limpiar si el usuario escribió "muerto en"
+        val = val.replace(/^muerto\s+(?:en\s+)?/i, '').trim();
+        if (!val) return;
+
+        // Capitalizar primera letra de cada palabra
+        val = val.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+        if (!this._workingLugares) {
+            this._workingLugares = JSON.parse(JSON.stringify(AuthManager.getLugaresMuerte()));
+        }
+
+        const exists = this._workingLugares.some(l => l.nombre.toLowerCase() === val.toLowerCase());
+        if (exists) {
+            if (typeof showToast === 'function') showToast(`⚠️ El lugar "${val}" ya está en la lista.`);
+            input.focus();
+            return;
+        }
+
+        this._workingLugares.push({ nombre: val, activo: true });
+        input.value = '';
+        this.renderProfileLugares();
+        if (typeof showToast === 'function') showToast(`✅ Lugar "${val}" agregado a la lista.`);
+    },
+
     async _doProfileSave() {
         this._clearErrors();
         const btn = document.getElementById('btn-save-profile');
@@ -686,16 +816,28 @@ const AuthUI = {
         const email = document.getElementById('edit-email')?.value || '';
         const pwd = document.getElementById('edit-new-password')?.value || '';
         const igMetodo = document.getElementById('edit-ig-metodo')?.value || 'brix';
+        const lugaresMuerte = this._workingLugares || AuthManager.getLugaresMuerte();
+
         this._setBtnLoading(btn, 'Guardando...');
-        const r = await AuthManager.updateProfile({ name, email, password: pwd || undefined, igMetodo });
+        const r = await AuthManager.updateProfile({ name, email, password: pwd || undefined, igMetodo, lugaresMuerte });
         if (r.ok) {
+            localStorage.setItem('vetfield_lugares_muerte', JSON.stringify(lugaresMuerte));
             const sess = AuthManager.getSession();
+            if (sess) {
+                sess.lugaresMuerte = lugaresMuerte;
+                localStorage.setItem(SESSION_KEY, JSON.stringify(sess));
+            }
             this._syncProfile(sess);
             this._syncAvatar(sess);
             if (document.getElementById('edit-new-password')) document.getElementById('edit-new-password').value = '';
             const bar = document.getElementById('profile-pwd-strength');
             if (bar) { bar.style.display = 'none'; bar.innerHTML = ''; }
-            if (typeof showToast === 'function') showToast('Perfil actualizado.');
+
+            // Re-renderizar opciones de supervivencia en el formulario principal y gráficos del dashboard
+            if (typeof window.renderSurvivalRadios === 'function') window.renderSurvivalRadios();
+            if (typeof window.refreshDashboard === 'function') window.refreshDashboard();
+
+            if (typeof showToast === 'function') showToast('Perfil y lugares actualizados.');
         } else {
             this._err('profile-error', r.error);
         }
@@ -943,6 +1085,16 @@ function authToggleEye(inputId, btn) {
             : '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
     }
 }
+
+window.getLugaresMuerte = function() {
+    return (typeof AuthManager !== 'undefined' && typeof AuthManager.getLugaresMuerte === 'function')
+        ? AuthManager.getLugaresMuerte()
+        : [
+            { nombre: 'Establecimiento', activo: true },
+            { nombre: 'Guachería',       activo: true },
+            { nombre: 'Terapia',         activo: true }
+        ];
+};
 
 window.AuthManager = AuthManager;
 window.AuthUI = AuthUI;

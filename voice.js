@@ -152,14 +152,30 @@ const VoiceMapper = {
         const isDeadKeyword = /\b(?:muert[ao]|falleci[o\u00f3]|baj[a\u00f3])\b/i.test(t);
         const isVivoKeyword = /\b(?:viv[oa]|est[a\u00e1]\s+bien|bien)\b/i.test(t);
 
-        if (/\b(?:lugar\s+)?(?:guacher[ií]?as?|huacher[ií]?as?)\b/i.test(t)) {
+        // Lugares dinámicos configurados por el veterinario
+        const configLugares = (typeof window.getLugaresMuerte === 'function' ? window.getLugaresMuerte() : []);
+        let matchedDynamicLugar = null;
+        for (const lug of configLugares) {
+            if (lug && lug.activo && lug.nombre) {
+                const esc = lug.nombre.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                if (new RegExp(`\\b(?:lugar\\s+|en\\s+)?${esc}\\b`, 'i').test(t)) {
+                    matchedDynamicLugar = lug.nombre.trim();
+                    break;
+                }
+            }
+        }
+
+        if (matchedDynamicLugar) {
+            d.estado = `Muerto en ${matchedDynamicLugar}`;
+        } else if (/\b(?:lugar\s+)?(?:guacher[ií]?as?|huacher[ií]?as?)\b/i.test(t)) {
             d.estado = 'Muerto en Guachería';
         } else if (/\b(?:lugar\s+)?terapia\b/i.test(t)) {
             d.estado = 'Muerto en Terapia';
         } else if (/\bmuert[ao]\s*(?:en\s+(?:el\s+)?)?establecimiento\b/i.test(t)) {
             d.estado = 'Muerto en Establecimiento';
         } else if (isDeadKeyword) {
-            d.estado = 'Muerto en Establecimiento';
+            const firstActive = configLugares.find(l => l && l.activo)?.nombre || 'Establecimiento';
+            d.estado = `Muerto en ${firstActive}`;
         } else if (isVivoKeyword) {
             d.estado = 'Vivo';
         }
@@ -602,7 +618,15 @@ function voice_renderSummary(data) {
         const style = highlightDead || highlightSalud;
 
         if (f.type === 'select') {
-            const opts = f.opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o || '—'}</option>`).join('');
+            let optionsList = f.opts;
+            if (f.key === 'estado') {
+                const configLug = (typeof window.getLugaresMuerte === 'function' ? window.getLugaresMuerte() : [])
+                    .filter(l => l && l.activo && l.nombre)
+                    .map(l => `Muerto en ${l.nombre}`);
+                optionsList = ['Vivo', ...configLug];
+                if (val && !optionsList.includes(val)) optionsList.push(val);
+            }
+            const opts = optionsList.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o || '—'}</option>`).join('');
             return `<div class="voice-field-row"><div class="voice-field-label">${f.label}</div><select class="voice-field-input voice-field-select ${detected ? 'detected' : ''}" data-key="${f.key}" style="${style}">${opts}</select></div>`;
         }
         return `<div class="voice-field-row"><div class="voice-field-label">${f.label}</div><input type="${f.type}" class="voice-field-input ${detected ? 'detected' : ''}" data-key="${f.key}" value="${val}" placeholder="—" style="${style}"></div>`;

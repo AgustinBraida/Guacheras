@@ -1263,18 +1263,65 @@ function _renderUbicacionMortalidad(data) {
     if (!ctx) return;
 
     const muertos = data.filter(r => r.estado !== 'Vivo');
-    const establecimiento = muertos.filter(r => r.estado === 'Muerto en Establecimiento').length;
-    const guacheria = muertos.filter(r => r.estado === 'Muerto en Guachería').length;
-    const terapia = muertos.filter(r => r.estado === 'Muerto en Terapia').length;
+
+    // 1. Obtener lugares configurados activos
+    const configLugares = (typeof window.getLugaresMuerte === 'function' ? window.getLugaresMuerte() : [])
+        .filter(l => l && l.activo && l.nombre)
+        .map(l => l.nombre.trim());
+
+    // 2. Extraer lugares presentes en los registros de muerte
+    const dataLugares = [];
+    muertos.forEach(r => {
+        let loc = (r.estado || '').replace(/^Muerto\s+en\s+/i, '').trim();
+        if (!loc || loc.toLowerCase() === 'vivo') loc = 'Otro';
+        if (!dataLugares.some(d => d.toLowerCase() === loc.toLowerCase())) {
+            dataLugares.push(loc);
+        }
+    });
+
+    // 3. Unir respetando primero el orden de los configurados, luego los no configurados que existan en datos
+    const allLabels = [...configLugares];
+    dataLugares.forEach(loc => {
+        if (!allLabels.some(l => l.toLowerCase() === loc.toLowerCase())) {
+            allLabels.push(loc);
+        }
+    });
+
+    if (allLabels.length === 0) {
+        allLabels.push('Establecimiento', 'Guachería', 'Terapia');
+    }
+
+    // 4. Conteo de muertes por cada lugar
+    const counts = allLabels.map(loc => {
+        return muertos.filter(r => {
+            const rLoc = (r.estado || '').replace(/^Muerto\s+en\s+/i, '').trim();
+            return rLoc.toLowerCase() === loc.toLowerCase();
+        }).length;
+    });
+
+    // 5. Paleta armónica de colores para cualquier número de lugares
+    const COLOR_PALETTE = [
+        { bg: (PALETTE.danger || '#ef4444') + ALPHA80, border: PALETTE.danger || '#ef4444' },
+        { bg: (PALETTE.orange || '#f97316') + ALPHA80, border: PALETTE.orange || '#f97316' },
+        { bg: (PALETTE.warning || '#f59e0b') + ALPHA80, border: PALETTE.warning || '#f59e0b' },
+        { bg: 'rgba(168, 85, 247, 0.8)', border: '#a855f7' },
+        { bg: 'rgba(236, 72, 153, 0.8)', border: '#ec4899' },
+        { bg: 'rgba(20, 184, 166, 0.8)', border: '#14b8a6' },
+        { bg: 'rgba(59, 130, 246, 0.8)', border: '#3b82f6' },
+        { bg: 'rgba(99, 102, 241, 0.8)', border: '#6366f1' },
+    ];
+
+    const bgColors = allLabels.map((_, i) => COLOR_PALETTE[i % COLOR_PALETTE.length].bg);
+    const borderColors = allLabels.map((_, i) => COLOR_PALETTE[i % COLOR_PALETTE.length].border);
 
     _dashCharts.chart_ubicacion = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Establecimiento', 'Guachería', 'Terapia'],
+            labels: allLabels,
             datasets: [{
-                data: [establecimiento, guacheria, terapia],
-                backgroundColor: [PALETTE.danger + ALPHA80, PALETTE.orange + ALPHA80, PALETTE.warning + ALPHA80],
-                borderColor: [PALETTE.danger, PALETTE.orange, PALETTE.warning],
+                data: counts,
+                backgroundColor: bgColors,
+                borderColor: borderColors,
                 borderWidth: 2,
                 hoverOffset: 8,
             }]
@@ -1288,7 +1335,7 @@ function _renderUbicacionMortalidad(data) {
                     position: 'bottom',
                     labels: {
                         font: { family: 'Inter', size: 11 },
-                        color: '#475569',
+                        color: (typeof _getThemeColors === 'function' ? _getThemeColors().legendText : '#475569'),
                         padding: 16,
                         usePointStyle: true,
                     }
