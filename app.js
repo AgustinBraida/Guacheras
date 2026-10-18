@@ -18,6 +18,11 @@ let productores          = [];
 let establecimientos_por_productor = {};
 let lastEntry            = {};
 
+// Variables para el popup de conflicto de RP
+let _pendingNewRecord        = null; // registro que está intentando guardarse
+let _pendingConflictExisting = null; // datos del existente devueltos por el servidor
+
+
 // Claves localStorage SOLO para modo offline
 function getKeys(uid) {
     return {
@@ -709,256 +714,94 @@ function bindEntryForm() {
         const fechaVal           = document.getElementById('f_fecha').value;
         const rpTerneroVal       = document.getElementById('f_rp_ternero').value.trim();
 
-        // 1. Check if rp_ternero is filled and matches an existing record
+        // matchedRecord ya no se usa para auto-update silencioso.
+        // La detección de duplicado ahora la hace el servidor y devuelve conflict:true.
         let matchedRecord = null;
-        if (rpTerneroVal !== '') {
-            matchedRecord = records.find(r => r.rp_ternero && r.rp_ternero.trim().toUpperCase() === rpTerneroVal.toUpperCase());
-        }
 
-        if (matchedRecord) {
-            console.log('[VETFIELD] 🔄 Ternero existente encontrado. RP:', rpTerneroVal);
-            
-            // Construct the updated record object starting from the matched record
-            const updatedRecord = { ...matchedRecord };
+        // ── Construir el registro nuevo desde el formulario ──────────────────
+        const isVivo = document.querySelector('input[name="survival"]:checked').value === 'Vivo';
+        const catVal = isVivo ? '' : document.getElementById('f_causa_categoria_val').value;
+        const espVal = isVivo ? '' : (catVal === 'Otra Causa'
+            ? document.getElementById('f_causa_especifica_custom').value.trim()
+            : document.getElementById('f_causa_especifica').value);
 
-            // productor: required, update if not empty
-            if (productorVal.trim() !== '') {
-                updatedRecord.productor = productorVal.trim();
-            }
-            // establecimiento: update if not empty
-            if (establecimientoVal.trim() !== '') {
-                updatedRecord.establecimiento = establecimientoVal.trim();
-            }
-            // fecha: update if dirty or if it changed
-            const fechaInput = document.getElementById('f_fecha');
-            if (fechaInput && (fechaInput.dataset.dirty === 'true' || fechaVal !== matchedRecord.fecha)) {
-                updatedRecord.fecha = fechaVal;
-            }
-            // ig_ternero: update if filled
-            const igTerneroVal = document.getElementById('f_ig_ternero').value.trim();
-            if (igTerneroVal !== '') {
-                updatedRecord.ig_ternero = igTerneroVal;
-            }
-            // sexo: update if dirty
-            const sexoInput = document.getElementById('f_sexo_val');
-            if (sexoInput && (sexoInput.dataset.dirty === 'true' || matchedRecord.sexo === undefined || matchedRecord.sexo === null)) {
-                updatedRecord.sexo = sexoInput.value;
-            }
-            // ombligo: update if dirty
-            const ombligoInput = document.getElementById('f_ombligo_val');
-            if (ombligoInput && (ombligoInput.dataset.dirty === 'true' || matchedRecord.ombligo === undefined || matchedRecord.ombligo === null)) {
-                updatedRecord.ombligo = ombligoInput.value;
-            }
-            // tipo_madre: update if dirty
-            const tipoMadreInput = document.getElementById('f_tipo_madre');
-            if (tipoMadreInput && (tipoMadreInput.dataset.dirty === 'true' || matchedRecord.tipo_madre === undefined || matchedRecord.tipo_madre === null)) {
-                updatedRecord.tipo_madre = tipoMadreInput.value;
-            }
-            // tipo_parto: update if dirty
-            const tipoPartoInput = document.getElementById('f_tipo_parto_val');
-            if (tipoPartoInput && (tipoPartoInput.dataset.dirty === 'true' || matchedRecord.tipo_parto === undefined || matchedRecord.tipo_parto === null)) {
-                updatedRecord.tipo_parto = tipoPartoInput.value;
-            }
-            // tipo_calostro: update if dirty
-            const tipoCalostroInput = document.getElementById('f_tipo_calostro_val');
-            if (tipoCalostroInput && (tipoCalostroInput.dataset.dirty === 'true' || matchedRecord.tipo_calostro === undefined || matchedRecord.tipo_calostro === null)) {
-                updatedRecord.tipo_calostro = tipoCalostroInput.value;
-            }
-            // metodo_calostrado: update if dirty
-            const metodoCalostroInput = document.getElementById('f_metodo_calostrado_val');
-            if (metodoCalostroInput && (metodoCalostroInput.dataset.dirty === 'true' || matchedRecord.metodo_calostrado === undefined || matchedRecord.metodo_calostrado === null)) {
-                updatedRecord.metodo_calostrado = metodoCalostroInput.value;
-            }
-            // rp_madre: update if filled
-            const rpMadreVal = document.getElementById('f_rp_madre').value.trim();
-            if (rpMadreVal !== '') {
-                updatedRecord.rp_madre = rpMadreVal;
-            }
-            // ig_calostro: update if filled
-            const igCalostroVal = document.getElementById('f_ig_calostro').value.trim();
-            if (igCalostroVal !== '') {
-                updatedRecord.ig_calostro = igCalostroVal;
-            }
+        const estSaludVal = isVivo ? (document.getElementById('f_estado_salud')?.value || 'Sano, sin problemas aparentes') : null;
+        const detSaludVal = (isVivo && estSaludVal !== 'Sano, sin problemas aparentes') ? (document.getElementById('f_detalle_salud')?.value.trim() || '') : null;
+        if (detSaludVal) saveCustomSaludTerm(detSaludVal);
 
-            // survival: check if dirty
-            let isSurvivalDirty = false;
-            document.querySelectorAll('input[name="survival"]').forEach(radio => {
-                if (radio.dataset.dirty === 'true') isSurvivalDirty = true;
-            });
+        const newRecord = {
+            establecimiento: establecimientoVal,
+            fecha:           fechaVal,
+            productor:       productorVal,
+            rp_ternero:      rpTerneroVal,
+            ig_ternero:      document.getElementById('f_ig_ternero').value,
+            sexo:            document.getElementById('f_sexo_val').value,
+            ombligo:         document.getElementById('f_ombligo_val').value,
+            tipo_madre:      document.getElementById('f_tipo_madre').value,
+            tipo_parto:      (document.getElementById('f_tipo_parto_val')?.value) || 'Normal',
+            rp_madre:        document.getElementById('f_rp_madre').value,
+            tipo_calostro:   (document.getElementById('f_tipo_calostro_val')?.value) || 'De la madre',
+            metodo_calostrado: (document.getElementById('f_metodo_calostrado_val')?.value) || 'Con mamadera',
+            ig_calostro:     document.getElementById('f_ig_calostro').value,
+            estado:          document.querySelector('input[name="survival"]:checked').value,
+            estado_salud:    estSaludVal,
+            detalle_salud:   detSaludVal,
+            causa:           isVivo ? '' : (catVal && espVal ? `${catVal} - ${espVal}` : (catVal || espVal || '')),
+            causa_categoria: catVal,
+            causa_especifica:espVal,
+            synced:          false,
+            _local_id:       Date.now(),
+        };
 
-            if (isSurvivalDirty || matchedRecord.estado === undefined || matchedRecord.estado === null) {
-                const newEstado = document.querySelector('input[name="survival"]:checked').value;
-                updatedRecord.estado = newEstado;
-                if (newEstado === 'Vivo') {
-                    updatedRecord.causa = '';
-                    updatedRecord.causa_categoria = '';
-                    updatedRecord.causa_especifica = '';
-                    const estSalud = document.getElementById('f_estado_salud')?.value || 'Sano, sin problemas aparentes';
-                    const detSalud = estSalud !== 'Sano, sin problemas aparentes' ? (document.getElementById('f_detalle_salud')?.value.trim() || '') : '';
-                    updatedRecord.estado_salud = estSalud;
-                    updatedRecord.detalle_salud = detSalud || null;
-                    if (detSalud) saveCustomSaludTerm(detSalud);
-                } else {
-                    updatedRecord.estado_salud = null;
-                    updatedRecord.detalle_salud = null;
-                    const catVal = document.getElementById('f_causa_categoria_val').value;
-                    const espVal = catVal === 'Otra Causa'
-                        ? document.getElementById('f_causa_especifica_custom').value.trim()
-                        : document.getElementById('f_causa_especifica').value;
-                    if (catVal.trim() !== '') {
-                        updatedRecord.causa_categoria = catVal;
-                    }
-                    if (espVal.trim() !== '') {
-                        updatedRecord.causa_especifica = espVal;
-                    }
-                    updatedRecord.causa = (updatedRecord.causa_categoria && updatedRecord.causa_especifica)
-                        ? `${updatedRecord.causa_categoria} - ${updatedRecord.causa_especifica}`
-                        : (updatedRecord.causa_categoria || updatedRecord.causa_especifica || '');
-                }
-            } else {
-                // If survival wasn't changed
-                if (matchedRecord.estado === 'Vivo') {
-                    const estSalud = document.getElementById('f_estado_salud')?.value || 'Sano, sin problemas aparentes';
-                    const detSalud = estSalud !== 'Sano, sin problemas aparentes' ? (document.getElementById('f_detalle_salud')?.value.trim() || '') : '';
-                    updatedRecord.estado_salud = estSalud;
-                    updatedRecord.detalle_salud = detSalud || null;
-                    if (detSalud) saveCustomSaludTerm(detSalud);
-                } else {
-                    const catVal = document.getElementById('f_causa_categoria_val').value;
-                    const espVal = catVal === 'Otra Causa'
-                        ? document.getElementById('f_causa_especifica_custom').value.trim()
-                        : document.getElementById('f_causa_especifica').value;
-                    if (catVal.trim() !== '') {
-                        updatedRecord.causa_categoria = catVal;
-                    }
-                    if (espVal.trim() !== '') {
-                        updatedRecord.causa_especifica = espVal;
-                    }
-                    updatedRecord.causa = (updatedRecord.causa_categoria && updatedRecord.causa_especifica)
-                        ? `${updatedRecord.causa_categoria} - ${updatedRecord.causa_especifica}`
-                        : (updatedRecord.causa_categoria || updatedRecord.causa_especifica || '');
-                }
-            }
+        // Guardar el record pendiente en la variable global por si el popup necesita retomarlo
+        _pendingNewRecord = newRecord;
 
-            updatedRecord.synced = false;
+        console.log('[VETFIELD] 📦 Registro nuevo a guardar:', JSON.stringify(newRecord));
 
+        if (navigator.onLine) {
             const btnSave = form.querySelector('.btn-save');
             if (btnSave) btnSave.disabled = true;
 
-            let saved = false;
+            const res = await apiFetchApp(API_RECORDS, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'save', ...newRecord }),
+            });
 
-            if (updatedRecord.id && navigator.onLine) {
-                // Modo Online con ID: llamar a action: 'update'
-                const res = await apiFetchApp(API_RECORDS, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'update', ...updatedRecord }),
-                });
-                console.log('[VETFIELD] 🔄 Respuesta de la API para UPDATE:', JSON.stringify(res));
-                if (res.ok) {
-                    updatedRecord.synced = true;
-                    saved = true;
-                    showToast('✅ Registro del ternero actualizado en la nube.');
+            console.log('[VETFIELD] 🔄 Respuesta de la API:', JSON.stringify(res));
+
+            if (res.ok) {
+                newRecord.id     = res.id;
+                newRecord.synced = true;
+                records.unshift(newRecord);
+                showToast('✅ Registro guardado en la nube.');
+                _pendingNewRecord = null;
+            } else if (res.conflict) {
+                // ── El servidor detectó un RP duplicado → mostrar popup ──────
+                _pendingConflictExisting = res.existing; // guarda info del existente
+                _showRpConflictModal(res.existing, rpTerneroVal);
+                if (btnSave) btnSave.disabled = false;
+                return; // no limpiar el formulario todavía
+            } else if (res._httpStatus === 403) {
+                console.warn('[VETFIELD] 🚫 Límite del plan alcanzado:', res.error);
+                if (typeof showAlert === 'function') {
+                    showAlert('Límite del Plan', res.error, 'info');
                 } else {
-                    console.warn('[VETFIELD] ⚠️ UPDATE falló, guardando localmente. Error:', res.error);
+                    showToast('🚫 ' + res.error);
                 }
-            }
-
-            if (!saved) {
-                // Modo Offline o falla de API o registro sin ID: actualizar localmente
-                updatedRecord.synced = false;
-                // Actualizamos en memoria
-                Object.assign(matchedRecord, updatedRecord);
-                
-                // Actualizar offline records
-                const offline = getOfflineRecords();
-                const idx = offline.findIndex(o => (o._local_id && o._local_id === matchedRecord._local_id) || (o.id && o.id === matchedRecord.id));
-                if (idx !== -1) {
-                    Object.assign(offline[idx], updatedRecord);
-                } else {
-                    offline.unshift(updatedRecord);
-                }
-                saveOfflineRecords(offline);
-
-                showToast('💾 Sin conexión o error. Actualizado localmente.');
             } else {
-                // Actualización online exitosa, actualizar en memoria
-                Object.assign(matchedRecord, updatedRecord);
+                console.warn('[VETFIELD] ⚠️ API falló, guardando offline. Error:', res.error);
+                _saveOffline(newRecord, establecimientoVal, productorVal);
+                showToast('⚠️ Error al guardar en nube. Guardado localmente.');
+                _pendingNewRecord = null;
             }
 
             if (btnSave) btnSave.disabled = false;
-
         } else {
-            const isVivo = document.querySelector('input[name="survival"]:checked').value === 'Vivo';
-            const catVal = isVivo ? '' : document.getElementById('f_causa_categoria_val').value;
-            const espVal = isVivo ? '' : (catVal === 'Otra Causa'
-                ? document.getElementById('f_causa_especifica_custom').value.trim()
-                : document.getElementById('f_causa_especifica').value);
-
-            const estSaludVal = isVivo ? (document.getElementById('f_estado_salud')?.value || 'Sano, sin problemas aparentes') : null;
-            const detSaludVal = (isVivo && estSaludVal !== 'Sano, sin problemas aparentes') ? (document.getElementById('f_detalle_salud')?.value.trim() || '') : null;
-            if (detSaludVal) saveCustomSaludTerm(detSaludVal);
-
-            const newRecord = {
-                establecimiento: establecimientoVal,
-                fecha:           fechaVal,
-                productor:       productorVal,
-                rp_ternero:      rpTerneroVal,
-                ig_ternero:      document.getElementById('f_ig_ternero').value,
-                sexo:            document.getElementById('f_sexo_val').value,
-                ombligo:         document.getElementById('f_ombligo_val').value,
-                tipo_madre:      document.getElementById('f_tipo_madre').value,
-                tipo_parto:      (document.getElementById('f_tipo_parto_val')?.value) || 'Normal',
-                rp_madre:        document.getElementById('f_rp_madre').value,
-                tipo_calostro:   (document.getElementById('f_tipo_calostro_val')?.value) || 'De la madre',
-                metodo_calostrado: (document.getElementById('f_metodo_calostrado_val')?.value) || 'Con mamadera',
-                ig_calostro:     document.getElementById('f_ig_calostro').value,
-                estado:          document.querySelector('input[name="survival"]:checked').value,
-                estado_salud:    estSaludVal,
-                detalle_salud:   detSaludVal,
-                causa:           isVivo ? '' : (catVal && espVal ? `${catVal} - ${espVal}` : (catVal || espVal || '')),
-                causa_categoria: catVal,
-                causa_especifica:espVal,
-                synced:          false,
-                _local_id:       Date.now(), // ID temporal para modo offline
-            };
-
-            console.log('[VETFIELD] 📦 Registro nuevo a guardar:', JSON.stringify(newRecord));
-
-            if (navigator.onLine) {
-                const btnSave = form.querySelector('.btn-save');
-                if (btnSave) btnSave.disabled = true;
-
-                const res = await apiFetchApp(API_RECORDS, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'save', ...newRecord }),
-                });
-
-                console.log('[VETFIELD] 🔄 Respuesta de la API:', JSON.stringify(res));
-
-                if (res.ok) {
-                    newRecord.id     = res.id;
-                    newRecord.synced = true;
-                    records.unshift(newRecord);
-                    showToast('✅ Registro guardado en la nube.');
-                } else if (res._httpStatus === 403) {
-                    console.warn('[VETFIELD] 🚫 Límite del plan alcanzado:', res.error);
-                    if (typeof showAlert === 'function') {
-                        showAlert('Límite del Plan', res.error, 'info');
-                    } else {
-                        showToast('🚫 ' + res.error);
-                    }
-                } else {
-                    console.warn('[VETFIELD] ⚠️ API falló, guardando offline. Error:', res.error);
-                    _saveOffline(newRecord, establecimientoVal, productorVal);
-                    showToast('⚠️ Error al guardar en nube. Guardado localmente.');
-                }
-
-                if (btnSave) btnSave.disabled = false;
-            } else {
-                _saveOffline(newRecord, establecimientoVal, productorVal);
-                showToast('💾 Sin conexión. Registro guardado localmente.');
-            }
+            _saveOffline(newRecord, establecimientoVal, productorVal);
+            showToast('💾 Sin conexión. Registro guardado localmente.');
+            _pendingNewRecord = null;
         }
+
 
         // Add to datalists if not exists
         if (establecimientoVal && !establecimientos.includes(establecimientoVal)) establecimientos.push(establecimientoVal);
@@ -1034,7 +877,7 @@ function _saveOffline(record, establecimientoVal, productorVal) {
 let _currentEditId = null; // ID del registro que se está editando
 
 function openDetail(recordId) {
-    const r = records.find(rec => (rec.id || rec._local_id) === recordId);
+    const r = records.find(rec => (rec.id || rec._local_id) == recordId);
     if (!r) return;
 
     _currentEditId = recordId;
@@ -1281,7 +1124,7 @@ function refreshEditCausaEsp(cat) {
 
 
 async function saveDetail() {
-    const r = records.find(rec => (rec.id || rec._local_id) === _currentEditId);
+    const r = records.find(rec => (rec.id || rec._local_id) == _currentEditId);
     if (!r) return;
 
     const errEl = document.getElementById('edit_save_error');
@@ -1373,7 +1216,7 @@ async function saveDetail() {
 async function deleteDetail() {
     if (!_currentEditId) return;
 
-    const r = records.find(rec => (rec.id || rec._local_id) === _currentEditId);
+    const r = records.find(rec => (rec.id || rec._local_id) == _currentEditId);
     if (!r) return;
 
     const confirmMsg = `¿Estás seguro de que deseas eliminar este registro?\n` +
@@ -2732,6 +2575,9 @@ function handleImportExcelFile(event) {
                 mappedRecords.push(recordData);
             }
 
+            // --- Detectar RPs del Excel que ya existen en la BD (en memoria) ---
+            const rpConflicts = _detectExcelRpConflicts(mappedRecords);
+
             // --- Show review step ---
             _parsedExcelData = {
                 fileName: file.name,
@@ -2740,10 +2586,12 @@ function handleImportExcelFile(event) {
                 establecimientos: uniqueEstablishments,
                 registros: mappedRecords,
                 rejectedRows: rejectedRows,
-                seenRPs: seenRPs
+                seenRPs: seenRPs,
+                rpConflicts: rpConflicts
             };
 
             showImportReviewStep(file.name, json.length, mappedRecords.length, rejectedRows);
+
         } catch (err) {
             console.error(err);
             showToast('Error al parsear la planilla. Asegúrate de que no esté corrupta.');
@@ -2751,6 +2599,37 @@ function handleImportExcelFile(event) {
         }
     };
     reader.readAsArrayBuffer(file);
+}
+
+/**
+ * Detecta qué terneros de la planilla Excel tienen un R.P. que ya existe en la base de datos local
+ * para el mismo productor.
+ */
+function _detectExcelRpConflicts(mappedRecords) {
+    const conflicts = [];
+    if (!Array.isArray(mappedRecords)) return conflicts;
+    for (let i = 0; i < mappedRecords.length; i++) {
+        const rec = mappedRecords[i];
+        if (!rec.rp_ternero) continue;
+        const existing = records.find(r =>
+            r.rp_ternero &&
+            r.rp_ternero.trim().toUpperCase() === rec.rp_ternero.trim().toUpperCase() &&
+            (r.productor || '').trim().toUpperCase() === (rec.productor || '').trim().toUpperCase()
+        );
+        if (existing) {
+            conflicts.push({
+                rp:              rec.rp_ternero,
+                estado:          existing.estado,
+                fecha:           existing.fecha,
+                establecimiento: existing.establecimiento,
+                productor:       existing.productor,
+                newFecha:        rec.fecha,
+                newEstado:       rec.estado,
+                rowIndex:        i
+            });
+        }
+    }
+    return conflicts;
 }
 
 function autoResolveTwins() {
@@ -2804,6 +2683,8 @@ function autoResolveTwins() {
     _parsedExcelData.rejectedRows = _parsedExcelData.rejectedRows.filter(r => !r.isTwinCandidate);
     _parsedExcelData.seenRPs = null;
     _parsedExcelData.twinsResolved = resolvedCount;
+    // Recalcular conflictos de RP luego de resolver mellizos
+    _parsedExcelData.rpConflicts = _detectExcelRpConflicts(_parsedExcelData.registros);
 
     showToast(`¡Listo! Se diferenciaron ${resolvedCount} terneros como mellizos (A/B).`);
 
@@ -2831,9 +2712,14 @@ async function confirmImportExcel(btnEl) {
     btnEl.innerHTML = '<i data-lucide="loader-2" class="animate-spin" style="width:18px;height:18px;"></i> Importando...';
     if (window.lucide) window.lucide.createIcons();
 
+    // Obtener la preferencia de conflicto de RP (si existían conflictos)
+    const conflictModeRadio = document.querySelector('input[name="excelRpConflictMode"]:checked');
+    const rp_conflict_mode = conflictModeRadio ? conflictModeRadio.value : 'update';
+
     try {
         const payload = {
             action: 'backup_import',
+            rp_conflict_mode: rp_conflict_mode,
             data: {
                 productores: Array.isArray(_parsedExcelData.productores) 
                     ? _parsedExcelData.productores 
@@ -2994,6 +2880,84 @@ function showImportReviewStep(fileName, totalRows, validCount, rejectedRows) {
         </div>`;
     }
 
+    // RP Conflicts detail (RPs that already exist in DB for this producer)
+    const rpConflicts = (_parsedExcelData && _parsedExcelData.rpConflicts) ? _parsedExcelData.rpConflicts : [];
+    if (rpConflicts.length > 0 && hasValid) {
+        html += `
+        <div style="margin-bottom: 1.1rem; border: 1.5px solid rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.04); border-radius: 12px; padding: 14px 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                <div style="font-weight: 700; font-size: 0.88rem; color: #b45309; display: flex; align-items: center; gap: 7px;">
+                    <i data-lucide="alert-circle" style="width:18px;height:18px;color:#d97706;flex-shrink:0;"></i>
+                    <span>R.P. ya existentes en el sistema (${rpConflicts.length})</span>
+                </div>
+                <span style="font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: rgba(245,158,11,0.15); color: #b45309;">
+                    Reciclado / Actualización
+                </span>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0 0 10px 0; line-height: 1.45;">
+                Detectamos terneros en la planilla con números de R.P. que ya existen registrados para ese productor:
+            </p>
+
+            <div style="max-height: 160px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-body); margin-bottom: 12px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.77rem;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border-color); background: var(--card-bg, #ffffff);">
+                            <th style="position: sticky; top: 0; z-index: 2; background: var(--card-bg, #ffffff); padding: 7px 10px; text-align: left; color: var(--text-secondary); font-weight: 700;">R.P.</th>
+                            <th style="position: sticky; top: 0; z-index: 2; background: var(--card-bg, #ffffff); padding: 7px 10px; text-align: left; color: var(--text-secondary); font-weight: 700;">Estado en Sistema</th>
+                            <th style="position: sticky; top: 0; z-index: 2; background: var(--card-bg, #ffffff); padding: 7px 10px; text-align: left; color: var(--text-secondary); font-weight: 700;">Fecha Sistema</th>
+                            <th style="position: sticky; top: 0; z-index: 2; background: var(--card-bg, #ffffff); padding: 7px 10px; text-align: left; color: var(--text-secondary); font-weight: 700;">En Planilla</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+        for (const c of rpConflicts) {
+            const isMuerto = c.estado && c.estado !== 'Vivo';
+            const estadoColor = isMuerto ? '#dc2626' : '#16a34a';
+            const estadoIcon  = isMuerto ? '💀' : '✅';
+            const estadoBadge = `<span style="display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; font-weight:700; padding:2px 7px; border-radius:12px; background:${estadoColor}18; color:${estadoColor};">
+                ${estadoIcon} ${escHtml(c.estado || '—')}
+            </span>`;
+
+            html += `
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 6px 10px; font-weight: 800; font-family: monospace; color: var(--primary);">${escHtml(c.rp)}</td>
+                            <td style="padding: 6px 10px;">${estadoBadge}</td>
+                            <td style="padding: 6px 10px; color: var(--text-secondary);">${escHtml(c.fecha || '—')}</td>
+                            <td style="padding: 6px 10px; color: var(--text-main); font-weight: 600;">${escHtml(c.newFecha || '—')} <span style="font-size:0.72rem; color:var(--text-secondary);">(${escHtml(c.newEstado || 'Vivo')})</span></td>
+                        </tr>`;
+        }
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Selector de decisión -->
+            <div style="margin-top: 8px;">
+                <div style="font-weight: 700; font-size: 0.82rem; color: var(--text-main); margin-bottom: 8px;">
+                    ¿Qué deseas hacer con estos terneros?
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--border-color); background: var(--card-bg, #ffffff); cursor: pointer;">
+                        <input type="radio" name="excelRpConflictMode" value="update" checked style="margin-top: 3px; accent-color: var(--primary);">
+                        <div style="font-size: 0.8rem; line-height: 1.4;">
+                            <strong style="color: var(--text-main); display: block;">Actualizar datos existentes</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.74rem;">Actualiza la información del ternero existente con los datos de esta planilla.</span>
+                        </div>
+                    </label>
+
+                    <label style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--border-color); background: var(--card-bg, #ffffff); cursor: pointer;">
+                        <input type="radio" name="excelRpConflictMode" value="create_new" style="margin-top: 3px; accent-color: var(--primary);">
+                        <div style="font-size: 0.8rem; line-height: 1.4;">
+                            <strong style="color: var(--text-main); display: block;">Son terneros nuevos (Reutilizan R.P.)</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.74rem;">Crea nuevos terneros con identificador único propio (ideal cuando se recicla la caravana por muerte previa).</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>`;
+    }
+
     // Question and action buttons
     if (hasValid && hasErrors) {
         html += `
@@ -3048,6 +3012,102 @@ function showImportReviewStep(fileName, totalRows, validCount, rejectedRows) {
     if (window.lucide) window.lucide.createIcons();
 }
 
+// =============================================================
+// ── POPUP DE CONFLICTO DE RP ─────────────────────────────────
+// =============================================================
+
+/**
+ * Muestra el modal de conflicto de R.P. con los datos del ternero existente.
+ * @param {Object} existing  - { id, estado, fecha, establecimiento, productor }
+ * @param {string} rp        - El RP que se intentó guardar
+ */
+function _showRpConflictModal(existing, rp) {
+    const modal = document.getElementById('rpConflictModal');
+    const body  = document.getElementById('rpConflictBody');
+    if (!modal || !body) return;
+
+    const estadoColor = existing.estado && existing.estado !== 'Vivo' ? '#dc2626' : '#16a34a';
+    const estadoIcon  = existing.estado && existing.estado !== 'Vivo' ? '💀' : '✅';
+
+    body.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+            <span style="font-family:monospace;font-size:1rem;font-weight:800;color:var(--primary);">R.P. ${escHtml(String(rp))}</span>
+            <span style="font-size:0.75rem;font-weight:700;padding:2px 8px;border-radius:20px;background:${estadoColor}18;color:${estadoColor};">
+                ${estadoIcon} ${escHtml(existing.estado || 'Desconocido')}
+            </span>
+        </div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);line-height:1.7;">
+            <div><strong>Productor:</strong> ${escHtml(existing.productor || '—')}</div>
+            <div><strong>Establecimiento:</strong> ${escHtml(existing.establecimiento || '—')}</div>
+            <div><strong>Fecha de registro:</strong> ${escHtml(existing.fecha || '—')}</div>
+        </div>
+    `;
+
+    modal.classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
+}
+
+function closeRpConflictModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    const modal = document.getElementById('rpConflictModal');
+    if (modal) modal.classList.remove('active');
+}
+
+/** El usuario elige ACTUALIZAR → abre el modal de edición del ternero existente */
+async function rpConflictUpdate() {
+    const modal = document.getElementById('rpConflictModal');
+    if (modal) modal.classList.remove('active');
+
+    if (!_pendingConflictExisting) return;
+
+    // Abrir el modal de edición con el registro existente
+    openDetail(_pendingConflictExisting.id);
+
+    _pendingNewRecord        = null;
+    _pendingConflictExisting = null;
+}
+
+/** El usuario elige CREAR NUEVO → reenvía el registro con force_create=true */
+async function rpConflictCreateNew() {
+    const updateBtn = document.getElementById('rpConflict-create-btn');
+    const modal     = document.getElementById('rpConflictModal');
+
+    if (!_pendingNewRecord) return;
+
+    if (updateBtn) { updateBtn.disabled = true; updateBtn.textContent = 'Guardando...'; }
+
+    try {
+        const res = await apiFetchApp(API_RECORDS, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'save', force_create: true, ..._pendingNewRecord }),
+        });
+
+        if (res.ok) {
+            _pendingNewRecord.id     = res.id;
+            _pendingNewRecord.synced = true;
+            records.unshift(_pendingNewRecord);
+            showToast('✅ Nuevo ternero creado con el mismo R.P.');
+            updateUI();
+            // Limpiar el formulario principal
+            const form = document.getElementById('entryForm');
+            if (form) {
+                form.reset();
+                form.querySelectorAll('[data-dirty]').forEach(el => delete el.dataset.dirty);
+            }
+        } else {
+            showToast('Error al crear el ternero: ' + (res.error || 'Intente de nuevo.'));
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Error de red al guardar.');
+    } finally {
+        if (modal) modal.classList.remove('active');
+        if (updateBtn) { updateBtn.disabled = false; updateBtn.textContent = 'Crear nuevo con mismo R.P.'; }
+        _pendingNewRecord        = null;
+        _pendingConflictExisting = null;
+    }
+}
+
 window.exportBackup = exportBackup;
 window.closeExportModal = closeExportModal;
 window.confirmExport = confirmExport;
@@ -3062,6 +3122,9 @@ window.confirmImportExcel = confirmImportExcel;
 window.resetImportExcelModal = resetImportExcelModal;
 window.showImportReviewStep = showImportReviewStep;
 window.autoResolveTwins = autoResolveTwins;
+window.closeRpConflictModal = closeRpConflictModal;
+window.rpConflictUpdate = rpConflictUpdate;
+window.rpConflictCreateNew = rpConflictCreateNew;
 
 // =============================================================
 // ARRANQUE — auth.js llama a appLoadForUser() al confirmar sesión

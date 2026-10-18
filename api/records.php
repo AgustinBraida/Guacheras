@@ -264,130 +264,35 @@ function action_save(string $uid, array $in): void {
     if (!$fecha || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha))
         json_response(['ok' => false, 'error' => 'Fecha inválida.']);
 
-    $rp_ternero = trim($in['rp_ternero'] ?? '');
+    $rp_ternero   = trim($in['rp_ternero'] ?? '');
+    $force_create = !empty($in['force_create']); // true = siempre INSERT, ignorar duplicado de RP
+
+    // Si no se fuerza la creación, buscar si ya existe un ternero con ese RP para este productor
     $existing = null;
-    if ($rp_ternero !== '') {
-        $stmt_check = $db->prepare("SELECT * FROM registros WHERE user_id = ? AND UPPER(rp_ternero) = UPPER(?) LIMIT 1");
-        $stmt_check->execute([$uid, $rp_ternero]);
+    if ($rp_ternero !== '' && !$force_create) {
+        $stmt_check = $db->prepare(
+            "SELECT id, estado, fecha, establecimiento, productor FROM registros
+              WHERE user_id = ? AND productor = ? AND UPPER(rp_ternero) = UPPER(?)
+              ORDER BY fecha DESC, id DESC LIMIT 1"
+        );
+        $stmt_check->execute([$uid, $productor, $rp_ternero]);
         $existing = $stmt_check->fetch();
     }
 
-    if ($existing) {
-        $existing_id = $existing['id'];
-
-        // Fusión de campos: si el dato entrante no está cargado (vacío/nulo), mantener el de la BD.
-        $productor       = trim($in['productor'] ?? '') ?: $existing['productor'];
-        $establecimiento = trim($in['establecimiento'] ?? '') ?: $existing['establecimiento'];
-        $fecha           = trim($in['fecha'] ?? '') ?: $existing['fecha'];
-        
-        $ig_ternero = (isset($in['ig_ternero']) && is_numeric($in['ig_ternero'])) 
-            ? (float)$in['ig_ternero'] 
-            : ($existing['ig_ternero'] !== null ? (float)$existing['ig_ternero'] : null);
-            
-        $sexo = (isset($in['sexo']) && in_array($in['sexo'], ['Macho', 'Hembra'])) 
-            ? $in['sexo'] 
-            : ($existing['sexo'] ?: 'Macho');
-            
-        $ombligo = (isset($in['ombligo']) && in_array($in['ombligo'], ['Bueno', 'Regular', 'Malo'])) 
-            ? $in['ombligo'] 
-            : ($existing['ombligo'] ?: 'Bueno');
-            
-        $tipo_madre = (isset($in['tipo_madre']) && in_array($in['tipo_madre'], ['Vaca', 'Vaquillona'])) 
-            ? $in['tipo_madre'] 
-            : ($existing['tipo_madre'] ?: 'Vaca');
-
-        $tipo_parto = (isset($in['tipo_parto']) && in_array($in['tipo_parto'], ['Normal', 'Asistido', 'Muerto al parto'])) 
-            ? $in['tipo_parto'] 
-            : (($existing['tipo_parto'] ?? null) ?: 'Normal');
-            
-        $rp_madre = trim($in['rp_madre'] ?? '') ?: $existing['rp_madre'];
-        
-        $tipo_calostro = (isset($in['tipo_calostro']) && in_array($in['tipo_calostro'], ['De la madre', 'Banco de calostro', 'Calostro mejorado'])) 
-            ? $in['tipo_calostro'] 
-            : (($existing['tipo_calostro'] ?? null) ?: 'De la madre');
-
-        $metodo_calostrado = (isset($in['metodo_calostrado']) && in_array($in['metodo_calostrado'], ['Con mamadera', 'Con sonda', 'Mamó solo'])) 
-            ? $in['metodo_calostrado'] 
-            : (($existing['metodo_calostrado'] ?? null) ?: 'Con mamadera');
-
-        $ig_calostro = (isset($in['ig_calostro']) && is_numeric($in['ig_calostro'])) 
-            ? (float)$in['ig_calostro'] 
-            : ($existing['ig_calostro'] !== null ? (float)$existing['ig_calostro'] : null);
-            
-        $estado = trim($in['estado'] ?? '') ?: $existing['estado'];
-        
-        $causa = trim($in['causa'] ?? '') ?: $existing['causa'];
-        $causa_cat = trim($in['causa_categoria'] ?? '') ?: $existing['causa_categoria'];
-        $causa_esp = trim($in['causa_especifica'] ?? '') ?: $existing['causa_especifica'];
-        $estado_salud = null;
-        $detalle_salud = null;
-
-        // Si el estado fusionado es 'Vivo', limpiar las causas y procesar salud
-        if ($estado === 'Vivo') {
-            $causa = null;
-            $causa_cat = null;
-            $causa_esp = null;
-            $estado_salud = in_array($in['estado_salud'] ?? '', [
-                'Sano, sin problemas aparentes',
-                'Nació con algún problema o malformación',
-                'Está enfermo actualmente',
-                'Tuvo una enfermedad anteriormente'
-            ]) ? $in['estado_salud'] : (($existing['estado_salud'] ?? null) ?: 'Sano, sin problemas aparentes');
-            $detalle_salud = ($estado_salud !== 'Sano, sin problemas aparentes') ? (trim($in['detalle_salud'] ?? '') ?: ($existing['detalle_salud'] ?? null)) : null;
-        }
-
-        $stmt_update = $db->prepare(
-            "UPDATE registros
-             SET establecimiento = :establecimiento,
-                 fecha = :fecha,
-                 productor = :productor,
-                 rp_ternero = :rp_ternero,
-                 ig_ternero = :ig_ternero,
-                 sexo = :sexo,
-                 ombligo = :ombligo,
-                 tipo_madre = :tipo_madre,
-                 tipo_parto = :tipo_parto,
-                 rp_madre = :rp_madre,
-                 tipo_calostro = :tipo_calostro,
-                 metodo_calostrado = :metodo_calostrado,
-                 ig_calostro = :ig_calostro,
-                 estado = :estado,
-                 estado_salud = :estado_salud,
-                 detalle_salud = :detalle_salud,
-                 causa = :causa,
-                 causa_categoria = :causa_cat,
-                 causa_especifica = :causa_esp
-             WHERE id = :id AND user_id = :uid"
-        );
-
-        $stmt_update->execute([
-            ':id'              => $existing_id,
-            ':uid'             => $uid,
-            ':productor'       => $productor,
-            ':establecimiento' => $establecimiento ?: null,
-            ':fecha'           => $fecha,
-            ':rp_ternero'      => $rp_ternero ?: null,
-            ':ig_ternero'      => $ig_ternero,
-            ':sexo'            => $sexo,
-            ':ombligo'         => $ombligo,
-            ':tipo_madre'      => $tipo_madre,
-            ':tipo_parto'      => $tipo_parto,
-            ':rp_madre'        => $rp_madre ?: null,
-            ':tipo_calostro'   => $tipo_calostro,
-            ':metodo_calostrado' => $metodo_calostrado,
-            ':ig_calostro'     => $ig_calostro,
-            ':estado'          => $estado,
-            ':estado_salud'    => $estado_salud,
-            ':detalle_salud'   => $detalle_salud,
-            ':causa'           => $causa ?: null,
-            ':causa_cat'       => $causa_cat ?: null,
-            ':causa_esp'       => $causa_esp ?: null,
+    // Si existe y el cliente NO pidió force_create → devolver info del conflicto
+    // para que el front muestre el popup de decisión
+    if ($existing && !$force_create) {
+        json_response([
+            'ok'       => false,
+            'conflict' => true,
+            'existing' => [
+                'id'              => $existing['id'],
+                'estado'          => $existing['estado'],
+                'fecha'           => $existing['fecha'],
+                'establecimiento' => $existing['establecimiento'],
+                'productor'       => $existing['productor'],
+            ]
         ]);
-
-        _manageRelations($db, $uid, $productor, $establecimiento);
-
-        json_response(['ok' => true, 'id' => $existing_id]);
-        return;
     }
 
     // ── Verificar límites del plan antes de insertar ──────────────────
@@ -633,9 +538,12 @@ function action_backup_import(string $uid, array $in): void {
         json_response(['ok' => false, 'error' => 'Datos de respaldo inválidos o vacíos.']);
     }
     
-    $productores = $data['productores'] ?? [];
-    $establecimientos = $data['establecimientos'] ?? [];
-    $registros = $data['registros'] ?? [];
+    $productores      = $data['productores']      ?? [];
+    $establecimientos = $data['establecimientos']  ?? [];
+    $registros        = $data['registros']         ?? [];
+    // 'update' (default) → actualiza si coincide RP+productor+fecha
+    // 'create_new'        → siempre inserta un registro nuevo
+    $rp_conflict_mode = trim($in['rp_conflict_mode'] ?? 'update');
     
     $db->beginTransaction();
     try {
@@ -695,14 +603,22 @@ function action_backup_import(string $uid, array $in): void {
             if (!$productor || !$fecha) continue;
             
             $existing = null;
-            if ($rp_ternero) {
-                $stmt_check = $db->prepare("SELECT id FROM registros WHERE user_id = ? AND productor = ? AND UPPER(rp_ternero) = UPPER(?) AND fecha = ? LIMIT 1");
-                $stmt_check->execute([$uid, $productor, $rp_ternero, $fecha]);
-                $existing = $stmt_check->fetchColumn();
-            } else {
-                $stmt_check = $db->prepare("SELECT id FROM registros WHERE user_id = ? AND productor = ? AND (establecimiento = ? OR (establecimiento IS NULL AND ? IS NULL)) AND fecha = ? LIMIT 1");
-                $stmt_check->execute([$uid, $productor, $establecimiento, $establecimiento, $fecha]);
-                $existing = $stmt_check->fetchColumn();
+            if ($rp_conflict_mode !== 'create_new') {
+                // Sólo buscar existente si no estamos en modo "crear nuevo siempre"
+                if ($rp_ternero) {
+                    $stmt_check = $db->prepare("SELECT id FROM registros WHERE user_id = ? AND productor = ? AND UPPER(rp_ternero) = UPPER(?) AND fecha = ? LIMIT 1");
+                    $stmt_check->execute([$uid, $productor, $rp_ternero, $fecha]);
+                    $existing = $stmt_check->fetchColumn();
+                    if (!$existing && $rp_conflict_mode === 'update') {
+                        $stmt_check2 = $db->prepare("SELECT id FROM registros WHERE user_id = ? AND productor = ? AND UPPER(rp_ternero) = UPPER(?) ORDER BY fecha DESC, id DESC LIMIT 1");
+                        $stmt_check2->execute([$uid, $productor, $rp_ternero]);
+                        $existing = $stmt_check2->fetchColumn();
+                    }
+                } else {
+                    $stmt_check = $db->prepare("SELECT id FROM registros WHERE user_id = ? AND productor = ? AND (establecimiento = ? OR (establecimiento IS NULL AND ? IS NULL)) AND fecha = ? LIMIT 1");
+                    $stmt_check->execute([$uid, $productor, $establecimiento, $establecimiento, $fecha]);
+                    $existing = $stmt_check->fetchColumn();
+                }
             }
             
             $ig_ternero  = normalize_ig_val(is_numeric($r['ig_ternero'] ?? null) ? (float)$r['ig_ternero'] : null);
@@ -739,6 +655,7 @@ function action_backup_import(string $uid, array $in): void {
                     "UPDATE registros
                      SET establecimiento = :establecimiento,
                          productor = :productor,
+                         fecha = :fecha,
                          ig_ternero = :ig_ternero,
                          sexo = :sexo,
                          ombligo = :ombligo,
@@ -761,6 +678,7 @@ function action_backup_import(string $uid, array $in): void {
                     ':uid' => $uid,
                     ':productor' => $productor,
                     ':establecimiento' => $establecimiento,
+                    ':fecha' => $fecha,
                     ':ig_ternero' => $ig_ternero,
                     ':sexo' => $sexo,
                     ':ombligo' => $ombligo,
