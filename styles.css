@@ -1904,6 +1904,38 @@ html.dark .del-prod-warning {
     /* Fix: Chart.js necesita height explícita en mobile */
 }
 
+/* ── Tendencia toggle Semanal/Mensual ── */
+.tendencia-toggle {
+    display: flex;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border, rgba(255,255,255,0.12));
+}
+
+.tendencia-toggle-btn {
+    background: transparent;
+    border: none;
+    padding: 3px 10px;
+    font-size: 0.68rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+    white-space: nowrap;
+}
+
+.tendencia-toggle-btn.active {
+    background: var(--accent, #6366f1);
+    color: #fff;
+}
+
+.tendencia-toggle-btn:not(.active):hover {
+    background: rgba(255,255,255,0.07);
+    color: var(--text-main);
+}
+
+
 /* ── Ranking Table ── */
 .ranking-table {
     width: 100%;

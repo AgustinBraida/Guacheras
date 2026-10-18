@@ -77,6 +77,10 @@ async function appLoadForUser(uid) {
     updateUI();
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
+    if (typeof applyIgMetodo === 'function' && typeof AuthManager !== 'undefined') {
+        applyIgMetodo(AuthManager.getIgMetodo());
+    }
+
     // Inicializar dashboard con datos cargados
     // Timeout aumentado para mobile: el layout necesita estar pintado antes de que Chart.js calcule dimensiones
     if (typeof initDashboard === 'function') {
@@ -85,6 +89,33 @@ async function appLoadForUser(uid) {
 }
 
 window.appLoadForUser = appLoadForUser;
+
+// ─── Aplicar preferencia de método de medición de I.G. Calostro (Brix vs mg/dL) ──
+function applyIgMetodo(metodo) {
+    const isBrix = (metodo || (typeof AuthManager !== 'undefined' ? AuthManager.getIgMetodo() : 'brix')) === 'brix';
+    const unitText = isBrix ? '% Brix' : 'mg/dL';
+
+    // 1. Unidad en el formulario de carga de nuevo ternero
+    const fUnit = document.getElementById('f_ig_calostro_unit');
+    if (fUnit) fUnit.textContent = unitText;
+
+    // 2. Unidades en el panel de configuración de umbrales
+    document.querySelectorAll('.kpi-ig-unit').forEach(el => {
+        el.textContent = unitText;
+    });
+
+    // 3. Subtítulo en la tarjeta de KPI si no tiene datos calculados
+    const kpiIgSub = document.getElementById('kpi_ig_sub');
+    if (kpiIgSub && (!kpiIgSub.textContent || kpiIgSub.textContent.includes('promedio'))) {
+        kpiIgSub.textContent = `${unitText} promedio`;
+    }
+
+    // 4. Refrescar dashboard y gráficos con la nueva unidad y umbrales correspondientes
+    if (typeof window.refreshDashboardIgMetodo === 'function') {
+        window.refreshDashboardIgMetodo(isBrix ? 'brix' : 'mgdl');
+    }
+}
+window.applyIgMetodo = applyIgMetodo;
 
 // ─── Cargar datos desde la API ───────────────────────────────
 async function loadFromAPI() {
@@ -1121,7 +1152,7 @@ function openDetail(recordId) {
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>I.G. Calostro</label>
+                    <label>I.G. Calostro (${(typeof AuthManager !== 'undefined' && AuthManager.getIgMetodo() === 'brix') ? '% Brix' : 'mg/dL'})</label>
                     <input id="edit_ig_calostro" type="number" step="0.1" value="${r.ig_calostro ?? ''}">
                 </div>
             </div>
@@ -1932,7 +1963,7 @@ async function generateXlsxReport(res) {
             "R.P. Madre": r.rp_madre || "-",
             "Tipo de Calostro": r.tipo_calostro || "De la madre",
             "Método de Calostrado": r.metodo_calostrado || "Con mamadera",
-            "I.G. Calostro (mg/dL)": r.ig_calostro !== null ? Number(r.ig_calostro) : "-",
+            [((typeof AuthManager !== 'undefined' && AuthManager.getIgMetodo() === 'brix') ? "I.G. Calostro (% Brix)" : "I.G. Calostro (mg/dL)")]: r.ig_calostro !== null ? Number(r.ig_calostro) : "-",
             "Estado": r.estado || "-",
             "Condición Salud (Vivo)": (r.estado === 'Vivo') ? (r.estado_salud || "Sano, sin problemas aparentes") : "-",
             "Detalle Enfermedad (Vivo)": (r.estado === 'Vivo') ? (r.detalle_salud || "-") : "-",
@@ -2012,7 +2043,7 @@ Tipo de Parto:     ${r.tipo_parto || "Normal"}
 R.P. Madre:        ${r.rp_madre || "-"}
 Tipo de Calostro:      ${r.tipo_calostro || "De la madre"}
 Método de Calostrado:  ${r.metodo_calostrado || "Con mamadera"}
-I.G. Calostro:         ${r.ig_calostro !== null ? r.ig_calostro + ' mg/dL' : "-"}
+I.G. Calostro:         ${r.ig_calostro !== null ? r.ig_calostro + ((typeof AuthManager !== 'undefined' && AuthManager.getIgMetodo() === 'brix') ? ' % Brix' : ' mg/dL') : "-"}
 
 ESTADO SANITARIO:
 Supervivencia:          ${r.estado || "-"}
@@ -2377,10 +2408,19 @@ function handleImportExcelFile(event) {
 
             function findIgMadre(row) {
                 const keys = Object.keys(row);
+                // 1. Claves explícitas de madre con calostro/ig/brix
                 for (const k of keys) {
                     const norm = k.toLowerCase().replace(/[^a-z0-9]/g, "");
                     if (norm.includes("ternero") || norm.includes("cria")) continue; // Nunca asignar datos de ternero a madre
                     if (norm.includes("madre") && (norm.includes("calostro") || norm.includes("ig") || norm.includes("brix") || norm.includes("inmuno"))) {
+                        return row[k];
+                    }
+                }
+                // 2. Claves de calostro que indiquen ig o brix
+                for (const k of keys) {
+                    const norm = k.toLowerCase().replace(/[^a-z0-9]/g, "");
+                    if (norm.includes("ternero") || norm.includes("cria")) continue;
+                    if (norm.includes("igcalostro") || norm.includes("calostroig") || norm.includes("brixcalostro") || norm.includes("calostrobrix")) {
                         return row[k];
                     }
                 }

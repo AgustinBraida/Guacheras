@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `token_reset_expira`   DATETIME      DEFAULT NULL            COMMENT 'Expiración del token de reset (2 horas)',
   `avatar_url`           VARCHAR(500)  DEFAULT NULL            COMMENT 'URL pública del avatar subido al servidor',
   `banner_url`           VARCHAR(500)  DEFAULT NULL            COMMENT 'URL pública del banner subido al servidor',
+  `ig_metodo`            ENUM('brix','mgdl') NOT NULL DEFAULT 'brix' COMMENT 'Preferencia medición I.G. Calostro: brix (% Brix) o mgdl (mg/dL)',
   `created_at`           DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_email`     (`email`),
@@ -33,6 +34,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
 -- ─── MIGRACIÓN: Si la tabla `usuarios` ya existe, ejecutar estas líneas ────
 -- ALTER TABLE `usuarios` ADD COLUMN `avatar_url` VARCHAR(500) DEFAULT NULL COMMENT 'URL pública del avatar subido al servidor';
 -- ALTER TABLE `usuarios` ADD COLUMN `banner_url` VARCHAR(500) DEFAULT NULL COMMENT 'URL pública del banner subido al servidor';
+-- ALTER TABLE `usuarios` ADD COLUMN `ig_metodo` ENUM('brix','mgdl') NOT NULL DEFAULT 'brix' COMMENT 'Preferencia medición I.G. Calostro';
 
 
 -- ─── TABLA: sesiones ────────────────────────────────────────
@@ -69,8 +71,11 @@ CREATE TABLE IF NOT EXISTS `registros` (
   `tipo_parto`      ENUM('Normal','Asistido','Muerto al parto') NOT NULL DEFAULT 'Normal',
   `rp_madre`        VARCHAR(50)   DEFAULT NULL,
   `tipo_calostro`   ENUM('De la madre','Banco de calostro','Calostro mejorado') NOT NULL DEFAULT 'De la madre',
+  `metodo_calostrado` ENUM('Con mamadera','Con sonda','Mamó solo') NOT NULL DEFAULT 'Con mamadera',
   `ig_calostro`     DECIMAL(5,2)  DEFAULT NULL,
   `estado`          VARCHAR(60)   NOT NULL DEFAULT 'Vivo',
+  `estado_salud`    ENUM('Sano, sin problemas aparentes','Nació con algún problema o malformación','Está enfermo actualmente','Tuvo una enfermedad anteriormente') NOT NULL DEFAULT 'Sano, sin problemas aparentes',
+  `detalle_salud`   VARCHAR(255)  DEFAULT NULL,
   `causa`           TEXT          DEFAULT NULL,
   `causa_categoria` VARCHAR(100)  DEFAULT NULL,
   `causa_especifica` VARCHAR(100)  DEFAULT NULL,

@@ -96,8 +96,8 @@ const VoiceMapper = {
         // Eliminar punto final residual que puede agregar la IA (ej: "2.5." → "2.5")
         if (igTMatch) d.ig_ternero = igTMatch[1].replace(/\.$/, '');
 
-        // ── IG Calostro / IG Madre ────────────────────────────────
-        const igMadreMatch = t.match(/\b(?:ig\s*(?:de\s+(?:la\s+)?)?madre|ig\s*(?:del?\s*)?calostro|calostro\s*(?:de\s+(?:la\s+)?)?madre|calidad\s+(?:del?\s*)?calostro|inmunoglobulinas?\s*(?:de\s+(?:la\s+)?)?madre|inmunoglobulinas?\s*(?:del?\s*)?calostro|calostro|inmunoglobulinas?)[\s,.:\-]*(?:es\s+|era\s+|de\s+)?([\d.]+)\.?/i);
+        // ── IG Calostro / IG Madre / Brix ─────────────────────────
+        const igMadreMatch = t.match(/\b(?:ig\s*(?:de\s+(?:la\s+)?)?madre|ig\s*(?:del?\s*)?calostro|grados?\s*brix|brix\s*(?:del?\s*)?calostro|brix|calostro\s*(?:de\s+(?:la\s+)?)?madre|calidad\s+(?:del?\s*)?calostro|inmunoglobulinas?\s*(?:de\s+(?:la\s+)?)?madre|inmunoglobulinas?\s*(?:del?\s*)?calostro|calostro|inmunoglobulinas?)[\s,.:\-]*(?:es\s+|era\s+|de\s+)?([\d.]+)\.?/i);
         // Eliminar punto final residual que puede agregar la IA (ej: "2.8." → "2.8")
         if (igMadreMatch) d.ig_calostro = igMadreMatch[1].replace(/\.$/, '');
 
@@ -137,22 +137,48 @@ const VoiceMapper = {
             d.tipo_calostro = 'De la madre';
         }
 
+        // ── Método Calostrado ─────────────────────────────────────
+        if (/\b(?:con\s+)?sonda\b|\bentubad[ao]\b/i.test(t)) {
+            d.metodo_calostrado = 'Con sonda';
+        } else if (/\bmam[oó]\s+sol[ao]\b|\bal\s+pie\b|\bteta\b/i.test(t)) {
+            d.metodo_calostrado = 'Mamó solo';
+        } else if (/\b(?:con\s+)?mamadera\b|\bbiber[oó]n\b/i.test(t)) {
+            d.metodo_calostrado = 'Con mamadera';
+        }
+
         // ── Estado (orden: más específico → menos específico) ─────
         // 'huachera' cubre la transcripción alternativa de Whisper para 'guachera'
         // 'lugar guachera/huachera' cubre el patrón dictado "Estado muerto, Lugar guachera"
+        const isDeadKeyword = /\b(?:muert[ao]|falleci[o\u00f3]|baj[a\u00f3])\b/i.test(t);
+        const isVivoKeyword = /\b(?:viv[oa]|est[a\u00e1]\s+bien|bien)\b/i.test(t);
+
         if (/\b(?:lugar\s+)?(?:guacher[ií]?as?|huacher[ií]?as?)\b/i.test(t)) {
             d.estado = 'Muerto en Guachería';
         } else if (/\b(?:lugar\s+)?terapia\b/i.test(t)) {
             d.estado = 'Muerto en Terapia';
         } else if (/\bmuert[ao]\s*(?:en\s+(?:el\s+)?)?establecimiento\b/i.test(t)) {
             d.estado = 'Muerto en Establecimiento';
-        } else if (/\b(?:muert[ao]|falleci[o\u00f3]|baj[a\u00f3])\b/i.test(t)) {
+        } else if (isDeadKeyword) {
             d.estado = 'Muerto en Establecimiento';
-        } else if (/\b(?:viv[oa]|est[a\u00e1]\s+bien|bien)\b/i.test(t)) {
+        } else if (isVivoKeyword) {
             d.estado = 'Vivo';
         }
 
-        // ── Causa: expansión de término parcial ───────────────────
+        // ── Detección de Estado Clínico (para terneros Vivos) ─────
+        const isMalformacion = /\b(?:naci[oó]\s+con|malformaci[oó]n|al\s+nacer|cong[eé]nit[ao]|atresia|paladar\s+hendido)\b/i.test(t);
+        const isPrevio = /\b(?:tuvo\s+(?:una\s+)?enfermedad|estuvo\s+enfermo|enfermedad\s+anteriormente|ya\s+se\s+cur[oó]|recuperad[ao]|curad[ao])\b/i.test(t);
+        const isEnfermo = /\b(?:est[aá]\s+enfermo|enfermo\s+actualmente|enfermo|enferma)\b/i.test(t);
+        const isSano = /\b(?:sano|sin\s+problemas?|perfecto)\b/i.test(t);
+
+        if (isMalformacion || isPrevio || isEnfermo || isSano) {
+            if (!d.estado && !isDeadKeyword) d.estado = 'Vivo';
+            if (isMalformacion) d.estado_salud = 'Nació con algún problema o malformación';
+            else if (isPrevio) d.estado_salud = 'Tuvo una enfermedad anteriormente';
+            else if (isEnfermo) d.estado_salud = 'Está enfermo actualmente';
+            else if (isSano) d.estado_salud = 'Sano, sin problemas aparentes';
+        }
+
+        // ── Causa / Enfermedad: expansión de término parcial ───────
         const causaMap = [
             // Enfermedades e Infecciones (Prioridad Alta)
             { re: /\b(?:colibacilosis|colibacil|e\.?\s*coli)\b/i, cat: 'Enfermedades e Infecciones', esp: 'Colibacilosis' },
@@ -182,10 +208,13 @@ const VoiceMapper = {
         ];
 
         let causaEncontrada = false;
+        let enfEspDetectada = '';
+        let enfCatDetectada = '';
+
         for (const c of causaMap) {
             if (c.re.test(t)) {
-                d.causa_categoria = c.cat;
-                d.causa_especifica = c.esp;
+                enfCatDetectada = c.cat;
+                enfEspDetectada = c.esp;
                 causaEncontrada = true;
                 break;
             }
@@ -194,15 +223,33 @@ const VoiceMapper = {
         if (!causaEncontrada) {
             const customCausaMatch = t.match(/\bcausa\s*(?:de\s+muerte)?\s*(?:es|era|de)?[\s,.:\-]+([a-záéíóúüñ\s\d]{2,35}?)(?=\s*[,.]|\s+madre|\s+tipo|\s+rp\b|\s+ig\b|\s*$)/i);
             if (customCausaMatch) {
-                d.causa_categoria = 'Otra Causa';
-                d.causa_especifica = customCausaMatch[1].trim().replace(/\b\w/g, c => c.toUpperCase());
+                enfCatDetectada = 'Otra Causa';
+                enfEspDetectada = customCausaMatch[1].trim().replace(/\b\w/g, c => c.toUpperCase());
                 causaEncontrada = true;
             }
         }
 
-        // Si se infiere una causa, el estado debe ser 'Muerto' si no fue especificado previamente
-        if (causaEncontrada && (!d.estado || d.estado === 'Vivo')) {
-            d.estado = 'Muerto en Establecimiento';
+        // Si el estado es Vivo (o no muerto), la enfermedad es clínica (detalle_salud), no causa de muerte
+        if (d.estado === 'Vivo') {
+            if (causaEncontrada) {
+                d.detalle_salud = enfEspDetectada;
+                if (!d.estado_salud || d.estado_salud === 'Sano, sin problemas aparentes') {
+                    d.estado_salud = 'Está enfermo actualmente';
+                }
+            } else if (!d.estado_salud) {
+                d.estado_salud = 'Sano, sin problemas aparentes';
+            }
+            d.causa_categoria = '';
+            d.causa_especifica = '';
+        } else {
+            // Es muerto
+            if (causaEncontrada) {
+                d.causa_categoria = enfCatDetectada;
+                d.causa_especifica = enfEspDetectada;
+                if (!d.estado) d.estado = 'Muerto en Establecimiento';
+            }
+            d.estado_salud = null;
+            d.detalle_salud = null;
         }
 
         return d;
@@ -532,24 +579,33 @@ const VOICE_FIELDS_CONFIG = [
     { key: 'tipo_parto', label: 'Tipo Parto', type: 'select', opts: ['Normal', 'Asistido', 'Muerto al parto'] },
     { key: 'rp_madre', label: 'R.P. Madre', type: 'text' },
     { key: 'tipo_calostro', label: 'Tipo Calostro', type: 'select', opts: ['De la madre', 'Banco de calostro', 'Calostro mejorado'] },
+    { key: 'metodo_calostrado', label: 'Método Calostrado', type: 'select', opts: ['Con mamadera', 'Con sonda', 'Mamó solo'] },
     { key: 'ig_calostro', label: 'I.G. Calostro', type: 'number' },
     { key: 'estado', label: 'Estado', type: 'select', opts: ['Vivo', 'Muerto en Establecimiento', 'Muerto en Guachería', 'Muerto en Terapia'] },
-    { key: 'causa_categoria', label: 'Categoría Causa', type: 'select', opts: ['', 'Enfermedades e Infecciones', 'Problemas Digestivos y Metabólicos', 'Factores Externos y de Manejo', 'Otra Causa'] },
-    { key: 'causa_especifica', label: 'Causa Específica', type: 'text' },
+    { key: 'estado_salud', label: 'Estado Salud (si Vivo)', type: 'select', opts: ['Sano, sin problemas aparentes', 'Nació con algún problema o malformación', 'Está enfermo actualmente', 'Tuvo una enfermedad anteriormente'] },
+    { key: 'detalle_salud', label: 'Detalle Salud / Enfermedad', type: 'text' },
+    { key: 'causa_categoria', label: 'Categoría Causa (si Murió)', type: 'select', opts: ['', 'Enfermedades e Infecciones', 'Problemas Digestivos y Metabólicos', 'Factores Externos y de Manejo', 'Otra Causa'] },
+    { key: 'causa_especifica', label: 'Causa Específica (si Murió)', type: 'text' },
 ];
 
 function voice_renderSummary(data) {
     const fieldsEl = document.getElementById('voice-summary-fields'); if (!fieldsEl) return;
     const isMuerto = (data.estado || '').includes('Muerto');
     fieldsEl.innerHTML = VOICE_FIELDS_CONFIG.map(f => {
+        if (!isMuerto && f.key.startsWith('causa_')) return '';
+        if (isMuerto && (f.key === 'estado_salud' || f.key === 'detalle_salud')) return '';
+
         const val = data[f.key] || '';
-        const detected = val !== '' && val !== 'Macho' && val !== 'Bueno' && val !== 'Vaca' && val !== 'Vivo';
+        const detected = val !== '' && val !== 'Macho' && val !== 'Bueno' && val !== 'Vaca' && val !== 'Vivo' && val !== 'Sano, sin problemas aparentes';
         const highlightDead = isMuerto && f.key.startsWith('causa_') ? 'border: 1px solid var(--accent-red); background: rgba(239, 68, 68, 0.05);' : '';
+        const highlightSalud = !isMuerto && (f.key === 'estado_salud' || f.key === 'detalle_salud') && val && val !== 'Sano, sin problemas aparentes' ? 'border: 1px solid var(--accent-amber, #f59e0b); background: rgba(245, 158, 11, 0.05);' : '';
+        const style = highlightDead || highlightSalud;
+
         if (f.type === 'select') {
             const opts = f.opts.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o || '—'}</option>`).join('');
-            return `<div class="voice-field-row"><div class="voice-field-label">${f.label}</div><select class="voice-field-input voice-field-select ${detected ? 'detected' : ''}" data-key="${f.key}" style="${highlightDead}">${opts}</select></div>`;
+            return `<div class="voice-field-row"><div class="voice-field-label">${f.label}</div><select class="voice-field-input voice-field-select ${detected ? 'detected' : ''}" data-key="${f.key}" style="${style}">${opts}</select></div>`;
         }
-        return `<div class="voice-field-row"><div class="voice-field-label">${f.label}</div><input type="${f.type}" class="voice-field-input ${detected ? 'detected' : ''}" data-key="${f.key}" value="${val}" placeholder="—" style="${highlightDead}"></div>`;
+        return `<div class="voice-field-row"><div class="voice-field-label">${f.label}</div><input type="${f.type}" class="voice-field-input ${detected ? 'detected' : ''}" data-key="${f.key}" value="${val}" placeholder="—" style="${style}"></div>`;
     }).join('');
     const card = document.getElementById('voice-summary-card'); if (card) card.classList.add('visible');
 }
@@ -558,7 +614,21 @@ async function voice_confirmSave() {
     const fields = document.querySelectorAll('#voice-summary-fields [data-key]');
     const rec = { synced: false, _local_id: Date.now() };
     fields.forEach(el => { rec[el.dataset.key] = el.value || ''; });
-    rec.causa = (rec.causa_categoria && rec.causa_especifica) ? `${rec.causa_categoria} - ${rec.causa_especifica}` : (rec.causa_categoria || rec.causa_especifica || '');
+
+    if (rec.estado === 'Vivo') {
+        rec.causa = '';
+        rec.causa_categoria = '';
+        rec.causa_especifica = '';
+        if (!rec.estado_salud) rec.estado_salud = 'Sano, sin problemas aparentes';
+        if (rec.estado_salud === 'Sano, sin problemas aparentes') rec.detalle_salud = '';
+        if (rec.detalle_salud && typeof saveCustomSaludTerm === 'function') {
+            saveCustomSaludTerm(rec.detalle_salud);
+        }
+    } else {
+        rec.estado_salud = null;
+        rec.detalle_salud = null;
+        rec.causa = (rec.causa_categoria && rec.causa_especifica) ? `${rec.causa_categoria} - ${rec.causa_especifica}` : (rec.causa_categoria || rec.causa_especifica || '');
+    }
     const btn = document.getElementById('voice-btn-confirm');
     if (btn) { btn.disabled = true; btn.innerHTML = 'Guardando…'; }
     if (navigator.onLine) {

@@ -98,6 +98,28 @@ const MOCK_RECORDS = (function generateMockData() {
         }
 
         const tipo_calostro = rng() < 0.70 ? 'De la madre' : (rng() < 0.88 ? 'Banco de calostro' : 'Calostro mejorado');
+        const metodo_calostrado = rng() < 0.65 ? 'Con mamadera' : (rng() < 0.85 ? 'Con sonda' : 'Mamó solo');
+
+        let estado_salud = null, detalle_salud = null;
+        if (estado === 'Vivo') {
+            const rSalud = rng();
+            if (rSalud < 0.80) {
+                estado_salud = 'Sano, sin problemas aparentes';
+                detalle_salud = '';
+            } else if (rSalud < 0.90) {
+                estado_salud = 'Está enfermo actualmente';
+                const enfOpts = ['Diarrea neonatal', 'Neumonía', 'Onfalitis leve', 'Criptosporidiosis'];
+                detalle_salud = enfOpts[Math.floor(rng() * enfOpts.length)];
+            } else if (rSalud < 0.96) {
+                estado_salud = 'Tuvo una enfermedad anteriormente';
+                const recOpts = ['Diarrea (recuperado)', 'Neumonía tratada', 'Rotavirus'];
+                detalle_salud = recOpts[Math.floor(rng() * recOpts.length)];
+            } else {
+                estado_salud = 'Nació con algún problema o malformación';
+                const malOpts = ['Hernia umbilical', 'Debilidad congénita', 'Paladar hendido'];
+                detalle_salud = malOpts[Math.floor(rng() * malOpts.length)];
+            }
+        }
 
         return {
             id: idx,
@@ -105,7 +127,8 @@ const MOCK_RECORDS = (function generateMockData() {
             rp_ternero: `T-${String(idx).padStart(4,'0')}`,
             ig_ternero, ig_calostro, sexo,
             ombligo: pickOmbligo(estado),
-            tipo_madre, tipo_parto, tipo_calostro, estado,
+            tipo_madre, tipo_parto, tipo_calostro, metodo_calostrado, estado,
+            estado_salud, detalle_salud,
             causa_categoria, causa_especifica,
             causa: causa_categoria ? `${causa_categoria} - ${causa_especifica}` : '',
             synced: true,
@@ -162,16 +185,26 @@ let _causasAllData = null;
 
 // Umbrales configurables por el veterinario (se persisten en localStorage)
 const _KPI_THRESHOLDS_KEY = 'vetfield_kpi_thresholds';
+
+function _getDefaultIgThresholds(metodo) {
+    const isBrix = (metodo || (typeof AuthManager !== 'undefined' ? AuthManager.getIgMetodo() : 'brix')) === 'brix';
+    return isBrix ? { high: 22, mid: 18 } : { high: 15, mid: 10 };
+}
+
 let _kpiThresholds = (() => {
     try {
         const saved = JSON.parse(localStorage.getItem(_KPI_THRESHOLDS_KEY) || '{}');
+        const metodo = typeof AuthManager !== 'undefined' ? AuthManager.getIgMetodo() : 'brix';
+        const defIg = _getDefaultIgThresholds(metodo);
+        const highKey = metodo === 'brix' ? 'igHigh_brix' : 'igHigh_mgdl';
+        const midKey  = metodo === 'brix' ? 'igMid_brix'  : 'igMid_mgdl';
         return {
             mortHigh: saved.mortHigh ?? 5,
             mortMid:  saved.mortMid  ?? 3,
-            igHigh:   saved.igHigh   ?? 15,
-            igMid:    saved.igMid    ?? 10,
+            igHigh:   saved[highKey] ?? saved.igHigh ?? defIg.high,
+            igMid:    saved[midKey]  ?? saved.igMid  ?? defIg.mid,
         };
-    } catch { return { mortHigh: 5, mortMid: 3, igHigh: 15, igMid: 10 }; }
+    } catch { return { mortHigh: 5, mortMid: 3, igHigh: 22, igMid: 18 }; }
 })();
 
 // Inicializar inputs del panel con valores guardados
@@ -288,6 +321,11 @@ function saveKpiRanges(type) {
         }
         _kpiThresholds.igHigh = high;
         _kpiThresholds.igMid  = mid;
+        const metodo = typeof AuthManager !== 'undefined' ? AuthManager.getIgMetodo() : 'brix';
+        const highKey = metodo === 'brix' ? 'igHigh_brix' : 'igHigh_mgdl';
+        const midKey  = metodo === 'brix' ? 'igMid_brix'  : 'igMid_mgdl';
+        _kpiThresholds[highKey] = high;
+        _kpiThresholds[midKey]  = mid;
     }
     try { localStorage.setItem(_KPI_THRESHOLDS_KEY, JSON.stringify(_kpiThresholds)); } catch {}
     // Cerrar panel y actualizar KPIs
@@ -296,6 +334,31 @@ function saveKpiRanges(type) {
     _renderKPIs(data);
 }
 window.saveKpiRanges = saveKpiRanges;
+
+// Recalcular y refrescar umbrales cuando el usuario cambia su preferencia de medición
+function refreshDashboardIgMetodo(metodo) {
+    const isBrix = (metodo || (typeof AuthManager !== 'undefined' ? AuthManager.getIgMetodo() : 'brix')) === 'brix';
+    const defIg = _getDefaultIgThresholds(isBrix ? 'brix' : 'mgdl');
+    try {
+        const saved = JSON.parse(localStorage.getItem(_KPI_THRESHOLDS_KEY) || '{}');
+        const highKey = isBrix ? 'igHigh_brix' : 'igHigh_mgdl';
+        const midKey  = isBrix ? 'igMid_brix'  : 'igMid_mgdl';
+        _kpiThresholds.igHigh = saved[highKey] ?? defIg.high;
+        _kpiThresholds.igMid  = saved[midKey]  ?? defIg.mid;
+    } catch {
+        _kpiThresholds.igHigh = defIg.high;
+        _kpiThresholds.igMid  = defIg.mid;
+    }
+    _initKpiPanelInputs();
+    const data = _getDashRecords();
+    if (data && data.length > 0) {
+        _renderKPIs(data);
+        if (typeof _renderScatterCalostro === 'function') {
+            _renderScatterCalostro(data);
+        }
+    }
+}
+window.refreshDashboardIgMetodo = refreshDashboardIgMetodo;
 
 // ─── INIT: llamado desde updateUI() de app.js ─────────────────
 function initDashboard() {
@@ -518,7 +581,8 @@ function _renderKPIs(data) {
             : avgIg >= _kpiThresholds.igMid
                 ? '⚡ Aceptable'
                 : '⚠️ Bajo';
-        el('kpi_ig_sub').textContent = igLevel;
+        const unit = (typeof AuthManager !== 'undefined' && AuthManager.getIgMetodo() === 'brix') ? '% Brix' : 'mg/dL';
+        el('kpi_ig_sub').textContent = `${igLevel} · ${unit}`;
         // Aplicar color de estado a la card IG
         const igCard = el('kpi_ig_card');
         if (igCard) {
@@ -1266,12 +1330,26 @@ function _renderCorrelacionCalostro(data) {
                 ...CHART_DEFAULTS.plugins,
                 tooltip: {
                     callbacks: {
-                        label: ctx => ` Calostro: ${ctx.raw.x} mg/dL | I.G. Ternero: ${ctx.raw.y}%`
+                        label: ctx => {
+                            const unit = (typeof AuthManager !== 'undefined' && AuthManager.getIgMetodo() === 'brix') ? '% Brix' : 'mg/dL';
+                            return ` Calostro: ${ctx.raw.x} ${unit} | I.G. Ternero: ${ctx.raw.y}%`;
+                        }
                     }
                 }
             },
             scales: {
-                x: { title: { display: true, text: 'I.G. Calostro Madre (mg/dL)', color: _getChartTheme().textAxisTitle, font: { family: 'Inter' } }, grid: { color: _getChartTheme().gridFaint }, ticks: { color: _getChartTheme().textSecondary } },
+                x: { 
+                    title: { 
+                        display: true, 
+                        text: (typeof AuthManager !== 'undefined' && AuthManager.getIgMetodo() === 'brix') 
+                            ? 'I.G. Calostro Madre (% Brix)' 
+                            : 'I.G. Calostro Madre (mg/dL)', 
+                        color: _getChartTheme().textAxisTitle, 
+                        font: { family: 'Inter' } 
+                    }, 
+                    grid: { color: _getChartTheme().gridFaint }, 
+                    ticks: { color: _getChartTheme().textSecondary } 
+                },
                 y: { title: { display: true, text: 'I.G. Ternero (%)', color: _getChartTheme().textAxisTitle, font: { family: 'Inter' } }, grid: { color: _getChartTheme().gridFaint }, ticks: { color: _getChartTheme().textSecondary } }
             }
         }
@@ -1380,32 +1458,79 @@ function _renderSaludOmbligos(data) {
 // ────────────────────────────────────────────────────────────────
 // 6. Tendencia Temporal — AreaChart (Line)
 // ────────────────────────────────────────────────────────────────
+let _tendenciaData = null;
+let _tendenciaMode = 'semanal'; // 'semanal' | 'mensual'
+
 function _renderTendenciaTemporal(data) {
+    _tendenciaData = data;
+    _buildTendenciaChart(data, _tendenciaMode);
+}
+
+function setTendenciaMode(mode) {
+    _tendenciaMode = mode;
+    // Actualizar botones
+    const btnS = document.getElementById('btn-tendencia-semanal');
+    const btnM = document.getElementById('btn-tendencia-mensual');
+    if (btnS) btnS.classList.toggle('active', mode === 'semanal');
+    if (btnM) btnM.classList.toggle('active', mode === 'mensual');
+    // Actualizar subtítulo
+    const sub = document.getElementById('tendencia-sub');
+    if (sub) sub.textContent = mode === 'semanal'
+        ? 'Evolución semanal de la tasa de mortalidad'
+        : 'Evolución mensual de la tasa de mortalidad';
+    if (_tendenciaData) _buildTendenciaChart(_tendenciaData, mode);
+}
+window.setTendenciaMode = setTendenciaMode;
+
+function _buildTendenciaChart(data, mode) {
     const ctx = _getCtx('chart_tendencia');
     if (!ctx) return;
 
-    // Agrupar por semana
-    const byWeek = {};
+    // Destruir instancia anterior si existe
+    if (_dashCharts.chart_tendencia) {
+        _dashCharts.chart_tendencia.destroy();
+        _dashCharts.chart_tendencia = null;
+    }
+
+    const grouped = {};
     data.forEach(r => {
         if (!r.fecha) return;
         const d = new Date(r.fecha);
-        // Round to Monday of that week
-        const day = d.getDay();
-        const diff = (day === 0) ? -6 : 1 - day;
-        d.setDate(d.getDate() + diff);
-        const key = d.toISOString().split('T')[0];
-        if (!byWeek[key]) byWeek[key] = { total: 0, muertos: 0 };
-        byWeek[key].total++;
-        if (r.estado !== 'Vivo') byWeek[key].muertos++;
+        let key;
+        if (mode === 'mensual') {
+            // Clave: YYYY-MM
+            key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        } else {
+            // Clave: lunes de esa semana (YYYY-MM-DD)
+            const day = d.getDay();
+            const diff = (day === 0) ? -6 : 1 - day;
+            d.setDate(d.getDate() + diff);
+            key = d.toISOString().split('T')[0];
+        }
+        if (!grouped[key]) grouped[key] = { total: 0, muertos: 0 };
+        grouped[key].total++;
+        if (r.estado !== 'Vivo') grouped[key].muertos++;
     });
 
-    const sorted = Object.entries(byWeek).sort((a, b) => a[0].localeCompare(b[0])).slice(-26); // últimas 26 semanas
+    const limit = mode === 'mensual' ? 12 : 26;
+    const sorted = Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0])).slice(-limit);
+
     const labels = sorted.map(([k]) => {
-        const d = new Date(k + 'T00:00:00');
-        return d.toLocaleDateString('es', { day: '2-digit', month: 'short' });
+        if (mode === 'mensual') {
+            const [y, m] = k.split('-');
+            // Solo nombre del mes, sin año
+            return new Date(+y, +m - 1, 1).toLocaleDateString('es', { month: 'long' });
+        }
+        // Semanal: mostrar rango lunes–domingo (ej: "30 dic – 5 ene")
+        const lunes = new Date(k + 'T00:00:00');
+        const domingo = new Date(lunes);
+        domingo.setDate(lunes.getDate() + 6);
+        const fmt = d => d.toLocaleDateString('es', { day: 'numeric', month: 'short' });
+        return `${fmt(lunes)} – ${fmt(domingo)}`;
     });
     const tasas = sorted.map(([, v]) => v.total > 0 ? parseFloat((v.muertos / v.total * 100).toFixed(1)) : 0);
     const totales = sorted.map(([, v]) => v.total);
+    const muertos = sorted.map(([, v]) => v.muertos);
 
     _dashCharts.chart_tendencia = new Chart(ctx, {
         type: 'line',
@@ -1453,7 +1578,12 @@ function _renderTendenciaTemporal(data) {
                 },
                 tooltip: {
                     callbacks: {
-                        label: ctx => ` ${ctx.dataset.label}: ${ctx.raw}${ctx.datasetIndex === 0 ? '%' : ''}`
+                        label: ctx => {
+                            if (ctx.datasetIndex === 0) {
+                                return ` Muertos: ${muertos[ctx.dataIndex]}`;
+                            }
+                            return ` ${ctx.dataset.label}: ${ctx.raw}`;
+                        }
                     }
                 }
             },
@@ -1487,6 +1617,7 @@ function _renderTendenciaTemporal(data) {
         }
     });
 }
+
 
 // ────────────────────────────────────────────────────────────────
 // 7. Ranking de Establecimientos — Tabla
@@ -1877,7 +2008,82 @@ window.exportDashboardPDF = function(btnEl) {
             
             let yPos = 42;
             const pageWidth = doc.internal.pageSize.getWidth();
-            
+
+            // ─── TARJETAS KPI ────────────────────────────────────────────
+            // Leer valores desde el DOM
+            const _kpiTotal      = document.getElementById('kpi_total')?.textContent?.trim() || '-';
+            const _kpiTotalSub   = document.getElementById('kpi_total_sub')?.textContent?.trim() || '';
+            const _kpiMort       = document.getElementById('kpi_mortalidad')?.textContent?.trim() || '-';
+            const _kpiMortBadge  = document.getElementById('kpi_mortalidad_badge')?.textContent?.trim() || '';
+            const _kpiIg         = document.getElementById('kpi_ig')?.textContent?.trim() || '-';
+            const _kpiIgSub      = document.getElementById('kpi_ig_sub')?.textContent?.trim() || '';
+            const _kpiRecup      = document.getElementById('kpi_recuperacion')?.textContent?.trim() || '-';
+            const _kpiRecupSub   = document.getElementById('kpi_recuperacion_sub')?.textContent?.trim() || '';
+
+            // Detectar estados de color para mortalidad e IG
+            const _mortCard = document.getElementById('kpi_mortalidad_card');
+            const _igCard   = document.getElementById('kpi_ig_card');
+            const _mortIsDanger  = _mortCard?.classList.contains('kpi-danger');
+            const _mortIsWarning = _mortCard?.classList.contains('kpi-warning');
+            const _igIsSuccess   = _igCard?.classList.contains('kpi-state--success');
+            const _igIsWarning   = _igCard?.classList.contains('kpi-state--warning');
+            const _igIsDanger    = _igCard?.classList.contains('kpi-state--danger');
+
+            // Colores por estado
+            const _colorMort   = _mortIsDanger ? [220, 38, 38] : _mortIsWarning ? [234, 88, 12] : [22, 163, 74];
+            const _colorIg     = _igIsSuccess  ? [22, 163, 74] : _igIsWarning  ? [234, 88, 12] : _igIsDanger ? [220, 38, 38] : [99, 102, 241];
+            const _colorTotal  = [99, 102, 241];   // índigo (neutro)
+            const _colorRecup  = [99, 102, 241];   // índigo (neutro, como la UI)
+
+            // Layout: 4 tarjetas en fila
+            const _kpiCards = [
+                { label: 'TOTAL EVALUADOS',     value: _kpiTotal,  sub: _kpiTotalSub,  color: _colorTotal },
+                { label: 'TASA DE MORTALIDAD',  value: _kpiMort,   sub: _kpiMortBadge, color: _colorMort  },
+                { label: 'PROMEDIO I.G. CALOSTRO', value: _kpiIg,  sub: _kpiIgSub,     color: _colorIg    },
+                { label: 'TASA DE SUPERVIVENCIA',  value: _kpiRecup, sub: _kpiRecupSub, color: _colorRecup },
+            ];
+
+            const _cardMargin = 4;
+            const _cardCount  = _kpiCards.length;
+            const _cardW      = (pageWidth - 14 - (_cardCount - 1) * _cardMargin - 14) / _cardCount;
+            const _cardH      = 28;
+            let _cardX        = 14;
+
+            _kpiCards.forEach(kpi => {
+                const [r, g, b] = kpi.color;
+
+                // Fondo blanco con borde sutil
+                doc.setDrawColor(220, 220, 230);
+                doc.setFillColor(255, 255, 255);
+                doc.roundedRect(_cardX, yPos, _cardW, _cardH, 3, 3, 'FD');
+
+                // Barra lateral de color (izquierda)
+                doc.setFillColor(r, g, b);
+                doc.roundedRect(_cardX, yPos, 2.5, _cardH, 1, 1, 'F');
+
+                // Etiqueta pequeña
+                doc.setFontSize(6);
+                doc.setTextColor(120, 120, 140);
+                doc.text(kpi.label, _cardX + 5, yPos + 7);
+
+                // Valor principal grande
+                doc.setFontSize(14);
+                doc.setTextColor(r, g, b);
+                doc.text(kpi.value, _cardX + 5, yPos + 17);
+
+                // Subtexto
+                if (kpi.sub) {
+                    doc.setFontSize(6.5);
+                    doc.setTextColor(100, 100, 120);
+                    doc.text(kpi.sub, _cardX + 5, yPos + 23);
+                }
+
+                _cardX += _cardW + _cardMargin;
+            });
+
+            yPos += _cardH + 10; // Espacio debajo de las tarjetas
+            // ─────────────────────────────────────────────────────────────
+
             // Recorrer los bloques en el orden actual
             const blocks = document.querySelectorAll('.chart-block');
             
@@ -1885,7 +2091,9 @@ window.exportDashboardPDF = function(btnEl) {
                 const charts = block.querySelectorAll('.db-chart-card');
                 charts.forEach(card => {
                     const titleEl = card.querySelector('.db-chart-title');
-                    const title = titleEl ? titleEl.textContent.trim() : 'Gráfico';
+                    let title = titleEl ? titleEl.textContent.trim() : 'Gráfico';
+                    // Limpiar emojis para evitar caracteres corruptos en jsPDF (ej: Ø=ÜÈ)
+                    title = title.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').trim();
                     
                     const canvas = card.querySelector('canvas');
                     
@@ -1937,26 +2145,29 @@ window.exportDashboardPDF = function(btnEl) {
                                     let pos           = element.tooltipPosition ? element.tooltipPosition() : { x: element.x, y: element.y };
                                     let align         = 'center';
                                     let drawBg        = false;
+                                    let bgBorderColor = '#94a3b8';
                                     let customYOffset = 0;
                                     let customXOffset = 0;
-                                    let textColor     = '#000000'; // Todo texto y número en negro
+                                    let textColor     = '#000000'; // Todo texto y número en negro por defecto
                                     let strokeColor   = '#ffffff'; // Contorno blanco para contraste sobre barras/gajos
                                     let fontSize      = 12;
 
                                     // ── Tendencia Temporal (line) ─────────────────────────
                                     if (chartId === 'chart_tendencia') {
                                         if (i === 0) {
-                                            // Tasa Mortalidad → muertes absolutas, centradas sobre el nodo
+                                            // Tasa Mortalidad → muertes absolutas, centradas sobre el nodo con el color de su línea
                                             const total = chartInstance.data.datasets[1]?.data[index] ?? 0;
                                             text = String(Math.round((parseFloat(dataVal) / 100) * (total || 1)));
                                             customYOffset = -18;
-                                            textColor     = '#000000';
+                                            textColor     = PALETTE.danger; // Rojo de la línea de mortalidad (#dc2626)
+                                            bgBorderColor = PALETTE.danger; // Borde distintivo a juego
                                             strokeColor   = null;
                                             drawBg        = true;
                                         } else {
-                                            // Total evaluados → debajo del nodo
+                                            // Total evaluados → debajo del nodo con el color de su línea
                                             customYOffset = 18;
-                                            textColor     = '#000000';
+                                            textColor     = PALETTE.primary; // Azul de la línea de total evaluados (#1a237e)
+                                            bgBorderColor = PALETTE.primary; // Borde distintivo a juego
                                             strokeColor   = null;
                                             drawBg        = true;
                                         }
@@ -2040,7 +2251,7 @@ window.exportDashboardPDF = function(btnEl) {
                                         if (align === 'center') bgX -= maxW / 2;
                                         else if (align === 'right') bgX -= maxW;
                                         tCtx.fillStyle   = 'rgba(255, 255, 255, 0.95)';
-                                        tCtx.strokeStyle = '#94a3b8';
+                                        tCtx.strokeStyle = bgBorderColor || '#94a3b8';
                                         tCtx.lineWidth   = 1;
                                         if (tCtx.roundRect) {
                                             tCtx.beginPath();

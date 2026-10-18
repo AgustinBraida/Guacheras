@@ -82,8 +82,15 @@ const AuthManager = {
             plan: user.plan !== undefined ? user.plan : 'inicio',
             hasMpSubscription: !!user.has_mp_subscription,
             planExpiresAt: user.plan_expires_at || null,
+            igMetodo: user.ig_metodo || 'brix',
         }));
         if (token) localStorage.setItem(API_TOKEN_KEY, token);
+    },
+
+    // Devuelve la preferencia de medición de I.G. Calostro ('brix' o 'mgdl')
+    getIgMetodo() {
+        const sess = this.getSession();
+        return (sess && sess.igMetodo) ? sess.igMetodo : 'brix';
     },
 
     logout() {
@@ -185,7 +192,7 @@ const AuthManager = {
         });
     },
 
-    async updateProfile({ name, email, password }) {
+    async updateProfile({ name, email, password, igMetodo }) {
         const sess = this.getSession();
         if (!sess) return { ok: false, error: 'Sin sesión.' };
         name = name.trim();
@@ -194,6 +201,7 @@ const AuthManager = {
         if (!isValidEmail(email)) return { ok: false, error: 'Email inválido.' };
 
         const body = { action: 'update_profile', nombre: name, email };
+        if (igMetodo && (igMetodo === 'brix' || igMetodo === 'mgdl')) body.ig_metodo = igMetodo;
         if (password && password.trim()) {
             const v = validatePassword(password);
             if (!v.valid) return { ok: false, error: v.message };
@@ -381,6 +389,13 @@ const AuthUI = {
         }
         const en = document.getElementById('edit-name'); if (en) en.value = sess.name;
         const ee = document.getElementById('edit-email'); if (ee) ee.value = sess.email;
+
+        // Selector de método de medición I.G. Calostro
+        const igMetodoSel = document.getElementById('edit-ig-metodo');
+        if (igMetodoSel) igMetodoSel.value = sess.igMetodo || 'brix';
+
+        // Actualizar la unidad mostrada en la app según preferencia
+        if (typeof window.applyIgMetodo === 'function') window.applyIgMetodo(sess.igMetodo || 'brix');
 
         // Renderizado del plan y botón de suscripción/cancelación
         const plan = sess.plan !== undefined ? sess.plan : 'inicio';
@@ -670,8 +685,9 @@ const AuthUI = {
         const name = document.getElementById('edit-name')?.value || '';
         const email = document.getElementById('edit-email')?.value || '';
         const pwd = document.getElementById('edit-new-password')?.value || '';
+        const igMetodo = document.getElementById('edit-ig-metodo')?.value || 'brix';
         this._setBtnLoading(btn, 'Guardando...');
-        const r = await AuthManager.updateProfile({ name, email, password: pwd || undefined });
+        const r = await AuthManager.updateProfile({ name, email, password: pwd || undefined, igMetodo });
         if (r.ok) {
             const sess = AuthManager.getSession();
             this._syncProfile(sess);

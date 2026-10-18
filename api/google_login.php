@@ -69,7 +69,7 @@ $db = getDB();
 
 // ── Buscar usuario por google_id o email ─────────────────────
 $stmt = $db->prepare(
-    "SELECT id, nombre, email, role, plan, created_at, status
+    "SELECT id, nombre, email, role, plan, created_at, status, ig_metodo
        FROM usuarios
       WHERE google_id = ? OR email = ?
       LIMIT 1"
@@ -156,5 +156,6 @@ json_response([
         'role'       => $user['role'],
         'plan'       => $user['plan'] ?? null,
         'created_at' => $user['created_at'],
+        'ig_metodo'  => $user['ig_metodo'] ?? 'brix',
     ]
 ]);

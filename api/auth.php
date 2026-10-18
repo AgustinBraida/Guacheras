@@ -169,7 +169,7 @@ function action_login(array $in): void {
 
     $db   = getDB();
     $stmt = $db->prepare(
-        "SELECT id, nombre, email, password_hash, role, status, plan, created_at, mp_subscription_id, plan_expires_at FROM usuarios WHERE email = ?"
+        "SELECT id, nombre, email, password_hash, role, status, plan, created_at, mp_subscription_id, plan_expires_at, ig_metodo FROM usuarios WHERE email = ?"
     );
     $stmt->execute([$email]);
     $user = $stmt->fetch();
@@ -212,6 +212,7 @@ function action_login(array $in): void {
             'created_at' => $user['created_at'],
             'has_mp_subscription' => !empty($user['mp_subscription_id']),
             'plan_expires_at' => $user['plan_expires_at'],
+            'ig_metodo'  => $user['ig_metodo'] ?? 'brix',
         ]
     ]);
 }
@@ -247,6 +248,7 @@ function action_get_session(): void {
             'created_at' => $user['created_at'],
             'has_mp_subscription' => !empty($user['mp_subscription_id']),
             'plan_expires_at' => $user['plan_expires_at'],
+            'ig_metodo'  => $user['ig_metodo'] ?? 'brix',
         ]
     ]);
 }
@@ -258,9 +260,10 @@ function action_update_profile(array $in): void {
     $session = validate_session();
     if (!$session) json_response(['ok' => false, 'error' => 'Sin sesión activa.'], 401);
 
-    $nombre   = trim($in['nombre'] ?? '');
-    $email    = strtolower(trim($in['email'] ?? ''));
-    $password = $in['password'] ?? '';
+    $nombre    = trim($in['nombre'] ?? '');
+    $email     = strtolower(trim($in['email'] ?? ''));
+    $password  = $in['password'] ?? '';
+    $ig_metodo = in_array($in['ig_metodo'] ?? '', ['brix', 'mgdl']) ? $in['ig_metodo'] : null;
 
     if (strlen($nombre) < 2)
         json_response(['ok' => false, 'error' => 'El nombre debe tener al menos 2 caracteres.']);
@@ -279,16 +282,26 @@ function action_update_profile(array $in): void {
         if (strlen($password) < 8 || !preg_match('/[A-Z]/', $password) || !preg_match('/[0-9]/', $password))
             json_response(['ok' => false, 'error' => 'La contraseña debe tener mínimo 8 caracteres, una mayúscula y un número.']);
 
-        $hash  = password_hash($password, PASSWORD_BCRYPT);
-        $stmt  = $db->prepare("UPDATE usuarios SET nombre = ?, email = ?, password_hash = ? WHERE id = ?");
-        $stmt->execute([$nombre, $email, $hash, $session['id']]);
+        $hash = password_hash($password, PASSWORD_BCRYPT);
+        if ($ig_metodo !== null) {
+            $stmt = $db->prepare("UPDATE usuarios SET nombre = ?, email = ?, password_hash = ?, ig_metodo = ? WHERE id = ?");
+            $stmt->execute([$nombre, $email, $hash, $ig_metodo, $session['id']]);
+        } else {
+            $stmt = $db->prepare("UPDATE usuarios SET nombre = ?, email = ?, password_hash = ? WHERE id = ?");
+            $stmt->execute([$nombre, $email, $hash, $session['id']]);
+        }
     } else {
-        $stmt  = $db->prepare("UPDATE usuarios SET nombre = ?, email = ? WHERE id = ?");
-        $stmt->execute([$nombre, $email, $session['id']]);
+        if ($ig_metodo !== null) {
+            $stmt = $db->prepare("UPDATE usuarios SET nombre = ?, email = ?, ig_metodo = ? WHERE id = ?");
+            $stmt->execute([$nombre, $email, $ig_metodo, $session['id']]);
+        } else {
+            $stmt = $db->prepare("UPDATE usuarios SET nombre = ?, email = ? WHERE id = ?");
+            $stmt->execute([$nombre, $email, $session['id']]);
+        }
     }
 
     // Devolver datos actualizados
-    $updated = $db->prepare("SELECT id, nombre, email, role, plan, created_at, mp_subscription_id, plan_expires_at FROM usuarios WHERE id = ?");
+    $updated = $db->prepare("SELECT id, nombre, email, role, plan, created_at, mp_subscription_id, plan_expires_at, ig_metodo FROM usuarios WHERE id = ?");
     $updated->execute([$session['id']]);
     $user = $updated->fetch();
 
@@ -303,6 +316,7 @@ function action_update_profile(array $in): void {
             'created_at' => $user['created_at'],
             'has_mp_subscription' => !empty($user['mp_subscription_id']),
             'plan_expires_at' => $user['plan_expires_at'],
+            'ig_metodo'  => $user['ig_metodo'] ?? 'brix',
         ]
     ]);
 }
@@ -377,7 +391,7 @@ function action_cancel_subscription(): void {
     $upd->execute([$expires_at, $session['id']]);
 
     // Obtener datos actualizados del usuario
-    $updated = $db->prepare("SELECT id, nombre, email, role, plan, created_at, mp_subscription_id, plan_expires_at FROM usuarios WHERE id = ?");
+    $updated = $db->prepare("SELECT id, nombre, email, role, plan, created_at, mp_subscription_id, plan_expires_at, ig_metodo FROM usuarios WHERE id = ?");
     $updated->execute([$session['id']]);
     $user = $updated->fetch();
 
@@ -393,6 +407,7 @@ function action_cancel_subscription(): void {
             'created_at' => $user['created_at'],
             'has_mp_subscription' => !empty($user['mp_subscription_id']),
             'plan_expires_at' => $user['plan_expires_at'],
+            'ig_metodo'  => $user['ig_metodo'] ?? 'brix',
         ]
     ]);
 }

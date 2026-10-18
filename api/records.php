@@ -91,13 +91,36 @@ function action_update(string $uid, array $in): void {
              tipo_parto = :tipo_parto,
              rp_madre = :rp_madre,
              tipo_calostro = :tipo_calostro,
+             metodo_calostrado = :metodo_calostrado,
              ig_calostro = :ig_calostro,
              estado = :estado,
+             estado_salud = :estado_salud,
+             detalle_salud = :detalle_salud,
              causa = :causa,
              causa_categoria = :causa_cat,
              causa_especifica = :causa_esp
          WHERE id = :id AND user_id = :uid"
     );
+
+    $estado = trim($in['estado'] ?? 'Vivo');
+    $estado_salud = null;
+    $detalle_salud = null;
+    $causa = trim($in['causa'] ?? '') ?: null;
+    $causa_cat = trim($in['causa_categoria'] ?? '') ?: null;
+    $causa_esp = trim($in['causa_especifica'] ?? '') ?: null;
+
+    if ($estado === 'Vivo') {
+        $causa = null;
+        $causa_cat = null;
+        $causa_esp = null;
+        $estado_salud = in_array($in['estado_salud'] ?? '', [
+            'Sano, sin problemas aparentes',
+            'Nació con algún problema o malformación',
+            'Está enfermo actualmente',
+            'Tuvo una enfermedad anteriormente'
+        ]) ? $in['estado_salud'] : 'Sano, sin problemas aparentes';
+        $detalle_salud = ($estado_salud !== 'Sano, sin problemas aparentes') ? (trim($in['detalle_salud'] ?? '') ?: null) : null;
+    }
 
     $stmt->execute([
         ':id'              => $id,
@@ -113,11 +136,14 @@ function action_update(string $uid, array $in): void {
         ':tipo_parto'      => in_array($in['tipo_parto'] ?? '', ['Normal','Asistido','Muerto al parto']) ? $in['tipo_parto'] : 'Normal',
         ':rp_madre'        => trim($in['rp_madre']    ?? '') ?: null,
         ':tipo_calostro'   => in_array($in['tipo_calostro'] ?? '', ['De la madre','Banco de calostro','Calostro mejorado']) ? $in['tipo_calostro'] : 'De la madre',
+        ':metodo_calostrado' => in_array($in['metodo_calostrado'] ?? '', ['Con mamadera','Con sonda','Mamó solo']) ? $in['metodo_calostrado'] : 'Con mamadera',
         ':ig_calostro'     => $ig_calostro,
-        ':estado'          => trim($in['estado']      ?? 'Vivo'),
-        ':causa'           => trim($in['causa']        ?? '') ?: null,
-        ':causa_cat'       => trim($in['causa_categoria'] ?? '') ?: null,
-        ':causa_esp'       => trim($in['causa_especifica'] ?? '') ?: null,
+        ':estado'          => $estado,
+        ':estado_salud'    => $estado_salud,
+        ':detalle_salud'   => $detalle_salud,
+        ':causa'           => $causa,
+        ':causa_cat'       => $causa_cat,
+        ':causa_esp'       => $causa_esp,
     ]);
 
     if ($stmt->rowCount() === 0) {
@@ -169,9 +195,12 @@ function action_list(string $uid): void {
     foreach ($records as &$r) {
         $r['ig_ternero']  = normalize_ig_val($r['ig_ternero']  !== null ? (float)$r['ig_ternero']  : null);
         $r['ig_calostro'] = normalize_ig_val($r['ig_calostro'] !== null ? (float)$r['ig_calostro'] : null);
-        $r['tipo_parto']    = !empty($r['tipo_parto']) ? $r['tipo_parto'] : 'Normal';
-        $r['tipo_calostro'] = !empty($r['tipo_calostro']) ? $r['tipo_calostro'] : 'De la madre';
-        $r['synced']        = true; // Viniendo de la BD siempre están "synced"
+        $r['tipo_parto']        = !empty($r['tipo_parto']) ? $r['tipo_parto'] : 'Normal';
+        $r['tipo_calostro']     = !empty($r['tipo_calostro']) ? $r['tipo_calostro'] : 'De la madre';
+        $r['metodo_calostrado'] = !empty($r['metodo_calostrado']) ? $r['metodo_calostrado'] : 'Con mamadera';
+        $r['estado_salud']      = (!empty($r['estado_salud']) && $r['estado'] === 'Vivo') ? $r['estado_salud'] : ($r['estado'] === 'Vivo' ? 'Sano, sin problemas aparentes' : null);
+        $r['detalle_salud']     = !empty($r['detalle_salud']) ? $r['detalle_salud'] : null;
+        $r['synced']            = true; // Viniendo de la BD siempre están "synced"
     }
     unset($r);
 
@@ -277,6 +306,10 @@ function action_save(string $uid, array $in): void {
             ? $in['tipo_calostro'] 
             : (($existing['tipo_calostro'] ?? null) ?: 'De la madre');
 
+        $metodo_calostrado = (isset($in['metodo_calostrado']) && in_array($in['metodo_calostrado'], ['Con mamadera', 'Con sonda', 'Mamó solo'])) 
+            ? $in['metodo_calostrado'] 
+            : (($existing['metodo_calostrado'] ?? null) ?: 'Con mamadera');
+
         $ig_calostro = (isset($in['ig_calostro']) && is_numeric($in['ig_calostro'])) 
             ? (float)$in['ig_calostro'] 
             : ($existing['ig_calostro'] !== null ? (float)$existing['ig_calostro'] : null);
@@ -286,12 +319,21 @@ function action_save(string $uid, array $in): void {
         $causa = trim($in['causa'] ?? '') ?: $existing['causa'];
         $causa_cat = trim($in['causa_categoria'] ?? '') ?: $existing['causa_categoria'];
         $causa_esp = trim($in['causa_especifica'] ?? '') ?: $existing['causa_especifica'];
+        $estado_salud = null;
+        $detalle_salud = null;
 
-        // Si el estado fusionado es 'Vivo', limpiar las causas
+        // Si el estado fusionado es 'Vivo', limpiar las causas y procesar salud
         if ($estado === 'Vivo') {
             $causa = null;
             $causa_cat = null;
             $causa_esp = null;
+            $estado_salud = in_array($in['estado_salud'] ?? '', [
+                'Sano, sin problemas aparentes',
+                'Nació con algún problema o malformación',
+                'Está enfermo actualmente',
+                'Tuvo una enfermedad anteriormente'
+            ]) ? $in['estado_salud'] : (($existing['estado_salud'] ?? null) ?: 'Sano, sin problemas aparentes');
+            $detalle_salud = ($estado_salud !== 'Sano, sin problemas aparentes') ? (trim($in['detalle_salud'] ?? '') ?: ($existing['detalle_salud'] ?? null)) : null;
         }
 
         $stmt_update = $db->prepare(
@@ -307,8 +349,11 @@ function action_save(string $uid, array $in): void {
                  tipo_parto = :tipo_parto,
                  rp_madre = :rp_madre,
                  tipo_calostro = :tipo_calostro,
+                 metodo_calostrado = :metodo_calostrado,
                  ig_calostro = :ig_calostro,
                  estado = :estado,
+                 estado_salud = :estado_salud,
+                 detalle_salud = :detalle_salud,
                  causa = :causa,
                  causa_categoria = :causa_cat,
                  causa_especifica = :causa_esp
@@ -329,8 +374,11 @@ function action_save(string $uid, array $in): void {
             ':tipo_parto'      => $tipo_parto,
             ':rp_madre'        => $rp_madre ?: null,
             ':tipo_calostro'   => $tipo_calostro,
+            ':metodo_calostrado' => $metodo_calostrado,
             ':ig_calostro'     => $ig_calostro,
             ':estado'          => $estado,
+            ':estado_salud'    => $estado_salud,
+            ':detalle_salud'   => $detalle_salud,
             ':causa'           => $causa ?: null,
             ':causa_cat'       => $causa_cat ?: null,
             ':causa_esp'       => $causa_esp ?: null,
@@ -362,16 +410,35 @@ function action_save(string $uid, array $in): void {
 
     $ig_ternero  = normalize_ig_val(is_numeric($in['ig_ternero']  ?? null) ? (float)$in['ig_ternero']  : null);
     $ig_calostro = normalize_ig_val(is_numeric($in['ig_calostro'] ?? null) ? (float)$in['ig_calostro'] : null);
+    $estado      = trim($in['estado'] ?? 'Vivo');
+    $estado_salud = null;
+    $detalle_salud = null;
+    $causa       = trim($in['causa'] ?? '') ?: null;
+    $causa_cat   = trim($in['causa_categoria'] ?? '') ?: null;
+    $causa_esp   = trim($in['causa_especifica'] ?? '') ?: null;
+
+    if ($estado === 'Vivo') {
+        $causa = null;
+        $causa_cat = null;
+        $causa_esp = null;
+        $estado_salud = in_array($in['estado_salud'] ?? '', [
+            'Sano, sin problemas aparentes',
+            'Nació con algún problema o malformación',
+            'Está enfermo actualmente',
+            'Tuvo una enfermedad anteriormente'
+        ]) ? $in['estado_salud'] : 'Sano, sin problemas aparentes';
+        $detalle_salud = ($estado_salud !== 'Sano, sin problemas aparentes') ? (trim($in['detalle_salud'] ?? '') ?: null) : null;
+    }
 
     $stmt = $db->prepare(
         "INSERT INTO registros
             (user_id, establecimiento, fecha, productor, rp_ternero, ig_ternero,
-             sexo, ombligo, tipo_madre, tipo_parto, rp_madre, tipo_calostro, ig_calostro, estado, causa, 
-             causa_categoria, causa_especifica)
+             sexo, ombligo, tipo_madre, tipo_parto, rp_madre, tipo_calostro, metodo_calostrado, ig_calostro, estado, 
+             estado_salud, detalle_salud, causa, causa_categoria, causa_especifica)
          VALUES
             (:uid, :establecimiento, :fecha, :productor, :rp_ternero, :ig_ternero,
-             :sexo, :ombligo, :tipo_madre, :tipo_parto, :rp_madre, :tipo_calostro, :ig_calostro, :estado, :causa,
-             :causa_cat, :causa_esp)"
+             :sexo, :ombligo, :tipo_madre, :tipo_parto, :rp_madre, :tipo_calostro, :metodo_calostrado, :ig_calostro, :estado,
+             :estado_salud, :detalle_salud, :causa, :causa_cat, :causa_esp)"
     );
 
     $stmt->execute([
@@ -387,11 +454,14 @@ function action_save(string $uid, array $in): void {
         ':tipo_parto'  => in_array($in['tipo_parto'] ?? '', ['Normal','Asistido','Muerto al parto']) ? $in['tipo_parto'] : 'Normal',
         ':rp_madre'    => trim($in['rp_madre']    ?? '') ?: null,
         ':tipo_calostro' => in_array($in['tipo_calostro'] ?? '', ['De la madre','Banco de calostro','Calostro mejorado']) ? $in['tipo_calostro'] : 'De la madre',
+        ':metodo_calostrado' => in_array($in['metodo_calostrado'] ?? '', ['Con mamadera','Con sonda','Mamó solo']) ? $in['metodo_calostrado'] : 'Con mamadera',
         ':ig_calostro' => $ig_calostro,
-        ':estado'      => trim($in['estado']      ?? 'Vivo'),
-        ':causa'       => trim($in['causa']        ?? '') ?: null,
-        ':causa_cat'   => trim($in['causa_categoria'] ?? '') ?: null,
-        ':causa_esp'   => trim($in['causa_especifica'] ?? '') ?: null,
+        ':estado'      => $estado,
+        ':estado_salud' => $estado_salud,
+        ':detalle_salud' => $detalle_salud,
+        ':causa'       => $causa,
+        ':causa_cat'   => $causa_cat,
+        ':causa_esp'   => $causa_esp,
     ]);
 
     $new_id = $db->lastInsertId();
@@ -642,16 +712,26 @@ function action_backup_import(string $uid, array $in): void {
             $tipo_madre  = in_array($r['tipo_madre'] ?? '', ['Vaca', 'Vaquillona']) ? $r['tipo_madre'] : 'Vaca';
             $tipo_parto    = in_array($r['tipo_parto'] ?? '', ['Normal', 'Asistido', 'Muerto al parto']) ? $r['tipo_parto'] : 'Normal';
             $rp_madre      = trim($r['rp_madre'] ?? '') ?: null;
-            $tipo_calostro = in_array($r['tipo_calostro'] ?? '', ['De la madre', 'Banco de calostro', 'Calostro mejorado']) ? $r['tipo_calostro'] : 'De la madre';
-            $estado        = trim($r['estado'] ?? 'Vivo');
-            $causa         = trim($r['causa'] ?? '') ?: null;
-            $causa_cat     = trim($r['causa_categoria'] ?? '') ?: null;
-            $causa_esp     = trim($r['causa_especifica'] ?? '') ?: null;
+            $tipo_calostro     = in_array($r['tipo_calostro'] ?? '', ['De la madre', 'Banco de calostro', 'Calostro mejorado']) ? $r['tipo_calostro'] : 'De la madre';
+            $metodo_calostrado = in_array($r['metodo_calostrado'] ?? '', ['Con mamadera', 'Con sonda', 'Mamó solo']) ? $r['metodo_calostrado'] : 'Con mamadera';
+            $estado            = trim($r['estado'] ?? 'Vivo');
+            $estado_salud      = null;
+            $detalle_salud     = null;
+            $causa             = trim($r['causa'] ?? '') ?: null;
+            $causa_cat         = trim($r['causa_categoria'] ?? '') ?: null;
+            $causa_esp         = trim($r['causa_especifica'] ?? '') ?: null;
             
             if ($estado === 'Vivo') {
                 $causa = null;
                 $causa_cat = null;
                 $causa_esp = null;
+                $estado_salud = in_array($r['estado_salud'] ?? '', [
+                    'Sano, sin problemas aparentes',
+                    'Nació con algún problema o malformación',
+                    'Está enfermo actualmente',
+                    'Tuvo una enfermedad anteriormente'
+                ]) ? $r['estado_salud'] : 'Sano, sin problemas aparentes';
+                $detalle_salud = ($estado_salud !== 'Sano, sin problemas aparentes') ? (trim($r['detalle_salud'] ?? '') ?: null) : null;
             }
             
             if ($existing) {
@@ -666,8 +746,11 @@ function action_backup_import(string $uid, array $in): void {
                          tipo_parto = :tipo_parto,
                          rp_madre = :rp_madre,
                          tipo_calostro = :tipo_calostro,
+                         metodo_calostrado = :metodo_calostrado,
                          ig_calostro = :ig_calostro,
                          estado = :estado,
+                         estado_salud = :estado_salud,
+                         detalle_salud = :detalle_salud,
                          causa = :causa,
                          causa_categoria = :causa_cat,
                          causa_especifica = :causa_esp
@@ -685,8 +768,11 @@ function action_backup_import(string $uid, array $in): void {
                     ':tipo_parto' => $tipo_parto,
                     ':rp_madre' => $rp_madre,
                     ':tipo_calostro' => $tipo_calostro,
+                    ':metodo_calostrado' => $metodo_calostrado,
                     ':ig_calostro' => $ig_calostro,
                     ':estado' => $estado,
+                    ':estado_salud' => $estado_salud,
+                    ':detalle_salud' => $detalle_salud,
                     ':causa' => $causa,
                     ':causa_cat' => $causa_cat,
                     ':causa_esp' => $causa_esp
@@ -696,12 +782,12 @@ function action_backup_import(string $uid, array $in): void {
                 $stmt_ins = $db->prepare(
                     "INSERT INTO registros
                         (user_id, establecimiento, fecha, productor, rp_ternero, ig_ternero,
-                         sexo, ombligo, tipo_madre, tipo_parto, rp_madre, tipo_calostro, ig_calostro, estado, causa, 
-                         causa_categoria, causa_especifica)
+                         sexo, ombligo, tipo_madre, tipo_parto, rp_madre, tipo_calostro, metodo_calostrado, ig_calostro, estado, 
+                         estado_salud, detalle_salud, causa, causa_categoria, causa_especifica)
                     VALUES
                         (:uid, :establecimiento, :fecha, :productor, :rp_ternero, :ig_ternero,
-                         :sexo, :ombligo, :tipo_madre, :tipo_parto, :rp_madre, :tipo_calostro, :ig_calostro, :estado, :causa,
-                         :causa_cat, :causa_esp)"
+                         :sexo, :ombligo, :tipo_madre, :tipo_parto, :rp_madre, :tipo_calostro, :metodo_calostrado, :ig_calostro, :estado,
+                         :estado_salud, :detalle_salud, :causa, :causa_cat, :causa_esp)"
                 );
                 $stmt_ins->execute([
                     ':uid' => $uid,
@@ -716,8 +802,11 @@ function action_backup_import(string $uid, array $in): void {
                     ':tipo_parto' => $tipo_parto,
                     ':rp_madre' => $rp_madre,
                     ':tipo_calostro' => $tipo_calostro,
+                    ':metodo_calostrado' => $metodo_calostrado,
                     ':ig_calostro' => $ig_calostro,
                     ':estado' => $estado,
+                    ':estado_salud' => $estado_salud,
+                    ':detalle_salud' => $detalle_salud,
                     ':causa' => $causa,
                     ':causa_cat' => $causa_cat,
                     ':causa_esp' => $causa_esp
