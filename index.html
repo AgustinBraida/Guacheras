@@ -1102,9 +1102,16 @@
                             <div style="flex:1;min-width:0;">
                                 <div class="db-chart-title" data-title-key="title_brix_salud" contenteditable="false"
                                     title="Doble clic para editar título">🩺 Grados Brix vs Salud y Supervivencia</div>
-                                <div class="db-chart-sub">Calidad del calostro · cada punto = un ternero</div>
+                                <div class="db-chart-sub">° Brix según selección · salud resultante del <strong>ternero</strong> · cada punto = un ternero</div>
                             </div>
                             <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                                <select id="brix_salud_fuente"
+                                    style="font-size:0.78rem;padding:4px 10px;border-radius:8px;border:1px solid var(--border,#e2e8f0);background:var(--card-bg,#fff);color:var(--text-primary,#1e293b);cursor:pointer;outline:none;max-width:180px;"
+                                    onchange="window._onBrixSaludFilter()">
+                                    <option value="ternero" selected>° Brix del ternero</option>
+                                    <option value="madre">° Brix de la madre</option>
+                                    <option value="promedio">° Brix promedio</option>
+                                </select>
                                 <select id="brix_salud_filter"
                                     style="font-size:0.78rem;padding:4px 10px;border-radius:8px;border:1px solid var(--border,#e2e8f0);background:var(--card-bg,#fff);color:var(--text-primary,#1e293b);cursor:pointer;outline:none;max-width:200px;"
                                     onchange="window._onBrixSaludFilter()">

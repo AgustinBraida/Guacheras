@@ -1487,8 +1487,21 @@ function _renderBrixSalud(data) {
 
     const filtroEnf = sel ? sel.value : '';
 
-    // ── Filtrar registros: solo los que tienen ig_calostro ───────
-    let sample = data.filter(r => r.ig_calostro != null && !isNaN(parseFloat(r.ig_calostro)));
+    const fuenteSel = document.getElementById('brix_salud_fuente');
+    const fuente = fuenteSel ? fuenteSel.value : 'ternero';
+
+    // ── Helper: valor X según fuente seleccionada ────────────────
+    function _getBrixX(r) {
+        const madre   = parseFloat(r.ig_calostro);
+        const ternero = parseFloat(r.ig_ternero);
+        if (fuente === 'madre')   return isNaN(madre)   ? null : madre;
+        if (fuente === 'ternero') return isNaN(ternero) ? null : ternero;
+        if (!isNaN(madre) && !isNaN(ternero)) return parseFloat(((madre + ternero) / 2).toFixed(2));
+        return null;
+    }
+
+    // ── Filtrar registros: solo los que tienen el campo requerido ─
+    let sample = data.filter(r => _getBrixX(r) !== null);
 
     // Si hay filtro de enfermedad, mostrar solo terneros con esa enfermedad/causa
     if (filtroEnf) {
@@ -1504,7 +1517,7 @@ function _renderBrixSalud(data) {
     // 1) Muertos
     const muertos = sample
         .filter(r => r.estado !== 'Vivo')
-        .map(r => ({ x: parseFloat(r.ig_calostro), y: 0, label: r.causa_especifica || r.estado }));
+        .map(r => ({ x: _getBrixX(r), y: 0, label: r.causa_especifica || r.estado }));
 
     // 2) Vivos con enfermedad (actual o pasada)
     const enfermos = sample
@@ -1512,12 +1525,12 @@ function _renderBrixSalud(data) {
             (r.estado_salud === 'Está enfermo actualmente' ||
              r.estado_salud === 'Tuvo una enfermedad anteriormente' ||
              r.estado_salud === 'Nació con algún problema o malformación'))
-        .map(r => ({ x: parseFloat(r.ig_calostro), y: 1, label: r.detalle_salud || r.estado_salud }));
+        .map(r => ({ x: _getBrixX(r), y: 1, label: r.detalle_salud || r.estado_salud }));
 
     // 3) Sanos
     const sanos = sample
         .filter(r => r.estado === 'Vivo' && r.estado_salud === 'Sano, sin problemas aparentes')
-        .map(r => ({ x: parseFloat(r.ig_calostro), y: 2, label: 'Sano' }));
+        .map(r => ({ x: _getBrixX(r), y: 2, label: 'Sano' }));
 
     // ── Plugin: línea vertical del umbral ───────────────────────
     const umbralPlugin = {
@@ -1593,7 +1606,10 @@ function _renderBrixSalud(data) {
                 x: {
                     title: {
                         display: true,
-                        text: isBrix ? 'Calidad del Calostro (° Brix)' : 'Calidad del Calostro (mg/dL)',
+                        text: (() => {
+                            const fuenteLabel = { ternero: 'del ternero', madre: 'de la madre', promedio: 'promedio' }[fuente] || 'del ternero';
+                            return isBrix ? `° Brix ${fuenteLabel}` : `Calidad calostro ${fuenteLabel} (mg/dL)`;
+                        })(),
                         color: theme.textAxisTitle,
                         font: { family: 'Inter' }
                     },
@@ -1605,7 +1621,7 @@ function _renderBrixSalud(data) {
                     max: 2.5,
                     title: {
                         display: true,
-                        text: 'Estado de salud',
+                        text: 'Estado de salud del ternero',
                         color: theme.textAxisTitle,
                         font: { family: 'Inter' }
                     },
