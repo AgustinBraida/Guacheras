@@ -1095,6 +1095,32 @@
                     </div>
                 </div>
 
+                <!-- BLOQUE: Brix vs Salud + Supervivencia -->
+                <div class="chart-block" data-chart-id="block_brix_salud">
+                    <div class="db-chart-card card glass">
+                        <div class="db-chart-header">
+                            <div style="flex:1;min-width:0;">
+                                <div class="db-chart-title" data-title-key="title_brix_salud" contenteditable="false"
+                                    title="Doble clic para editar título">🩺 Grados Brix vs Salud y Supervivencia</div>
+                                <div class="db-chart-sub">Calidad del calostro · cada punto = un ternero</div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                                <select id="brix_salud_filter"
+                                    style="font-size:0.78rem;padding:4px 10px;border-radius:8px;border:1px solid var(--border,#e2e8f0);background:var(--card-bg,#fff);color:var(--text-primary,#1e293b);cursor:pointer;outline:none;max-width:200px;"
+                                    onchange="window._onBrixSaludFilter()">
+                                    <option value="">Todas las enfermedades</option>
+                                </select>
+                                <button class="chart-edit-title-btn" title="Editar título"
+                                    onclick="dashEditTitle(this)"><i data-lucide="edit-3"
+                                        class="icon-edit"></i></button>
+                            </div>
+                        </div>
+                        <div class="db-chart-wrap" style="height:270px;">
+                            <canvas id="chart_brix_salud"></canvas>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- BLOQUE: Ombligos -->
                 <div class="chart-block" data-chart-id="block_ombligos">
 
@@ -2155,7 +2181,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <!-- Dashboard Module -->
-    <script src="dashboard.js?v=88" defer></script>
+    <script src="dashboard.js?v=89" defer></script>
     <!-- App Script -->
     <script src="app.js?v=88" defer></script>
     <!-- Voice Module (Ocultado temporalmente) -->
@@ -2165,7 +2191,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=92')
+                navigator.serviceWorker.register('./sw.js?v=93')
                     .then(registration => {
                         console.log('[VETFIELD] ServiceWorker registrado. Scope:', registration.scope);
                     })

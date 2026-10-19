@@ -564,6 +564,7 @@ function renderDashboard() {
     _renderRankingEstablecimientos(data);
     _renderMortalidadSexo(data);
     _renderTipoParto(data);
+    _renderBrixSalud(data);
 }
 window.renderDashboard = renderDashboard;
 
@@ -1439,6 +1440,182 @@ function _renderCorrelacionCalostro(data) {
                     ticks: { color: _getChartTheme().textSecondary } 
                 },
                 y: { title: { display: true, text: 'I.G. Ternero (%)', color: _getChartTheme().textAxisTitle, font: { family: 'Inter' } }, grid: { color: _getChartTheme().gridFaint }, ticks: { color: _getChartTheme().textSecondary } }
+            }
+        }
+    });
+}
+
+// ────────────────────────────────────────────────────────────────
+// 3b. Brix vs Salud + Supervivencia — ScatterChart con filtro
+// ────────────────────────────────────────────────────────────────
+
+// Datos actuales del gráfico (para que el filtro pueda re-renderizar sin re-fetch)
+let _brixSaludAllData = [];
+
+window._onBrixSaludFilter = function() {
+    _renderBrixSalud(_brixSaludAllData);
+};
+
+function _renderBrixSalud(data) {
+    _brixSaludAllData = data; // guardar para el filtro
+
+    const ctx = _getCtx('chart_brix_salud');
+    if (!ctx) return;
+
+    const isBrix = _getIgMetodo() === 'brix';
+    const threshold = isBrix ? 8.6 : 25.0; // umbral de calostro óptimo
+
+    // ── Poblar el dropdown de enfermedades ──────────────────────
+    const sel = document.getElementById('brix_salud_filter');
+    if (sel) {
+        const currentVal = sel.value;
+        // Recolectar todas las enfermedades únicas del campo detalle_salud
+        const enfermedadesSet = new Set();
+        data.forEach(r => {
+            if (r.detalle_salud && r.detalle_salud.trim()) {
+                enfermedadesSet.add(r.detalle_salud.trim());
+            }
+            // También incluir causa_especifica de muertos
+            if (r.estado !== 'Vivo' && r.causa_especifica && r.causa_especifica.trim()) {
+                enfermedadesSet.add(r.causa_especifica.trim());
+            }
+        });
+        const sorted = [...enfermedadesSet].sort();
+        sel.innerHTML = '<option value="">Todas las enfermedades</option>' +
+            sorted.map(e => `<option value="${e}" ${e === currentVal ? 'selected' : ''}>${e}</option>`).join('');
+    }
+
+    const filtroEnf = sel ? sel.value : '';
+
+    // ── Filtrar registros: solo los que tienen ig_calostro ───────
+    let sample = data.filter(r => r.ig_calostro != null && !isNaN(parseFloat(r.ig_calostro)));
+
+    // Si hay filtro de enfermedad, mostrar solo terneros con esa enfermedad/causa
+    if (filtroEnf) {
+        sample = sample.filter(r =>
+            (r.detalle_salud && r.detalle_salud.trim() === filtroEnf) ||
+            (r.causa_especifica && r.causa_especifica.trim() === filtroEnf)
+        );
+    }
+
+    const theme = _getChartTheme();
+
+    // ── Clasificar en 3 grupos ───────────────────────────────────
+    // 1) Muertos
+    const muertos = sample
+        .filter(r => r.estado !== 'Vivo')
+        .map(r => ({ x: parseFloat(r.ig_calostro), y: 0, label: r.causa_especifica || r.estado }));
+
+    // 2) Vivos con enfermedad (actual o pasada)
+    const enfermos = sample
+        .filter(r => r.estado === 'Vivo' &&
+            (r.estado_salud === 'Está enfermo actualmente' ||
+             r.estado_salud === 'Tuvo una enfermedad anteriormente' ||
+             r.estado_salud === 'Nació con algún problema o malformación'))
+        .map(r => ({ x: parseFloat(r.ig_calostro), y: 1, label: r.detalle_salud || r.estado_salud }));
+
+    // 3) Sanos
+    const sanos = sample
+        .filter(r => r.estado === 'Vivo' && r.estado_salud === 'Sano, sin problemas aparentes')
+        .map(r => ({ x: parseFloat(r.ig_calostro), y: 2, label: 'Sano' }));
+
+    // ── Plugin: línea vertical del umbral ───────────────────────
+    const umbralPlugin = {
+        id: 'umbralBrix',
+        afterDraw(chart) {
+            const { ctx: c, chartArea, scales } = chart;
+            if (!scales.x || !chartArea) return;
+            const xPx = scales.x.getPixelForValue(threshold);
+            if (xPx < chartArea.left || xPx > chartArea.right) return;
+            c.save();
+            c.beginPath();
+            c.strokeStyle = theme.isDark ? 'rgba(251,191,36,0.7)' : 'rgba(180,120,0,0.65)';
+            c.lineWidth = 1.8;
+            c.setLineDash([5, 4]);
+            c.moveTo(xPx, chartArea.top);
+            c.lineTo(xPx, chartArea.bottom);
+            c.stroke();
+            c.setLineDash([]);
+            c.fillStyle = theme.isDark ? 'rgba(251,191,36,0.85)' : 'rgba(140,90,0,0.85)';
+            c.font = '10px Inter, sans-serif';
+            c.textAlign = 'center';
+            c.fillText(isBrix ? `${threshold}° Brix` : `${threshold} mg/dL`, xPx, chartArea.top - 4);
+            c.restore();
+        }
+    };
+
+    _dashCharts.chart_brix_salud = new Chart(ctx, {
+        type: 'scatter',
+        plugins: [umbralPlugin],
+        data: {
+            datasets: [
+                {
+                    label: '✅ Sano',
+                    data: sanos,
+                    backgroundColor: PALETTE.secondary + 'bb',
+                    borderColor: PALETTE.secondary,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                },
+                {
+                    label: '⚠️ Enfermo / Tuvo enfermedad',
+                    data: enfermos,
+                    backgroundColor: PALETTE.warning + 'bb',
+                    borderColor: PALETTE.warning,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                },
+                {
+                    label: '❌ Falleció',
+                    data: muertos,
+                    backgroundColor: PALETTE.danger + 'bb',
+                    borderColor: PALETTE.danger,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                }
+            ]
+        },
+        options: {
+            ...CHART_DEFAULTS,
+            plugins: {
+                ...CHART_DEFAULTS.plugins,
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const unit = isBrix ? '° Brix' : ' mg/dL';
+                            const estados = ['Falleció', 'Enfermo / Tuvo enfermedad', 'Sano'];
+                            return ` ${ctx.raw.x}${unit} · ${ctx.raw.label || estados[ctx.raw.y] || ''}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: isBrix ? 'Calidad del Calostro (° Brix)' : 'Calidad del Calostro (mg/dL)',
+                        color: theme.textAxisTitle,
+                        font: { family: 'Inter' }
+                    },
+                    grid: { color: theme.gridFaint },
+                    ticks: { color: theme.textSecondary }
+                },
+                y: {
+                    min: -0.5,
+                    max: 2.5,
+                    title: {
+                        display: true,
+                        text: 'Estado de salud',
+                        color: theme.textAxisTitle,
+                        font: { family: 'Inter' }
+                    },
+                    grid: { color: theme.gridFaint },
+                    ticks: {
+                        color: theme.textSecondary,
+                        stepSize: 1,
+                        callback: v => v === 0 ? 'Falleció' : v === 1 ? 'Enfermo' : v === 2 ? 'Sano' : ''
+                    }
+                }
             }
         }
     });
@@ -2551,6 +2728,18 @@ window.updateChartsTheme = function(isDark) {
 
     if (_dashCharts.chart_calostro) {
         const c = _dashCharts.chart_calostro;
+        if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = theme.textSecondary;
+        if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = theme.textSecondary;
+        if (c.options?.scales?.x?.grid) c.options.scales.x.grid.color = theme.gridFaint;
+        if (c.options?.scales?.y?.grid) c.options.scales.y.grid.color = theme.gridFaint;
+        if (c.options?.scales?.x?.title) c.options.scales.x.title.color = theme.textAxisTitle;
+        if (c.options?.scales?.y?.title) c.options.scales.y.title.color = theme.textAxisTitle;
+        if (c.options?.plugins?.legend?.labels) c.options.plugins.legend.labels.color = theme.legendText;
+        c.update();
+    }
+
+    if (_dashCharts.chart_brix_salud) {
+        const c = _dashCharts.chart_brix_salud;
         if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = theme.textSecondary;
         if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = theme.textSecondary;
         if (c.options?.scales?.x?.grid) c.options.scales.x.grid.color = theme.gridFaint;
