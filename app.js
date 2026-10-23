@@ -162,6 +162,9 @@ async function loadFromAPI() {
         establecimientos      = optData.establecimientos      || [];
         productores           = optData.productores           || [];
         establecimientos_por_productor = optData.establecimientos_por_productor || {};
+        window.establecimientos = establecimientos;
+        window.productores = productores;
+        window.establecimientos_por_productor = establecimientos_por_productor;
     }
 }
 
@@ -182,6 +185,9 @@ function loadFromOfflineCache() {
             if(!establecimientos_por_productor[r.productor].includes(r.establecimiento)) establecimientos_por_productor[r.productor].push(r.establecimiento);
         }
     });
+    window.establecimientos = establecimientos;
+    window.productores = productores;
+    window.establecimientos_por_productor = establecimientos_por_productor;
 }
 
 function getOfflineRecords() {
@@ -288,6 +294,12 @@ function renderFieldDatalists() {
     }
     const fProductor = document.getElementById('f_productor');
     renderEstablecimientoDatalist(fProductor ? fProductor.value : '');
+    window.establecimientos = establecimientos;
+    window.productores = productores;
+    window.establecimientos_por_productor = establecimientos_por_productor;
+    if (typeof window.updateRecorridasSelects === 'function') {
+        window.updateRecorridasSelects();
+    }
 }
 
 function renderEstablecimientoDatalist(selectedProductor) {
@@ -321,9 +333,13 @@ function switchView(viewId, el) {
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(i => i.classList.remove('active'));
         if (viewId === 'entrada') navItems[1].classList.add('active');
+        if (viewId === 'recorridas' && navItems[2]) navItems[2].classList.add('active');
     }
 
     if (viewId === 'reportes') renderTable();
+    if (viewId === 'recorridas' && typeof window.initRecorridasView === 'function') {
+        window.initRecorridasView();
+    }
     if (viewId === 'perfil') {
         const countEl = document.getElementById('profile-records-count');
         if (countEl) countEl.textContent = records.length + ' registros';
@@ -336,6 +352,7 @@ function switchView(viewId, el) {
         setTimeout(initDashboard, 250); // Timeout aumentado para mobile
     }
     updateUI();
+    if (window.lucide) window.lucide.createIcons();
 }
 
 function setSegmented(btn, val) {
@@ -3386,4 +3403,7 @@ window.openDeleteProductorModal  = openDeleteProductorModal;
 window.closeDeleteProductorModal = closeDeleteProductorModal;
 window.checkDeleteProductorConfirm = checkDeleteProductorConfirm;
 window.confirmDeleteProductor  = confirmDeleteProductor;
+window.getProductoresList = () => productores;
+window.getEstablecimientosList = () => establecimientos;
+window.getEstablecimientosPorProductorMap = () => establecimientos_por_productor;
 

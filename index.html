@@ -32,7 +32,8 @@
     <!-- Chart.js for Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
     <!-- Estilos -->
-    <link rel="stylesheet" href="styles.css?v=78">
+    <link rel="stylesheet" href="styles.css?v=79">
+    <link rel="stylesheet" href="recorridas.css?v=3">
     <!-- Módulo de Voz (Ocultado temporalmente) -->
     <!-- <link rel="stylesheet" href="voice.css?v=49"> -->
 
@@ -2124,6 +2125,138 @@
             <!-- El contenido se renderiza dinámicamente desde voice.js -->
         </section>
 
+        <!-- VISTA: RECORRIDAS Y AUDITORÍA DE GUACHERA -->
+        <section id="view-recorridas" class="view-section">
+            <div class="recorridas-container">
+
+                <!-- Encabezado del Módulo -->
+                <div class="rec-header-card">
+                    <div class="rec-title">
+                        <i data-lucide="clipboard-check" style="width:24px;height:24px;"></i>
+                        <span>Recorridas y Bitácora de Campo</span>
+                    </div>
+                    <div class="rec-subtitle">
+                        Anotá observaciones en tiempo real, dale seguimiento a los problemas pendientes de visitas anteriores y emití constancias profesionales al productor.
+                    </div>
+                </div>
+
+                <!-- Selector de Contexto (Productor, Establecimiento, Fecha) -->
+                <div class="card glass rec-setup-card">
+                    <div class="rec-setup-grid">
+                        <div>
+                            <label class="rec-field-label" for="rec_productor">Productor</label>
+                            <select id="rec_productor" class="rec-input" onchange="onRecorridaProductorChange()">
+                                <option value="">-- Seleccionar productor... --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="rec-field-label" for="rec_establecimiento">Establecimiento *</label>
+                            <select id="rec_establecimiento" class="rec-input" onchange="onRecorridaEstablecimientoChange()" required>
+                                <option value="">-- Primero seleccioná productor --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="rec-field-label" for="rec_fecha">Fecha Visita</label>
+                            <input type="date" id="rec_fecha" class="rec-input" onchange="onRecorridaContextChange()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bloque de Pendientes Anteriores (El caso de los ratones) -->
+                <div id="rec-pendientes-section" class="rec-pendientes-section" style="display:none;">
+                    <div class="rec-pendientes-header">
+                        <div class="rec-pendientes-title">
+                            <i data-lucide="alert-triangle" style="width:18px;height:18px;"></i>
+                            <span>Tareas y Problemas Pendientes de Visitas Anteriores</span>
+                        </div>
+                        <span id="rec-pendientes-count" class="rec-badge-count">0 pendientes</span>
+                    </div>
+                    <p style="font-size:0.80rem;color:#92400e;margin-bottom:0.75rem;line-height:1.4;">
+                        Estos puntos fueron advertidos en recorridas pasadas y aún no tenían resolución constatada. Podés marcarlos como resueltos o reiterar que siguen pendientes.
+                    </p>
+                    <div id="rec-pendientes-list" class="rec-pendientes-list">
+                        <!-- Se renderiza vía recorridas.js -->
+                    </div>
+                </div>
+
+                <!-- Formulario de Carga Rápida de Hallazgos (100% Texto de Campo) -->
+                <div class="card glass rec-form-card">
+                    <div style="font-size:0.95rem;font-weight:700;color:var(--text-main);margin-bottom:0.65rem;display:flex;align-items:center;gap:6px;">
+                        <i data-lucide="edit-3" style="width:18px;height:18px;color:var(--primary);"></i>
+                        <span>Anotar Nueva Observación de Hoy</span>
+                    </div>
+
+                    <!-- Selector táctil de categoría -->
+                    <div class="rec-field-label">Seleccioná Categoría</div>
+                    <div id="rec-categories-container" class="rec-chips-group">
+                        <!-- Chips renderizados dinámicamente -->
+                    </div>
+
+                    <!-- Área de texto rápida de campo -->
+                    <textarea id="rec_texto_hallazgo" class="rec-textarea" placeholder="Escribí lo que observaste en la guachera (ej: Baldes de leche sucios en fila 2, falta desratizar galpón)..."></textarea>
+
+                    <!-- Opciones y Botón Agregar -->
+                    <div class="rec-form-options">
+                        <div style="display:flex;align-items:center;gap:15px;flex-wrap:wrap;">
+                            <label class="rec-toggle-wrap">
+                                <input type="checkbox" id="rec_chk_pendiente" checked>
+                                <span>Requiere seguimiento (Queda como Tarea Pendiente)</span>
+                            </label>
+                            <label class="rec-toggle-wrap">
+                                <input type="checkbox" id="rec_chk_urgente">
+                                <span style="color:#dc2626;">🚨 Marcar como Urgente</span>
+                            </label>
+                        </div>
+                        <button type="button" class="rec-btn-add" onclick="agregarObservacionHoy()">
+                            <i data-lucide="plus" style="width:16px;height:16px;"></i>
+                            <span>Agregar a la Recorrida</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ficha de la Recorrida de Hoy -->
+                <div class="card glass rec-findings-card">
+                    <div class="rec-findings-header">
+                        <div class="rec-findings-title">
+                            <i data-lucide="list-checks" style="width:18px;height:18px;color:var(--primary);"></i>
+                            <span>Observaciones y Tareas de Hoy</span>
+                        </div>
+                        <span id="rec-today-count" style="font-size:0.8rem;font-weight:700;color:var(--text-secondary);">0 registros</span>
+                    </div>
+
+                    <div id="rec-items-list" class="rec-items-list">
+                        <!-- Se renderiza vía JS -->
+                    </div>
+
+                    <!-- Botones de Constancia Inmediata (WhatsApp y PDF) -->
+                    <div id="rec-actions-bar" class="rec-actions-bar" style="display:none;">
+                        <button type="button" class="rec-btn-whatsapp" onclick="compartirRecorridaWhatsApp()" title="Enviar resumen por WhatsApp al productor o encargado">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.634.076-1.922-.459-1.579-.655-2.61-2.261-2.688-2.366-.078-.105-.639-.851-.639-1.624 0-.773.405-1.156.551-1.314.146-.157.322-.196.43-.196.107 0 .215.002.308.006.098.005.23-.037.36.275.132.317.451 1.1.49 1.18.039.079.066.171.013.276-.052.105-.078.17-.156.262-.078.092-.164.205-.234.275-.078.079-.16.165-.069.321.091.156.406.669.871 1.082.599.532 1.103.697 1.26.776.157.078.248.066.34-.039.091-.105.391-.457.496-.613.104-.157.209-.131.352-.078.144.052.912.43 1.069.508.157.079.261.118.299.184.039.065.039.38-.105.785z"/>
+                            </svg>
+                            <span>Enviar por WhatsApp al Productor</span>
+                        </button>
+                        <button type="button" class="rec-btn-pdf" onclick="exportarRecorridaPDF()" title="Descargar acta formal en PDF">
+                            <i data-lucide="download" style="width:18px;height:18px;"></i>
+                            <span>Descargar Acta en PDF</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Historial de Recorridas Anteriores -->
+                <div class="card glass rec-history-card">
+                    <div style="font-size:0.95rem;font-weight:700;color:var(--text-main);margin-bottom:0.75rem;display:flex;align-items:center;gap:6px;">
+                        <i data-lucide="history" style="width:18px;height:18px;color:var(--primary);"></i>
+                        <span>Historial de Recorridas en este Establecimiento</span>
+                    </div>
+                    <div id="rec-history-list">
+                        <!-- Historial de recorridas pasadas -->
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
         <nav class="bottom-nav">
             <button class="nav-item active" data-nav="inicio" onclick="switchView('inicio', this)">
                 <div class="nav-icon"><i data-lucide="layout-grid"></i></div>
@@ -2133,12 +2266,10 @@
                 <div class="nav-icon"><i data-lucide="plus-circle"></i></div>
                 <span>Nueva Entrada</span>
             </button>
-            <!-- Ocultado temporalmente
-            <button class="nav-item" data-nav="voz" onclick="switchView('voz', this)">
-                <div class="nav-icon"><i data-lucide="mic"></i></div>
-                <span>Voz</span>
+            <button class="nav-item" data-nav="recorridas" onclick="switchView('recorridas', this)">
+                <div class="nav-icon"><i data-lucide="clipboard-check"></i></div>
+                <span>Recorridas</span>
             </button>
-            -->
             <button class="nav-item" data-nav="reportes" onclick="switchView('reportes', this)">
                 <div class="nav-icon"><i data-lucide="bar-chart-3"></i></div>
                 <span>Reportes</span>
@@ -2190,7 +2321,9 @@
     <!-- Dashboard Module -->
     <script src="dashboard.js?v=89" defer></script>
     <!-- App Script -->
-    <script src="app.js?v=88" defer></script>
+    <script src="app.js?v=89" defer></script>
+    <!-- Recorridas Module -->
+    <script src="recorridas.js?v=3" defer></script>
     <!-- Voice Module (Ocultado temporalmente) -->
     <!-- <script src="voice.js?v=62" defer></script> -->
 
@@ -2198,7 +2331,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=93')
+                navigator.serviceWorker.register('./sw.js?v=98')
                     .then(registration => {
                         console.log('[VETFIELD] ServiceWorker registrado. Scope:', registration.scope);
                     })

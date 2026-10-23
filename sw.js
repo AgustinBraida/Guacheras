@@ -4,7 +4,7 @@
 // para forzar la actualización del caché en los dispositivos.
 // ============================================================
 
-const CACHE_VERSION = 'v93';
+const CACHE_VERSION = 'v98';
 const CACHE_NAME = 'vetfield-guacheras-' + CACHE_VERSION;
 
 // ── Recursos CRÍTICOS locales (deben estar todos disponibles) ──
@@ -13,7 +13,9 @@ const CORE_ASSETS = [
     './',
     './index',
     './styles.css',
+    './recorridas.css',
     './app.js',
+    './recorridas.js',
     './auth.js',
     './voice.css',
     './voice.js',

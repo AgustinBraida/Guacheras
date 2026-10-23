@@ -1,0 +1,646 @@
+/* ============================================================
+   VETFIELD PRO — recorridas.css v1.0
+   Estilos para el módulo de Recorridas, Auditoría y Pendientes
+   ============================================================ */
+
+.recorridas-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding-bottom: 5rem;
+}
+
+/* ── Encabezado del Módulo ── */
+.rec-header-card {
+    background: linear-gradient(135deg, rgba(26, 35, 126, 0.08) 0%, rgba(57, 73, 171, 0.04) 100%);
+    border: 1px solid rgba(26, 35, 126, 0.12);
+    border-radius: var(--radius-xl, 1.5rem);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+    position: relative;
+    overflow: hidden;
+}
+
+html.dark .rec-header-card {
+    background: linear-gradient(135deg, rgba(57, 73, 171, 0.2) 0%, rgba(30, 41, 59, 0.4) 100%);
+    border-color: rgba(99, 102, 241, 0.2);
+}
+
+.rec-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--primary, #1a237e);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+    letter-spacing: -0.02em;
+}
+
+html.dark .rec-title {
+    color: #93c5fd;
+}
+
+.rec-subtitle {
+    font-size: 0.82rem;
+    color: var(--text-secondary, #64748b);
+    line-height: 1.4;
+}
+
+/* ── Selector de Visita (Card de Configuración) ── */
+.rec-setup-card {
+    margin-bottom: 1.25rem;
+    padding: 1.25rem;
+    border-radius: var(--radius-xl, 1.5rem);
+}
+
+.rec-setup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 140px;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+@media (max-width: 640px) {
+    .rec-setup-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.rec-field-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary, #64748b);
+    margin-bottom: 0.35rem;
+}
+
+.rec-input {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 1.5px solid var(--border-color, #e2e8f0);
+    border-radius: 0.75rem;
+    background: var(--input-bg, #f8fafc);
+    color: var(--text-main, #1e293b);
+    font-size: 0.88rem;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.rec-input:focus {
+    outline: none;
+    border-color: var(--primary-light, #3949ab);
+    box-shadow: 0 0 0 3px rgba(57, 73, 171, 0.12);
+}
+
+select.rec-input,
+html.dark select.rec-input {
+    cursor: pointer;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    background-color: var(--input-bg, #f8fafc) !important;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.85rem center !important;
+    background-size: 16px 16px !important;
+    padding-right: 2.2rem !important;
+}
+
+html.dark select.rec-input {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+}
+
+select.rec-input option {
+    background: #ffffff;
+    color: #1e293b;
+    padding: 6px;
+}
+
+html.dark select.rec-input option {
+    background: #191c28;
+    color: #f1f5f9;
+}
+
+/* ── Banner / Bloque de Pendientes Anteriores (El caso de los ratones) ── */
+.rec-pendientes-section {
+    background: #fffbeb;
+    border: 1.5px solid #fde68a;
+    border-radius: var(--radius-xl, 1.5rem);
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    animation: fadeIn 0.3s ease;
+}
+
+html.dark .rec-pendientes-section {
+    background: rgba(120, 53, 15, 0.18);
+    border-color: rgba(217, 119, 6, 0.35);
+}
+
+.rec-pendientes-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.rec-pendientes-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #b45309;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+html.dark .rec-pendientes-title {
+    color: #fcd34d;
+}
+
+.rec-badge-count {
+    background: #f59e0b;
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 9999px;
+}
+
+.rec-pendientes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.rec-pending-card {
+    background: #ffffff;
+    border: 1.5px solid #fde68a;
+    border-radius: 1rem;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(180, 83, 9, 0.05);
+}
+
+html.dark .rec-pending-card {
+    background: #1e293b;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.rec-pending-card.resuelto-hoy {
+    border-color: #86efac;
+    background: #f0fdf4;
+    opacity: 0.85;
+}
+
+html.dark .rec-pending-card.resuelto-hoy {
+    background: rgba(22, 101, 52, 0.2);
+    border-color: rgba(74, 222, 128, 0.4);
+}
+
+.rec-pending-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.rec-category-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.tag-higiene       { background: #e0f2fe; color: #0369a1; }
+.tag-alimentacion  { background: #fef3c7; color: #92400e; }
+.tag-bioseguridad  { background: #fee2e2; color: #b91c1c; }
+.tag-laboratorio   { background: #ede9fe; color: #6d28d9; }
+.tag-sanidad       { background: #fce7f3; color: #be185d; }
+.tag-instalaciones { background: #ffedd5; color: #c2410c; }
+.tag-general       { background: #f1f5f9; color: #475569; }
+
+html.dark .tag-higiene       { background: rgba(3, 105, 161, 0.25); color: #7dd3fc; }
+html.dark .tag-alimentacion  { background: rgba(146, 64, 14, 0.25); color: #fde68a; }
+html.dark .tag-bioseguridad  { background: rgba(185, 28, 28, 0.25); color: #fca5a5; }
+html.dark .tag-laboratorio   { background: rgba(109, 40, 217, 0.25); color: #c4b5fd; }
+html.dark .tag-sanidad       { background: rgba(190, 24, 93, 0.25); color: #f9a8d4; }
+html.dark .tag-instalaciones { background: rgba(194, 65, 12, 0.25); color: #fdba74; }
+html.dark .tag-general       { background: rgba(71, 85, 105, 0.25); color: #cbd5e1; }
+
+.rec-pending-age {
+    font-size: 0.72rem;
+    color: #92400e;
+    font-weight: 600;
+}
+
+html.dark .rec-pending-age {
+    color: #fbbf24;
+}
+
+.rec-pending-text {
+    font-size: 0.88rem;
+    color: var(--text-main, #1e293b);
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+.rec-pending-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.25rem;
+}
+
+.rec-btn-resolve {
+    background: #16a34a;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+}
+
+.rec-btn-resolve:hover {
+    background: #15803d;
+    transform: translateY(-1px);
+}
+
+.rec-btn-reincide {
+    background: #ea580c;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+}
+
+.rec-btn-reincide:hover {
+    background: #c2410c;
+    transform: translateY(-1px);
+}
+
+.rec-btn-discard {
+    background: transparent;
+    color: var(--text-secondary, #64748b);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.rec-btn-discard:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #dc2626;
+    border-color: #fca5a5;
+}
+
+/* ── Formulario de Carga Rápida de Hallazgos (100% Texto) ── */
+.rec-form-card {
+    margin-bottom: 1.25rem;
+    padding: 1.25rem;
+    border-radius: var(--radius-xl, 1.5rem);
+}
+
+.rec-chips-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 0.85rem;
+}
+
+.rec-chip-btn {
+    border: 1.5px solid var(--border-color, #e2e8f0);
+    background: var(--input-bg, #f8fafc);
+    color: var(--text-main, #334155);
+    border-radius: 9999px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.rec-chip-btn:hover {
+    border-color: var(--primary-light, #3949ab);
+    transform: translateY(-1px);
+}
+
+.rec-chip-btn.active {
+    background: var(--primary, #1a237e);
+    color: #ffffff;
+    border-color: var(--primary, #1a237e);
+    box-shadow: 0 2px 8px rgba(26, 35, 126, 0.25);
+}
+
+html.dark .rec-chip-btn.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.rec-textarea {
+    width: 100%;
+    min-height: 85px;
+    padding: 0.75rem 0.95rem;
+    border: 1.5px solid var(--border-color, #e2e8f0);
+    border-radius: 0.85rem;
+    background: var(--input-bg, #f8fafc);
+    color: var(--text-main, #1e293b);
+    font-size: 0.9rem;
+    font-family: inherit;
+    resize: vertical;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+    line-height: 1.45;
+}
+
+.rec-textarea:focus {
+    outline: none;
+    border-color: var(--primary-light, #3949ab);
+    box-shadow: 0 0 0 3px rgba(57, 73, 171, 0.12);
+}
+
+.rec-form-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.rec-toggle-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-main, #334155);
+}
+
+.rec-toggle-wrap input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    cursor: pointer;
+    accent-color: var(--primary, #1a237e);
+}
+
+.rec-btn-add {
+    background: var(--primary, #1a237e);
+    color: #ffffff;
+    border: none;
+    border-radius: 0.75rem;
+    padding: 0.65rem 1.35rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(26, 35, 126, 0.18);
+}
+
+.rec-btn-add:hover {
+    background: var(--primary-light, #3949ab);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(26, 35, 126, 0.26);
+}
+
+/* ── Lista de Hallazgos de la Recorrida Actual ── */
+.rec-findings-card {
+    margin-bottom: 1.25rem;
+    padding: 1.25rem;
+    border-radius: var(--radius-xl, 1.5rem);
+}
+
+.rec-findings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    padding-bottom: 0.65rem;
+}
+
+.rec-findings-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-main, #1e293b);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rec-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.rec-item-card {
+    background: var(--td-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 0.85rem;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    position: relative;
+    transition: border-color 0.15s ease;
+}
+
+.rec-item-card.is-pending {
+    border-left: 4px solid #f59e0b;
+}
+
+.rec-item-card.is-resolved {
+    border-left: 4px solid #16a34a;
+    opacity: 0.85;
+}
+
+.rec-item-card.is-reincidente {
+    border-left: 4px solid #dc2626;
+    background: #fff5f5;
+}
+
+html.dark .rec-item-card.is-reincidente {
+    background: rgba(220, 38, 38, 0.1);
+}
+
+.rec-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.rec-item-text {
+    font-size: 0.88rem;
+    color: var(--text-main, #1e293b);
+    line-height: 1.45;
+}
+
+.rec-item-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.35rem;
+    font-size: 0.74rem;
+    color: var(--text-secondary, #64748b);
+}
+
+.rec-item-delete {
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+}
+
+.rec-item-delete:hover {
+    opacity: 1;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* ── Barra de Acciones de Constancia (WhatsApp & PDF) ── */
+.rec-actions-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+}
+
+@media (max-width: 580px) {
+    .rec-actions-bar {
+        grid-template-columns: 1fr;
+    }
+}
+
+.rec-btn-whatsapp {
+    background: #25d366;
+    color: #ffffff;
+    border: none;
+    border-radius: 0.85rem;
+    padding: 0.85rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(37, 211, 102, 0.28);
+}
+
+.rec-btn-whatsapp:hover {
+    background: #1eb956;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(37, 211, 102, 0.36);
+}
+
+.rec-btn-pdf {
+    background: #1a237e;
+    color: #ffffff;
+    border: none;
+    border-radius: 0.85rem;
+    padding: 0.85rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(26, 35, 126, 0.2);
+}
+
+.rec-btn-pdf:hover {
+    background: #3949ab;
+    transform: translateY(-1px);
+}
+
+/* ── Historial de Recorridas Anteriores ── */
+.rec-history-card {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    border-radius: var(--radius-xl, 1.5rem);
+}
+
+.rec-history-item {
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 0.85rem;
+    margin-bottom: 0.65rem;
+    overflow: hidden;
+    background: var(--td-bg, #ffffff);
+}
+
+.rec-history-summary {
+    padding: 0.85rem 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
+}
+
+.rec-history-summary:hover {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.rec-history-details {
+    padding: 0.85rem 1.1rem;
+    border-top: 1px dashed var(--border-color, #e2e8f0);
+    background: rgba(0, 0, 0, 0.01);
+    font-size: 0.85rem;
+    display: none;
+}
+
+.rec-history-details.open {
+    display: block;
+}
+
+.rec-empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-secondary, #64748b);
+    font-size: 0.88rem;
+}

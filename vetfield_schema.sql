@@ -26,6 +26,10 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `banner_url`           VARCHAR(500)  DEFAULT NULL            COMMENT 'URL pública del banner subido al servidor',
   `ig_metodo`            ENUM('brix','mgdl') NOT NULL DEFAULT 'brix' COMMENT 'Preferencia medición I.G. Calostro: brix (% Brix) o mgdl (mg/dL)',
   `lugares_muerte`       TEXT          DEFAULT NULL            COMMENT 'JSON array con lugares de muerte configurados y activos',
+  `plan`                 VARCHAR(50)   NOT NULL DEFAULT 'inicio' COMMENT 'Plan de suscripción: inicio, pro, premium',
+  `mp_subscription_id`   VARCHAR(100)  DEFAULT NULL            COMMENT 'ID de suscripción de Mercado Pago',
+  `plan_expires_at`      DATETIME      DEFAULT NULL            COMMENT 'Fecha de fin de ciclo al cancelar suscripción',
+  `cancellation_date`    DATETIME      DEFAULT NULL            COMMENT 'Fecha en que el usuario solicitó cancelar',
   `created_at`           DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_email`     (`email`),
@@ -37,6 +41,10 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
 -- ALTER TABLE `usuarios` ADD COLUMN `banner_url` VARCHAR(500) DEFAULT NULL COMMENT 'URL pública del banner subido al servidor';
 -- ALTER TABLE `usuarios` ADD COLUMN `ig_metodo` ENUM('brix','mgdl') NOT NULL DEFAULT 'brix' COMMENT 'Preferencia medición I.G. Calostro';
 -- ALTER TABLE `usuarios` ADD COLUMN `lugares_muerte` TEXT DEFAULT NULL COMMENT 'JSON array con lugares de muerte configurados';
+-- ALTER TABLE `usuarios` ADD COLUMN `plan` VARCHAR(50) NOT NULL DEFAULT 'inicio' COMMENT 'Plan de suscripción';
+-- ALTER TABLE `usuarios` ADD COLUMN `mp_subscription_id` VARCHAR(100) DEFAULT NULL COMMENT 'ID suscripción Mercado Pago';
+-- ALTER TABLE `usuarios` ADD COLUMN `plan_expires_at` DATETIME DEFAULT NULL COMMENT 'Vencimiento de plan cancelado';
+-- ALTER TABLE `usuarios` ADD COLUMN `cancellation_date` DATETIME DEFAULT NULL COMMENT 'Fecha de solicitud de cancelación';
 
 
 -- ─── TABLA: sesiones ────────────────────────────────────────
@@ -115,3 +123,36 @@ CREATE TABLE IF NOT EXISTS `establecimientos` (
   CONSTRAINT `fk_establecimientos_productor`
     FOREIGN KEY (`id_productor`) REFERENCES `productores` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─── TABLA: recorridas ───────────────────────────────────────
+-- Bitácora de recorridas de guacheras, observaciones de campo y seguimiento de pendientes.
+CREATE TABLE IF NOT EXISTS `recorridas` (
+  `id`              INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  `user_id`         VARCHAR(36)   NOT NULL,
+  `productor`       VARCHAR(100)  NOT NULL,
+  `establecimiento` VARCHAR(100)  NOT NULL,
+  `fecha`           DATE          NOT NULL,
+  `profesional`     VARCHAR(100)  DEFAULT NULL,
+  `hallazgos`       LONGTEXT      NOT NULL COMMENT 'Array JSON con hallazgos, estado (pendiente/resuelto/reincidente) y categoría',
+  `resumen_general` TEXT          DEFAULT NULL,
+  `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_recorridas_user_est`  (`user_id`, `establecimiento`, `fecha`),
+  KEY `idx_recorridas_user_prod` (`user_id`, `productor`),
+  CONSTRAINT `fk_recorridas_user`
+    FOREIGN KEY (`user_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─── TABLA: pending_plans ────────────────────────────────────
+-- Planes pagados en Mercado Pago previos al registro del usuario con ese email.
+CREATE TABLE IF NOT EXISTS `pending_plans` (
+  `id`                 INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  `email`              VARCHAR(150)  NOT NULL,
+  `plan`               VARCHAR(50)   NOT NULL,
+  `mp_subscription_id` VARCHAR(100)  DEFAULT NULL,
+  `created_at`         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_pending_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
