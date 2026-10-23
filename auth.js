@@ -80,6 +80,24 @@ const AuthManager = {
                 if (prev) lugaresMuerte = JSON.parse(prev);
             } catch(e) {}
         }
+
+        let dashConfig = user.dashboard_config || user.dashboardConfig || null;
+        if (!dashConfig) {
+            try {
+                const prev = localStorage.getItem('vetfield_dashboard_config');
+                if (prev) dashConfig = JSON.parse(prev);
+            } catch(e) {}
+        }
+        if (dashConfig && typeof dashConfig === 'object') {
+            if (Array.isArray(dashConfig.order) && dashConfig.order.length > 0) {
+                localStorage.setItem('vf_chart_block_order', JSON.stringify(dashConfig.order));
+            }
+            if (dashConfig.titles && typeof dashConfig.titles === 'object') {
+                localStorage.setItem('vf_chart_titles', JSON.stringify(dashConfig.titles));
+            }
+            localStorage.setItem('vetfield_dashboard_config', JSON.stringify(dashConfig));
+        }
+
         localStorage.setItem(SESSION_KEY, JSON.stringify({
             id: user.id,
             name: user.nombre,
@@ -90,7 +108,8 @@ const AuthManager = {
             hasMpSubscription: !!user.has_mp_subscription,
             planExpiresAt: user.plan_expires_at || null,
             igMetodo: user.ig_metodo || 'brix',
-            lugaresMuerte: lugaresMuerte || null
+            lugaresMuerte: lugaresMuerte || null,
+            dashboardConfig: dashConfig || null
         }));
         if (lugaresMuerte) {
             localStorage.setItem('vetfield_lugares_muerte', JSON.stringify(lugaresMuerte));
@@ -124,6 +143,44 @@ const AuthManager = {
         ];
     },
 
+    // Devuelve la configuración guardada del dashboard {order, titles}
+    getDashboardConfig() {
+        const sess = this.getSession();
+        if (sess && sess.dashboardConfig) return sess.dashboardConfig;
+        try {
+            const local = localStorage.getItem('vetfield_dashboard_config');
+            if (local) return JSON.parse(local);
+        } catch(e) {}
+        return null;
+    },
+
+    // Guarda la configuración del dashboard {order, titles} en local y nube
+    async saveDashboardConfig(config) {
+        if (!config || typeof config !== 'object') return { ok: false };
+        localStorage.setItem('vetfield_dashboard_config', JSON.stringify(config));
+        if (Array.isArray(config.order)) {
+            localStorage.setItem('vf_chart_block_order', JSON.stringify(config.order));
+        }
+        if (config.titles && typeof config.titles === 'object') {
+            localStorage.setItem('vf_chart_titles', JSON.stringify(config.titles));
+        }
+        const sess = this.getSession();
+        if (sess) {
+            sess.dashboardConfig = config;
+            localStorage.setItem(SESSION_KEY, JSON.stringify(sess));
+        }
+
+        if (!this.getToken()) return { ok: true, offline: true };
+
+        return await apiFetch(API_AUTH, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'save_dashboard_config',
+                dashboard_config: config
+            })
+        });
+    },
+
     logout() {
         // Invalidar sesión en el servidor (fire and forget)
         const token = this.getToken();
@@ -136,6 +193,9 @@ const AuthManager = {
         }
         localStorage.removeItem(SESSION_KEY);
         localStorage.removeItem(API_TOKEN_KEY);
+        localStorage.removeItem('vf_chart_block_order');
+        localStorage.removeItem('vf_chart_titles');
+        localStorage.removeItem('vetfield_dashboard_config');
     },
 
     // Validar token contra la API al cargar la app
@@ -327,6 +387,17 @@ const AuthUI = {
                     // Token válido: refrescar datos del perfil silenciosamente
                     this._syncProfile(sess);
                     this._syncAvatar(sess);
+                    if (sess.dashboardConfig && typeof window.restoreDashboardOrderAndTitles === 'function') {
+                        window.restoreDashboardOrderAndTitles(sess.dashboardConfig.order, sess.dashboardConfig.titles);
+                    } else if (!sess.dashboardConfig) {
+                        try {
+                            const localOrder = JSON.parse(localStorage.getItem('vf_chart_block_order') || 'null');
+                            const localTitles = JSON.parse(localStorage.getItem('vf_chart_titles') || '{}');
+                            if (localOrder && Array.isArray(localOrder) && localOrder.length > 0) {
+                                AuthManager.saveDashboardConfig({ order: localOrder, titles: localTitles });
+                            }
+                        } catch(e) {}
+                    }
                 } else if (!AuthManager.getSession()) {
                     // Token rechazado con 401 (se limpió en validateToken):
                     // cerrar sesión y mostrar pantalla de login
@@ -364,6 +435,9 @@ const AuthUI = {
         document.getElementById('main-app').style.display = 'block';
         this._syncAvatar(sess);
         this._syncProfile(sess);
+        if (sess && sess.dashboardConfig && typeof window.restoreDashboardOrderAndTitles === 'function') {
+            window.restoreDashboardOrderAndTitles(sess.dashboardConfig.order, sess.dashboardConfig.titles);
+        }
         // Cargar imágenes desde el servidor y refrescar UI (para otros dispositivos)
         AuthManager.loadProfileImages().then(() => {
             this._refreshProfileImages();

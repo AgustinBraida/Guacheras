@@ -732,19 +732,132 @@ function voice_refreshContextBar() {
 function voice_clearSticky() { VoiceState.clearSticky(); voice_renderUI(); }
 
 function voice_editSticky() {
-    const prod = prompt('Editar Productor:', VoiceState.stickyProductor || '');
-    if (prod === null) return;
-    const est = prompt('Editar Establecimiento (opcional):', VoiceState.stickyEstablecimiento || '');
-    if (est === null) return;
+    // ── Crear el overlay si no existe aún ─────────────────────────
+    let overlay = document.getElementById('voice-ctx-modal-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'voice-ctx-modal-overlay';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-labelledby', 'voice-ctx-modal-title');
+        overlay.innerHTML = `
+        <div class="voice-ctx-modal" role="document">
+            <div class="voice-ctx-modal-header">
+                <div class="voice-ctx-modal-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="voice-ctx-modal-title" id="voice-ctx-modal-title">Editar contexto de sesión</div>
+                    <div class="voice-ctx-modal-subtitle">Se usará para todos los registros de esta sesión</div>
+                </div>
+            </div>
 
-    if (!prod.trim() && !est.trim()) {
-        VoiceState.clearSticky();
-    } else {
-        VoiceState.stickyProductor = prod.trim();
-        VoiceState.stickyEstablecimiento = est.trim();
-        VoiceState.saveSticky();
+            <div class="voice-ctx-modal-field">
+                <label class="voice-ctx-modal-label" for="voice-ctx-modal-prod">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    Productor
+                </label>
+                <input
+                    id="voice-ctx-modal-prod"
+                    class="voice-ctx-modal-input"
+                    type="text"
+                    placeholder="Ej: Don Juan"
+                    autocomplete="off"
+                    spellcheck="false"
+                />
+            </div>
+
+            <div class="voice-ctx-modal-field">
+                <label class="voice-ctx-modal-label" for="voice-ctx-modal-est">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                    Establecimiento
+                </label>
+                <input
+                    id="voice-ctx-modal-est"
+                    class="voice-ctx-modal-input"
+                    type="text"
+                    placeholder="Ej: Puesto 2"
+                    autocomplete="off"
+                    spellcheck="false"
+                />
+                <div class="voice-ctx-modal-hint">Opcional — podés dejarlo en blanco</div>
+            </div>
+
+            <div class="voice-ctx-modal-divider"></div>
+
+            <div class="voice-ctx-modal-actions">
+                <button class="voice-ctx-modal-btn cancel" id="voice-ctx-modal-cancel">
+                    Cancelar
+                </button>
+                <button class="voice-ctx-modal-btn save" id="voice-ctx-modal-save">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Guardar
+                </button>
+            </div>
+        </div>`;
+        document.body.appendChild(overlay);
     }
-    voice_renderUI();
+
+    const inputProd = document.getElementById('voice-ctx-modal-prod');
+    const inputEst  = document.getElementById('voice-ctx-modal-est');
+    const btnSave   = document.getElementById('voice-ctx-modal-save');
+    const btnCancel = document.getElementById('voice-ctx-modal-cancel');
+
+    // Precargar valores actuales
+    inputProd.value = VoiceState.stickyProductor  || '';
+    inputEst.value  = VoiceState.stickyEstablecimiento || '';
+
+    // Abrir el modal
+    overlay.classList.add('is-open');
+    setTimeout(() => inputProd.focus(), 50);
+
+    // ── Handlers internos ──────────────────────────────────────────
+    function doSave() {
+        const prod = inputProd.value.trim();
+        const est  = inputEst.value.trim();
+        if (!prod && !est) {
+            VoiceState.clearSticky();
+        } else {
+            VoiceState.stickyProductor = prod;
+            VoiceState.stickyEstablecimiento = est;
+            VoiceState.saveSticky();
+        }
+        doClose();
+        voice_renderUI();
+    }
+
+    function doClose() {
+        overlay.classList.remove('is-open');
+        btnSave.removeEventListener('click', doSave);
+        btnCancel.removeEventListener('click', doClose);
+        overlay.removeEventListener('click', onOverlayClick);
+        document.removeEventListener('keydown', onKeyDown);
+    }
+
+    function onOverlayClick(e) {
+        if (e.target === overlay) doClose();
+    }
+
+    function onKeyDown(e) {
+        if (e.key === 'Escape') { e.preventDefault(); doClose(); }
+        if (e.key === 'Enter' && document.activeElement !== btnCancel) { e.preventDefault(); doSave(); }
+    }
+
+    btnSave.addEventListener('click', doSave);
+    btnCancel.addEventListener('click', doClose);
+    overlay.addEventListener('click', onOverlayClick);
+    document.addEventListener('keydown', onKeyDown);
 }
 
 function voice_updateOfflineBadge() {

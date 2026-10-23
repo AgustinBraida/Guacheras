@@ -275,8 +275,12 @@ html.dark h1[style*="var(--primary)"],
 html.dark h2[style*="var(--primary)"],
 html.dark div[style*="var(--primary)"],
 html.dark span[style*="var(--primary)"],
-html.dark div[style*="#1a237e"] {
-    color: #ffffff !important;
+html.dark strong[style*="var(--primary)"],
+html.dark strong[style*="#1a237e"],
+html.dark span[style*="#1a237e"],
+html.dark div[style*="#1a237e"],
+html.dark i[style*="var(--primary)"] {
+    color: #93c5fd !important;
 }
 
 html.dark .logo-png {

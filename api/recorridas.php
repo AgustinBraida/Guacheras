@@ -29,6 +29,9 @@ if ($method === 'GET') {
         case 'pendientes':
             action_pendientes($uid);
             break;
+        case 'get_options':
+            action_get_options($uid);
+            break;
         default:
             json_response(['ok' => false, 'error' => 'Acción GET desconocida.'], 400);
     }
@@ -74,6 +77,94 @@ function ensure_recorridas_table(): void {
         $created = true;
     } catch (Exception $e) {
         // Silenciar si falla por permisos, el código cliente tiene fallback en localStorage
+    }
+}
+
+// ── OPCIONES (productores y establecimientos combinados) ───
+function action_get_options(string $uid): void {
+    $db = getDB();
+    try {
+        $productores = [];
+        $est_por_productor = [];
+
+        // 1. Obtener productores y sus establecimientos de las tablas principales del sistema
+        try {
+            $stmt_prod = $db->prepare("SELECT id, nombre FROM productores WHERE user_id = ? ORDER BY nombre ASC");
+            $stmt_prod->execute([$uid]);
+            $rows_prod = $stmt_prod->fetchAll(PDO::FETCH_ASSOC);
+
+            $prod_map = [];
+            foreach ($rows_prod as $p) {
+                $p_nombre = trim($p['nombre'] ?? '');
+                if ($p_nombre !== '') {
+                    if (!in_array($p_nombre, $productores, true)) {
+                        $productores[] = $p_nombre;
+                    }
+                    $prod_map[$p['id']] = $p_nombre;
+                    if (!isset($est_por_productor[$p_nombre])) {
+                        $est_por_productor[$p_nombre] = [];
+                    }
+                }
+            }
+
+            $stmt_est = $db->prepare("SELECT id_productor, nombre FROM establecimientos WHERE user_id = ? ORDER BY nombre ASC");
+            $stmt_est->execute([$uid]);
+            $rows_est = $stmt_est->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($rows_est as $t) {
+                $id_prod = $t['id_productor'];
+                $e_nombre = trim($t['nombre'] ?? '');
+                if (isset($prod_map[$id_prod]) && $e_nombre !== '') {
+                    $p_nombre = $prod_map[$id_prod];
+                    if (!isset($est_por_productor[$p_nombre])) {
+                        $est_por_productor[$p_nombre] = [];
+                    }
+                    if (!in_array($e_nombre, $est_por_productor[$p_nombre], true)) {
+                        $est_por_productor[$p_nombre][] = $e_nombre;
+                    }
+                }
+            }
+        } catch (Exception $eProd) {
+            // Continuar con recorridas si fallara alguna tabla
+        }
+
+        // 2. Productores y establecimientos únicos que aparecen en recorridas de este usuario
+        $stmt_rec = $db->prepare(
+            "SELECT DISTINCT productor, establecimiento FROM recorridas WHERE user_id = ? ORDER BY productor ASC, establecimiento ASC"
+        );
+        $stmt_rec->execute([$uid]);
+        $rows_rec = $stmt_rec->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($rows_rec as $r) {
+            $p = trim($r['productor'] ?? '');
+            $e = trim($r['establecimiento'] ?? '');
+            if ($p !== '') {
+                if (!in_array($p, $productores, true)) {
+                    $productores[] = $p;
+                }
+                if (!isset($est_por_productor[$p])) {
+                    $est_por_productor[$p] = [];
+                }
+                if ($e !== '' && !in_array($e, $est_por_productor[$p], true)) {
+                    $est_por_productor[$p][] = $e;
+                }
+            }
+        }
+
+        // Ordenar alfabéticamente
+        sort($productores, SORT_NATURAL | SORT_FLAG_CASE);
+        foreach ($est_por_productor as $p => &$arr) {
+            sort($arr, SORT_NATURAL | SORT_FLAG_CASE);
+        }
+        unset($arr);
+
+        json_response([
+            'ok'                => true,
+            'productores'       => $productores,
+            'est_por_productor' => $est_por_productor,
+        ]);
+    } catch (Exception $e) {
+        json_response(['ok' => false, 'error' => 'Error al obtener opciones: ' . $e->getMessage()], 500);
     }
 }
 
@@ -184,8 +275,22 @@ function action_save(string $uid, array $in): void {
     $hallazgosJson = json_encode($hallazgos, JSON_UNESCAPED_UNICODE);
 
     try {
+        // Si no viene ID explícito, buscar si ya existe un registro para
+        // este usuario + establecimiento + fecha. Evita duplicados que
+        // hacían que los hallazgos borrados volvieran a aparecer.
+        if (!$id) {
+            $stmtFind = $db->prepare(
+                "SELECT id FROM recorridas WHERE user_id = :uid AND establecimiento = :est AND fecha = :fecha LIMIT 1"
+            );
+            $stmtFind->execute([':uid' => $uid, ':est' => $establecimiento, ':fecha' => $fecha]);
+            $existing = $stmtFind->fetch(PDO::FETCH_ASSOC);
+            if ($existing) {
+                $id = (int)$existing['id'];
+            }
+        }
+
         if ($id) {
-            // Actualizar recorrida existente
+            // UPDATE: reemplaza completamente los hallazgos (incluye los borrados)
             $sql = "UPDATE recorridas 
                     SET productor = :prod, establecimiento = :est, fecha = :fecha,
                         profesional = :prof, hallazgos = :hal, resumen_general = :res
@@ -201,9 +306,10 @@ function action_save(string $uid, array $in): void {
                 ':id'    => $id,
                 ':uid'   => $uid
             ]);
+            _sync_productor_establecimiento($db, $uid, $productor, $establecimiento);
             json_response(['ok' => true, 'id' => $id, 'mensaje' => 'Recorrida actualizada correctamente.']);
         } else {
-            // Insertar nueva recorrida
+            // INSERT: primera vez que se guarda esta recorrida hoy
             $sql = "INSERT INTO recorridas (user_id, productor, establecimiento, fecha, profesional, hallazgos, resumen_general)
                     VALUES (:uid, :prod, :est, :fecha, :prof, :hal, :res)";
             $stmt = $db->prepare($sql);
@@ -217,10 +323,32 @@ function action_save(string $uid, array $in): void {
                 ':res'   => $resumen_general
             ]);
             $newId = (int)$db->lastInsertId();
+            _sync_productor_establecimiento($db, $uid, $productor, $establecimiento);
             json_response(['ok' => true, 'id' => $newId, 'mensaje' => 'Recorrida guardada con éxito.']);
         }
     } catch (Exception $e) {
         json_response(['ok' => false, 'error' => 'Error al guardar la recorrida: ' . $e->getMessage()], 500);
+    }
+}
+
+function _sync_productor_establecimiento($db, string $uid, string $productor, string $establecimiento): void {
+    try {
+        if ($productor === '') return;
+        $ins_prod = $db->prepare("INSERT IGNORE INTO productores (user_id, nombre) VALUES (?, ?)");
+        $ins_prod->execute([$uid, $productor]);
+
+        if ($establecimiento !== '') {
+            $sel_prod = $db->prepare("SELECT id FROM productores WHERE user_id = ? AND nombre = ?");
+            $sel_prod->execute([$uid, $productor]);
+            $id_prod = $sel_prod->fetchColumn();
+
+            if ($id_prod) {
+                $ins_est = $db->prepare("INSERT IGNORE INTO establecimientos (user_id, id_productor, nombre) VALUES (?, ?, ?)");
+                $ins_est->execute([$uid, $id_prod, $establecimiento]);
+            }
+        }
+    } catch (Exception $e) {
+        // Silencioso para no interferir con la respuesta principal
     }
 }
 

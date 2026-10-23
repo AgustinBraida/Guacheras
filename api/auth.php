@@ -37,6 +37,7 @@ if (isset($_SERVER['SCRIPT_FILENAME']) && strtolower(basename($_SERVER['SCRIPT_F
         case 'logout':              action_logout();                    break;
         case 'get_session':         action_get_session();               break;
         case 'update_profile':      action_update_profile($input);      break;
+        case 'save_dashboard_config': action_save_dashboard_config($input); break;
         case 'cancel_subscription': action_cancel_subscription();        break;
         default:
             json_response(['ok' => false, 'error' => 'Acción desconocida.'], 400);
@@ -176,9 +177,23 @@ function action_login(array $in): void {
         $has_col_lugares = ($chk_col && $chk_col->rowCount() > 0);
     } catch (Exception $e) { $has_col_lugares = false; }
 
-    $col_lugares = $has_col_lugares ? ", lugares_muerte" : "";
+    // Detectar si la columna dashboard_config existe en usuarios
+    $has_col_dashboard = false;
+    try {
+        $chk_col2 = $db->query("SHOW COLUMNS FROM usuarios LIKE 'dashboard_config'");
+        $has_col_dashboard = ($chk_col2 && $chk_col2->rowCount() > 0);
+        if (!$has_col_dashboard) {
+            try {
+                $db->exec("ALTER TABLE usuarios ADD COLUMN dashboard_config TEXT DEFAULT NULL COMMENT 'JSON con orden de gráficos y títulos'");
+                $has_col_dashboard = true;
+            } catch (Exception $e) {}
+        }
+    } catch (Exception $e) { $has_col_dashboard = false; }
+
+    $col_lugares   = $has_col_lugares ? ", lugares_muerte" : "";
+    $col_dashboard = $has_col_dashboard ? ", dashboard_config" : "";
     $stmt = $db->prepare(
-        "SELECT id, nombre, email, password_hash, role, status, plan, created_at, mp_subscription_id, plan_expires_at, ig_metodo $col_lugares FROM usuarios WHERE email = ?"
+        "SELECT id, nombre, email, password_hash, role, status, plan, created_at, mp_subscription_id, plan_expires_at, ig_metodo $col_lugares $col_dashboard FROM usuarios WHERE email = ?"
     );
     $stmt->execute([$email]);
     $user = $stmt->fetch();
@@ -223,6 +238,7 @@ function action_login(array $in): void {
             'plan_expires_at' => $user['plan_expires_at'],
             'ig_metodo'  => $user['ig_metodo'] ?? 'brix',
             'lugares_muerte' => (!empty($user['lugares_muerte'])) ? json_decode($user['lugares_muerte'], true) : null,
+            'dashboard_config' => (!empty($user['dashboard_config'])) ? json_decode($user['dashboard_config'], true) : null,
         ]
     ]);
 }
@@ -260,6 +276,7 @@ function action_get_session(): void {
             'plan_expires_at' => $user['plan_expires_at'],
             'ig_metodo'  => $user['ig_metodo'] ?? 'brix',
             'lugares_muerte' => (!empty($user['lugares_muerte'])) ? json_decode($user['lugares_muerte'], true) : null,
+            'dashboard_config' => (!empty($user['dashboard_config'])) ? json_decode($user['dashboard_config'], true) : null,
         ]
     ]);
 }
@@ -349,6 +366,37 @@ function action_update_profile(array $in): void {
             'lugares_muerte' => (!empty($user['lugares_muerte'])) ? json_decode($user['lugares_muerte'], true) : null,
         ]
     ]);
+}
+
+// ============================================================
+// SAVE DASHBOARD CONFIG
+// ============================================================
+function action_save_dashboard_config(array $in): void {
+    $session = validate_session();
+    if (!$session) {
+        json_response(['ok' => false, 'error' => 'Sin sesión activa.'], 401);
+    }
+
+    $config = $in['dashboard_config'] ?? null;
+    if (!is_array($config)) {
+        json_response(['ok' => false, 'error' => 'Formato de configuración inválido.'], 400);
+    }
+
+    $db = getDB();
+
+    // Asegurar columna dashboard_config en usuarios
+    try {
+        $chk = $db->query("SHOW COLUMNS FROM usuarios LIKE 'dashboard_config'");
+        if (!$chk || $chk->rowCount() === 0) {
+            $db->exec("ALTER TABLE usuarios ADD COLUMN dashboard_config TEXT DEFAULT NULL COMMENT 'JSON con orden de gráficos y títulos'");
+        }
+    } catch (Exception $e) {}
+
+    $json = json_encode($config, JSON_UNESCAPED_UNICODE);
+    $stmt = $db->prepare("UPDATE usuarios SET dashboard_config = ? WHERE id = ?");
+    $stmt->execute([$json, $session['id']]);
+
+    json_response(['ok' => true]);
 }
 
 // ============================================================

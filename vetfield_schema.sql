@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `banner_url`           VARCHAR(500)  DEFAULT NULL            COMMENT 'URL pública del banner subido al servidor',
   `ig_metodo`            ENUM('brix','mgdl') NOT NULL DEFAULT 'brix' COMMENT 'Preferencia medición I.G. Calostro: brix (% Brix) o mgdl (mg/dL)',
   `lugares_muerte`       TEXT          DEFAULT NULL            COMMENT 'JSON array con lugares de muerte configurados y activos',
+  `dashboard_config`     TEXT          DEFAULT NULL            COMMENT 'JSON con orden de gráficos y títulos del dashboard',
   `plan`                 VARCHAR(50)   NOT NULL DEFAULT 'inicio' COMMENT 'Plan de suscripción: inicio, pro, premium',
   `mp_subscription_id`   VARCHAR(100)  DEFAULT NULL            COMMENT 'ID de suscripción de Mercado Pago',
   `plan_expires_at`      DATETIME      DEFAULT NULL            COMMENT 'Fecha de fin de ciclo al cancelar suscripción',
@@ -41,6 +42,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
 -- ALTER TABLE `usuarios` ADD COLUMN `banner_url` VARCHAR(500) DEFAULT NULL COMMENT 'URL pública del banner subido al servidor';
 -- ALTER TABLE `usuarios` ADD COLUMN `ig_metodo` ENUM('brix','mgdl') NOT NULL DEFAULT 'brix' COMMENT 'Preferencia medición I.G. Calostro';
 -- ALTER TABLE `usuarios` ADD COLUMN `lugares_muerte` TEXT DEFAULT NULL COMMENT 'JSON array con lugares de muerte configurados';
+-- ALTER TABLE `usuarios` ADD COLUMN `dashboard_config` TEXT DEFAULT NULL COMMENT 'JSON con orden de gráficos y títulos del dashboard';
 -- ALTER TABLE `usuarios` ADD COLUMN `plan` VARCHAR(50) NOT NULL DEFAULT 'inicio' COMMENT 'Plan de suscripción';
 -- ALTER TABLE `usuarios` ADD COLUMN `mp_subscription_id` VARCHAR(100) DEFAULT NULL COMMENT 'ID suscripción Mercado Pago';
 -- ALTER TABLE `usuarios` ADD COLUMN `plan_expires_at` DATETIME DEFAULT NULL COMMENT 'Vencimiento de plan cancelado';

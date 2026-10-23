@@ -405,6 +405,11 @@ function initDashboard() {
         }
     }
 
+    // Sincronizar orden y títulos de gráficos restaurados
+    if (typeof window.restoreDashboardOrderAndTitles === 'function') {
+        window.restoreDashboardOrderAndTitles();
+    }
+
     renderDashboard();
 }
 window.initDashboard = initDashboard;
@@ -2091,9 +2096,21 @@ function _renderTipoParto(data) {
 (function initChartSortable() {
     var LS_ORDER  = 'vf_chart_block_order';
     var LS_TITLES = 'vf_chart_titles';
+    var _syncTimer = null;
 
-    function restoreOrder() {
-        var saved = JSON.parse(localStorage.getItem(LS_ORDER) || 'null');
+    function syncToCloud() {
+        clearTimeout(_syncTimer);
+        _syncTimer = setTimeout(function() {
+            var order = JSON.parse(localStorage.getItem(LS_ORDER) || 'null');
+            var titles = JSON.parse(localStorage.getItem(LS_TITLES) || '{}');
+            if (typeof AuthManager !== 'undefined' && typeof AuthManager.saveDashboardConfig === 'function') {
+                AuthManager.saveDashboardConfig({ order: order, titles: titles });
+            }
+        }, 500);
+    }
+
+    function restoreOrder(customOrder) {
+        var saved = customOrder || JSON.parse(localStorage.getItem(LS_ORDER) || 'null');
         if (!saved || !Array.isArray(saved)) return;
         var container = document.getElementById('charts-sortable');
         if (!container) return;
@@ -2103,13 +2120,24 @@ function _renderTipoParto(data) {
         });
     }
 
-    function restoreTitles() {
-        var saved = JSON.parse(localStorage.getItem(LS_TITLES) || '{}');
+    function restoreTitles(customTitles) {
+        var saved = customTitles || JSON.parse(localStorage.getItem(LS_TITLES) || '{}');
         Object.keys(saved).forEach(function(key) {
             var el = document.querySelector('[data-title-key="' + key + '"]');
             if (el && saved[key]) el.textContent = saved[key];
         });
     }
+
+    window.restoreDashboardOrderAndTitles = function(customOrder, customTitles) {
+        if (customOrder && Array.isArray(customOrder) && customOrder.length > 0) {
+            localStorage.setItem(LS_ORDER, JSON.stringify(customOrder));
+        }
+        if (customTitles && typeof customTitles === 'object' && Object.keys(customTitles).length > 0) {
+            localStorage.setItem(LS_TITLES, JSON.stringify(customTitles));
+        }
+        restoreOrder(customOrder);
+        restoreTitles(customTitles);
+    };
 
     function saveOrder() {
         var container = document.getElementById('charts-sortable');
@@ -2118,12 +2146,14 @@ function _renderTipoParto(data) {
             return b.dataset.chartId;
         });
         localStorage.setItem(LS_ORDER, JSON.stringify(ids));
+        syncToCloud();
     }
 
     function saveTitle(key, value) {
         var saved = JSON.parse(localStorage.getItem(LS_TITLES) || '{}');
         saved[key] = value;
         localStorage.setItem(LS_TITLES, JSON.stringify(saved));
+        syncToCloud();
     }
 
     function initEditOnTitle(titleEl) {

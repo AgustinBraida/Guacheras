@@ -882,3 +882,207 @@ html.dark .guide-tag {
     color: #93c5fd;
     box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.15);
 }
+
+/* ================================================================
+   MODAL — Editar Contexto (Productor / Establecimiento)
+   Reemplaza los prompt() nativos del browser
+   ================================================================ */
+
+#voice-ctx-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+
+#voice-ctx-modal-overlay.is-open {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.voice-ctx-modal {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 1.5rem;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22), 0 4px 16px rgba(0, 0, 0, 0.12);
+    padding: 2rem 1.75rem 1.75rem;
+    width: 100%;
+    max-width: 440px;
+    transform: translateY(18px) scale(0.97);
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+    opacity: 0;
+}
+
+#voice-ctx-modal-overlay.is-open .voice-ctx-modal {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+.voice-ctx-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    margin-bottom: 1.625rem;
+}
+
+.voice-ctx-modal-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-light, #3949ab), var(--primary, #1a237e));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(26, 35, 126, 0.3);
+}
+
+.voice-ctx-modal-icon svg {
+    color: #fff;
+}
+
+.voice-ctx-modal-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.voice-ctx-modal-subtitle {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    margin-top: 0.2rem;
+}
+
+.voice-ctx-modal-field {
+    margin-bottom: 1.1rem;
+}
+
+.voice-ctx-modal-label {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.voice-ctx-modal-label svg {
+    opacity: 0.7;
+}
+
+.voice-ctx-modal-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--input-bg);
+    border: 1.5px solid var(--input-border);
+    border-radius: 0.875rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-main);
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.voice-ctx-modal-input:focus {
+    border-color: var(--primary-light, #3949ab);
+    box-shadow: 0 0 0 3px rgba(57, 73, 171, 0.15);
+    background: var(--td-bg, #ffffff);
+}
+
+.voice-ctx-modal-input::placeholder {
+    color: var(--text-secondary);
+    font-weight: 400;
+    font-style: italic;
+}
+
+.voice-ctx-modal-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 1.5rem 0 1.25rem;
+    opacity: 0.6;
+}
+
+.voice-ctx-modal-actions {
+    display: flex;
+    gap: 0.625rem;
+    justify-content: flex-end;
+}
+
+.voice-ctx-modal-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.65rem 1.25rem;
+    border-radius: 0.875rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    font-family: inherit;
+}
+
+.voice-ctx-modal-btn.cancel {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border-color);
+}
+
+.voice-ctx-modal-btn.cancel:hover {
+    background: var(--input-bg);
+    color: var(--text-main);
+    border-color: var(--text-secondary);
+}
+
+.voice-ctx-modal-btn.save {
+    background: linear-gradient(135deg, var(--primary-light, #3949ab), var(--primary, #1a237e));
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(26, 35, 126, 0.28);
+}
+
+.voice-ctx-modal-btn.save:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(26, 35, 126, 0.38);
+}
+
+.voice-ctx-modal-btn.save:active {
+    transform: translateY(0);
+}
+
+/* Hint de campo opcional */
+.voice-ctx-modal-hint {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    margin-top: 0.35rem;
+    padding-left: 0.25rem;
+    font-style: italic;
+}
+
+/* Dark mode refinements */
+html.dark .voice-ctx-modal {
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+html.dark .voice-ctx-modal-btn.save {
+    box-shadow: 0 4px 12px rgba(57, 73, 171, 0.4);
+}
+
+html.dark .voice-ctx-modal-input:focus {
+    background: #1e293b;
+}

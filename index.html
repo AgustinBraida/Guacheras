@@ -32,8 +32,8 @@
     <!-- Chart.js for Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
     <!-- Estilos -->
-    <link rel="stylesheet" href="styles.css?v=79">
-    <link rel="stylesheet" href="recorridas.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=80">
+    <link rel="stylesheet" href="recorridas.css?v=11">
     <!-- Módulo de Voz (Ocultado temporalmente) -->
     <!-- <link rel="stylesheet" href="voice.css?v=49"> -->
 
@@ -513,7 +513,7 @@
 
     <!-- Auth Module (carga primero) -->
 
-    <script src="auth.js?v=54" defer></script>
+    <script src="auth.js?v=55" defer></script>
 </head>
 
 <body>
@@ -2182,7 +2182,7 @@
                 <!-- Formulario de Carga Rápida de Hallazgos (100% Texto de Campo) -->
                 <div class="card glass rec-form-card">
                     <div style="font-size:0.95rem;font-weight:700;color:var(--text-main);margin-bottom:0.65rem;display:flex;align-items:center;gap:6px;">
-                        <i data-lucide="edit-3" style="width:18px;height:18px;color:var(--primary);"></i>
+                        <i data-lucide="edit-3" class="rec-header-icon-inline"></i>
                         <span>Anotar Nueva Observación de Hoy</span>
                     </div>
 
@@ -2199,10 +2199,6 @@
                     <div class="rec-form-options">
                         <div style="display:flex;align-items:center;gap:15px;flex-wrap:wrap;">
                             <label class="rec-toggle-wrap">
-                                <input type="checkbox" id="rec_chk_pendiente" checked>
-                                <span>Requiere seguimiento (Queda como Tarea Pendiente)</span>
-                            </label>
-                            <label class="rec-toggle-wrap">
                                 <input type="checkbox" id="rec_chk_urgente">
                                 <span style="color:#dc2626;">🚨 Marcar como Urgente</span>
                             </label>
@@ -2218,7 +2214,7 @@
                 <div class="card glass rec-findings-card">
                     <div class="rec-findings-header">
                         <div class="rec-findings-title">
-                            <i data-lucide="list-checks" style="width:18px;height:18px;color:var(--primary);"></i>
+                            <i data-lucide="list-checks" class="rec-header-icon-inline"></i>
                             <span>Observaciones y Tareas de Hoy</span>
                         </div>
                         <span id="rec-today-count" style="font-size:0.8rem;font-weight:700;color:var(--text-secondary);">0 registros</span>
@@ -2245,8 +2241,8 @@
 
                 <!-- Historial de Recorridas Anteriores -->
                 <div class="card glass rec-history-card">
-                    <div style="font-size:0.95rem;font-weight:700;color:var(--text-main);margin-bottom:0.75rem;display:flex;align-items:center;gap:6px;">
-                        <i data-lucide="history" style="width:18px;height:18px;color:var(--primary);"></i>
+                    <div class="rec-history-header-title">
+                        <i data-lucide="history" class="rec-history-header-icon"></i>
                         <span>Historial de Recorridas en este Establecimiento</span>
                     </div>
                     <div id="rec-history-list">
@@ -2319,15 +2315,18 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <!-- Dashboard Module -->
-    <script src="dashboard.js?v=89" defer></script>
+    <script src="dashboard.js?v=90" defer></script>
     <!-- App Script -->
     <script src="app.js?v=89" defer></script>
     <!-- Recorridas Module -->
-    <script src="recorridas.js?v=3" defer></script>
+    <script src="recorridas.js?v=12" defer></script>
     <!-- Voice Module (Ocultado temporalmente) -->
     <!-- <script src="voice.js?v=62" defer></script> -->
 
-    <!-- Service Worker Registration -->
+    <!-- ============================================================ -->
+    <!-- SERVICE WORKER (Desactivado temporalmente - Modo Desarrollo)  -->
+    <!-- Para reactivar: descomentar este bloque y quitar el script de abajo -->
+    <!--
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -2338,6 +2337,25 @@
                     .catch(error => {
                         console.error('[VETFIELD] Registro del ServiceWorker falló:', error);
                     });
+            });
+        }
+    </script>
+    -->
+
+    <!-- Limpieza automática de Service Worker y Caché para desarrollo en vivo -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (const registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+        if ('caches' in window) {
+            caches.keys().then(names => {
+                for (const name of names) {
+                    caches.delete(name);
+                }
             });
         }
     </script>
