@@ -205,21 +205,36 @@ function _getDefaultIgThresholds(metodo) {
     return isBrix ? { high: 22, mid: 18 } : { high: 15, mid: 10 };
 }
 
-let _kpiThresholds = (() => {
+function _loadKpiThresholds(custom) {
     try {
-        const saved = JSON.parse(localStorage.getItem(_KPI_THRESHOLDS_KEY) || '{}');
+        let saved = custom;
+        if (!saved || Object.keys(saved).length === 0) {
+            saved = JSON.parse(localStorage.getItem(_KPI_THRESHOLDS_KEY) || '{}');
+        }
+        if ((!saved || Object.keys(saved).length === 0) && typeof AuthManager !== 'undefined' && typeof AuthManager.getDashboardConfig === 'function') {
+            const dc = AuthManager.getDashboardConfig();
+            if (dc && dc.kpiThresholds) saved = dc.kpiThresholds;
+        }
         const metodo = _getIgMetodo();
         const defIg = _getDefaultIgThresholds(metodo);
         const highKey = metodo === 'brix' ? 'igHigh_brix' : 'igHigh_mgdl';
         const midKey  = metodo === 'brix' ? 'igMid_brix'  : 'igMid_mgdl';
         return {
-            mortHigh: saved.mortHigh ?? 5,
-            mortMid:  saved.mortMid  ?? 3,
-            igHigh:   saved[highKey] ?? saved.igHigh ?? defIg.high,
-            igMid:    saved[midKey]  ?? saved.igMid  ?? defIg.mid,
+            mortHigh: saved?.mortHigh ?? 5,
+            mortMid:  saved?.mortMid  ?? 3,
+            igHigh:   saved?.[highKey] ?? saved?.igHigh ?? defIg.high,
+            igMid:    saved?.[midKey]  ?? saved?.igMid  ?? defIg.mid,
+            igHigh_brix: saved?.igHigh_brix ?? (saved?.igHigh !== undefined && metodo === 'brix' ? saved.igHigh : 22),
+            igMid_brix:  saved?.igMid_brix  ?? (saved?.igMid  !== undefined && metodo === 'brix' ? saved.igMid  : 18),
+            igHigh_mgdl: saved?.igHigh_mgdl ?? (saved?.igHigh !== undefined && metodo === 'mgdl' ? saved.igHigh : 15),
+            igMid_mgdl:  saved?.igMid_mgdl  ?? (saved?.igMid  !== undefined && metodo === 'mgdl' ? saved.igMid  : 10),
         };
-    } catch { return { mortHigh: 5, mortMid: 3, igHigh: 22, igMid: 18 }; }
-})();
+    } catch {
+        return { mortHigh: 5, mortMid: 3, igHigh: 22, igMid: 18, igHigh_brix: 22, igMid_brix: 18, igHigh_mgdl: 15, igMid_mgdl: 10 };
+    }
+}
+
+let _kpiThresholds = _loadKpiThresholds();
 
 // Inicializar inputs del panel con valores guardados
 function _initKpiPanelInputs() {
@@ -250,21 +265,30 @@ function toggleKpiPanel(panelId, btn) {
     const isOpen = panel.classList.contains('open');
     _closeAllKpiPanels();
     if (!isOpen) {
-        // Usar el ancho de la card padre, con un mínimo de 280px para evitar desbordamiento en mobile
-        const card = btn.closest('.kpi-card');
-        const cardRect = card ? card.getBoundingClientRect() : btn.getBoundingClientRect();
-        const panelWidth = Math.max(280, cardRect.width);
-        panel.style.width = panelWidth + 'px';
-        // Centrar horizontalmente sobre la card y limitar a los límites de la pantalla
-        let left = cardRect.left + (cardRect.width - panelWidth) / 2;
-        const viewportWidth = window.innerWidth;
-        if (left < 10) left = 10;
-        if (left + panelWidth > viewportWidth - 10) {
-            left = viewportWidth - panelWidth - 10;
+        const isMobile = window.innerWidth < 768;
+
+        if (isMobile) {
+            // En móvil: limpiar estilos inline para que el CSS media query centre el panel
+            panel.style.top   = '';
+            panel.style.left  = '';
+            panel.style.width = '';
+        } else {
+            // En escritorio: posicionar bajo la card del botón
+            const card = btn.closest('.kpi-card');
+            const cardRect = card ? card.getBoundingClientRect() : btn.getBoundingClientRect();
+            const panelWidth = Math.max(280, cardRect.width);
+            panel.style.width = panelWidth + 'px';
+            // Centrar horizontalmente sobre la card y limitar a los límites de la pantalla
+            let left = cardRect.left + (cardRect.width - panelWidth) / 2;
+            const viewportWidth = window.innerWidth;
+            if (left < 10) left = 10;
+            if (left + panelWidth > viewportWidth - 10) {
+                left = viewportWidth - panelWidth - 10;
+            }
+            panel.style.top  = (cardRect.bottom + 6) + 'px';
+            panel.style.left = left + 'px';
         }
-        const top  = cardRect.bottom + 6;
-        panel.style.top  = top + 'px';
-        panel.style.left = left + 'px';
+
         panel.classList.add('open');
         if (btn) btn.classList.add('active');
 
@@ -315,6 +339,305 @@ function _closeKpiPanelOutside(e) {
     }
 }
 
+// ─── KPI Info Modal ───────────────────────────────────────────────────────────
+const _kpiInfoData = {
+    total: {
+        icon: '📋',
+        iconBg: 'rgba(26,35,126,0.08)',
+        category: 'Registro total',
+        title: 'Total Evaluados',
+        formula: 'Suma de TODOS los registros del período',
+        desc: `<p>Incluye <strong>todos los terneros</strong> cargados en el período seleccionado, sin importar su estado:</p>
+               <ul style="margin:8px 0 0 14px;padding:0;list-style:disc;">
+                 <li><strong>Vivos</strong> → en crianza / guachera</li>
+                 <li><strong>Muertos en crianza</strong> → fallecidos ya dentro de la guachera</li>
+                 <li><strong>Abortos</strong> → perdidos durante la gestación</li>
+                 <li><strong>Nacidos muertos</strong> → pérdida al momento del parto</li>
+                 <li><strong>Muertos al periparto</strong> → fallecidos en las primeras 24 hs de vida</li>
+               </ul>
+               <p style="margin-top:10px;">El sub-indicador muestra cuántos ingresaron a crianza vs cuántas pérdidas perinatales hay.</p>`
+    },
+    mort: {
+        icon: '❤️‍🩹',
+        iconBg: 'rgba(220,38,38,0.08)',
+        category: 'Mortalidad',
+        title: 'Mortalidad en Guachera',
+        formula: '(Muertes en Crianza ÷ Total en Guachera) × 100',
+        desc: `<p>Mide la <strong>tasa de mortandad real</strong> de los terneros que ingresaron vivos a la guachera/crianza.</p>
+               <ul style="margin:8px 0 0 14px;padding:0;list-style:disc;">
+                 <li><strong>Numerador:</strong> terneros que murieron <em>dentro</em> de la guachera.</li>
+                 <li><strong>Denominador:</strong> terneros que ingresaron vivos (vivos actuales + muertos en crianza).</li>
+               </ul>
+               <p style="margin-top:10px;"><strong>No se suman</strong> abortos, nacidos muertos ni muertos al periparto, ya que esas pérdidas se muestran por separado en el gráfico de Pérdidas Perinatales.</p>
+               <p style="margin-top:8px;">Los umbrales ⚙️ de alerta son configurables según el criterio del veterinario.</p>`
+    },
+    ig: {
+        icon: '🧪',
+        iconBg: 'rgba(46,125,50,0.08)',
+        category: 'Inmunidad en Terneros',
+        title: 'Promedio I.G. Ternero',
+        formula: 'Suma de I.G. de terneros ÷ Cantidad de terneros con medición cargada',
+        desc: `<p>Mide el promedio de <strong>Inmunoglobulinas en los terneros</strong> (inmunidad pasiva absorbida tras el calostrado). <strong>Nota importante:</strong> este valor evalúa directamente a los <em>terneros</em> y no la calidad del calostro de la madre.</p>
+               <p style="margin-top:8px;"><strong>Umbrales de referencia:</strong></p>
+               <ul style="margin:6px 0 0 14px;padding:0;list-style:disc;">
+                 <li><span style="color:#16a34a;font-weight:700;">✅ Óptimo</span> → ≥ umbral alto (por defecto 22% Brix)</li>
+                 <li><span style="color:#d97706;font-weight:700;">⚡ Aceptable</span> → entre umbral medio y alto</li>
+                 <li><span style="color:#dc2626;font-weight:700;">⚠️ Bajo</span> → por debajo del umbral medio</li>
+               </ul>
+               <p style="margin-top:10px;">La unidad (% Brix o mg/dL) depende de la preferencia configurada en el perfil.</p>`
+    },
+    recuperacion: {
+        icon: '📈',
+        iconBg: 'rgba(124,58,237,0.08)',
+        category: 'Supervivencia',
+        title: 'Tasa de Supervivencia',
+        formula: '(Terneros Vivos en Crianza ÷ Total en Guachera) × 100',
+        desc: `<p>Porcentaje de terneros que <strong>siguen vivos</strong> dentro del período evaluado, tomando como base todos los que ingresaron a crianza.</p>
+               <ul style="margin:8px 0 0 14px;padding:0;list-style:disc;">
+                 <li><strong>Numerador:</strong> terneros con estado <em>Vivo</em>.</li>
+                 <li><strong>Denominador:</strong> vivos + muertos en crianza (terneros que efectivamente ingresaron a la guachera).</li>
+               </ul>
+               <p style="margin-top:10px;">Es el complemento de la Mortalidad en Guachera: Supervivencia + Mortalidad = 100%.</p>
+               <p style="margin-top:8px;">No incluye abortos ni pérdidas perinatales en la base de cálculo.</p>`
+    },
+
+    // ── Información de Gráficos del Dashboard ──
+    chart_tendencia: {
+        icon: '📈',
+        iconBg: 'rgba(99, 102, 241, 0.1)',
+        category: 'Evolución temporal',
+        title: 'Tendencia Temporal de Mortalidad',
+        formula: '% Mortalidad agrupado por Día, Semana o Mes',
+        desc: `<p><strong>¿A qué hace referencia?</strong><br>
+Muestra la evolución cronológica de las bajas en guachera a lo largo del tiempo, permitiendo evaluar la efectividad del manejo y detectar picos sanitarios tempranamente.</p>
+<p style="margin-top:8px;"><strong>¿Qué valores toma?</strong></p>
+<ul style="margin:4px 0 0 14px;padding:0;list-style:disc;">
+  <li><strong>Fechas de muerte:</strong> registros de terneros fallecidos dentro del rango de fechas activo.</li>
+  <li><strong>Selector de granularidad:</strong> agrupa por Día, Semanal o Mensual para analizar la curva en detalle o de forma acumulada.</li>
+</ul>
+<p style="margin-top:10px;"><strong>¿Qué significa?</strong><br>
+Una curva descendente o estable indica buen control sanitario. Picos marcados señalan eventos críticos específicos (olas de frío/calor, fallas en la preparación del lote de leche o brotes infecciosos).</p>`
+    },
+
+    chart_ubicacion: {
+        icon: '🎯',
+        iconBg: 'rgba(239, 68, 68, 0.1)',
+        category: 'Distribución espacial',
+        title: 'Mortalidad por Ubicación',
+        formula: '(Muertes en Sector ÷ Total de Muertes) × 100',
+        desc: `<p><strong>¿A qué hace referencia?</strong><br>
+Distribuye las muertes según las instalaciones o sectores físicos del establecimiento donde se produjo cada deceso.</p>
+<p style="margin-top:8px;"><strong>¿Qué valores toma?</strong></p>
+<ul style="margin:4px 0 0 14px;padding:0;list-style:disc;">
+  <li>El campo <em>Lugar / Ubicación de muerte</em> registrado al cargar la baja (Guachera individual, Corrales colectivos, Preparto, etc.).</li>
+</ul>
+<p style="margin-top:10px;"><strong>¿Qué significa?</strong><br>
+Identifica si hay áreas críticas o "puntos calientes" en el establecimiento. Si un sector concentra una proporción atípica de bajas, orienta a auditar la higiene, ventilación, densidad o drenajes de ese lugar en particular.</p>`
+    },
+
+    chart_causas: {
+        icon: '☠️',
+        iconBg: 'rgba(220, 38, 38, 0.1)',
+        category: 'Diagnóstico clínico',
+        title: 'Causas de Muerte',
+        formula: 'Frecuencia de decesos según Categoría y Causa',
+        desc: `<p><strong>¿A qué hace referencia?</strong><br>
+Clasifica las muertes ocurridas en guachera según el diagnóstico presuntivo o confirmado por el médico veterinario.</p>
+<p style="margin-top:8px;"><strong>¿Qué valores toma?</strong></p>
+<ul style="margin:4px 0 0 14px;padding:0;list-style:disc;">
+  <li><strong>Categorías principales:</strong> Infecciosas, Digestivas, Factores de Manejo, Traumatismos y Otras.</li>
+  <li><strong>Causas específicas:</strong> diarrea neonatal, neumonía, timpanismo, deshidratación, etc.</li>
+</ul>
+<p style="margin-top:10px;"><strong>¿Qué significa?</strong><br>
+Es la base para definir planes de vacunación, tratamientos y protocolos de bioseguridad. La predominancia de patologías digestivas exige revisar el calostrado y la leche; mientras que problemas respiratorios apuntan al confort y ambiente.</p>`
+    },
+
+    chart_calostro: {
+        icon: '🍼',
+        iconBg: 'rgba(16, 185, 129, 0.1)',
+        category: 'Inmunidad pasiva',
+        title: 'Correlación Brix vs Supervivencia',
+        formula: 'Calidad del Calostro (° Brix) vs Condición (Vivo / Muerto)',
+        desc: `<p><strong>¿A qué hace referencia?</strong><br>
+Analiza la correlación directa entre el tenor de inmunoglobulinas del calostro ofrecido y la probabilidad de que el ternero sobreviva a la etapa de guachera.</p>
+<p style="margin-top:8px;"><strong>¿Qué valores toma?</strong></p>
+<ul style="margin:4px 0 0 14px;padding:0;list-style:disc;">
+  <li><strong>Eje horizontal (° Brix):</strong> concentración de anticuerpos medida con refractómetro óptico o digital.</li>
+  <li><strong>Eje vertical:</strong> condición del ternero (Vivo o Muerto). Cada punto representa un ternero cargado.</li>
+</ul>
+<p style="margin-top:10px;"><strong>¿Qué significa?</strong><br>
+Demuestra de forma gráfica el impacto de la transferencia pasiva: calostros con ≥ 22° Brix (óptimos) deben asociarse a altas tasas de supervivencia, mientras que puntos de muerte agrupados a la izquierda indican fallas de calostrado.</p>`
+    },
+
+    chart_madre: {
+        icon: '🐄',
+        iconBg: 'rgba(245, 158, 11, 0.1)',
+        category: 'Categoría materna',
+        title: 'Desempeño por Tipo de Madre',
+        formula: 'Tasa de sobrevida y mortandad: Vacas vs Vaquillonas',
+        desc: `<p><strong>¿A qué hace referencia?</strong><br>
+Compara el desempeño y supervivencia de los terneros según hayan nacido de madres adultas (Vacas multíparas) o de primer parto (Vaquillonas).</p>
+<p style="margin-top:8px;"><strong>¿Qué valores toma?</strong></p>
+<ul style="margin:4px 0 0 14px;padding:0;list-style:disc;">
+  <li>El campo <em>Tipo de Madre</em> de los registros del período, cruzado con el estado vital del ternero (*Vivo* vs *Muerto*).</li>
+</ul>
+<p style="margin-top:10px;"><strong>¿Qué significa?</strong><br>
+Las vaquillonas suelen producir calostro con menor concentración de IgG y tienen mayor incidencia de partos difíciles. Permite detectar si la cría de primerizas requiere refuerzo de banco de calostro o cuidados intensivos especiales.</p>`
+    },
+
+    chart_brix_salud: {
+        icon: '🩺',
+        iconBg: 'rgba(14, 165, 233, 0.1)',
+        category: 'Inmunidad & Morbilidad',
+        title: 'Grados Brix vs Salud y Supervivencia',
+        formula: 'Nivel de Brix vs Estado Clínico (Sano, Enfermo, Fallecido)',
+        desc: `<p><strong>¿A qué hace referencia?</strong><br>
+Muestra la relación entre la inmunidad transferida y la propensión a enfermarse o morir durante toda la estancia en la crianza artificial.</p>
+<p style="margin-top:8px;"><strong>¿Qué valores toma?</strong></p>
+<ul style="margin:4px 0 0 14px;padding:0;list-style:disc;">
+  <li><strong>Nivel Brix:</strong> según el selector, puede ser Brix en suero del ternero, Brix de la madre o promedio.</li>
+  <li><strong>Condición clínica:</strong> Sano (verde), Enfermo / Tuvo enfermedad (naranja) o Falleció (rojo).</li>
+  <li><strong>Filtro de enfermedad:</strong> permite aislar el análisis para una patología específica (ej. diarrea, neumonía).</li>
+</ul>
+<p style="margin-top:10px;"><strong>¿Qué significa?</strong><br>
+Permite comprobar si un bajo nivel de calostrado incrementa los casos de morbilidad y requerimiento de tratamientos médicos, aun en aquellos terneros que lograron sobrevivir.</p>`
+    },
+
+    chart_ombligos: {
+        icon: '🔵',
+        iconBg: 'rgba(37, 99, 235, 0.1)',
+        category: 'Manejo neonatal',
+        title: 'Salud de Ombligos al Alta',
+        formula: '% Ombligos Normales vs Afectados (Onfalitis / Hernias)',
+        desc: `<p><strong>¿A qué hace referencia?</strong><br>
+Evalúa la integridad sanitaria de la zona umbilical de los terneros evaluados, principal vía de ingreso de bacterias en las primeras horas de vida.</p>
+<p style="margin-top:8px;"><strong>¿Qué valores toma?</strong></p>
+<ul style="margin:4px 0 0 14px;padding:0;list-style:disc;">
+  <li>Calificación registrada en el examen clínico: <em>Normal</em>, <em>Onfalitis</em> (infección bacteriana), <em>Onfaloflebitis</em>, <em>Hernia umbilical</em> u <em>Otras</em>.</li>
+</ul>
+<p style="margin-top:10px;"><strong>¿Qué significa?</strong><br>
+Un valor normal inferior al 95% refleja fallas graves en la higiene del corral de parto o demoras en la cura del cordón con tintura de iodo al 7%, lo que predispone a poliartritis, meningitis y septicemias.</p>`
+    },
+
+    chart_ranking: {
+        icon: '🏆',
+        iconBg: 'rgba(234, 179, 8, 0.1)',
+        category: 'Comparativa de campos',
+        title: 'Ranking de Establecimientos',
+        formula: '(Muertes en Campo ÷ Terneros Totales del Campo) × 100',
+        desc: `<p><strong>¿A qué hace referencia?</strong><br>
+Compara y clasifica el desempeño de los distintos tambos o establecimientos registrados, facilitando la auditoría comparada.</p>
+<p style="margin-top:8px;"><strong>¿Qué valores toma?</strong></p>
+<ul style="margin:4px 0 0 14px;padding:0;list-style:disc;">
+  <li><strong>Total:</strong> cantidad de animales ingresados en cada campo.</li>
+  <li><strong>Incidencia:</strong> número absoluto de terneros muertos.</li>
+  <li><strong>Tasa:</strong> porcentaje de mortandad resultante por establecimiento.</li>
+</ul>
+<p style="margin-top:10px;"><strong>¿Qué significa?</strong><br>
+Permite identificar rápidamente los establecimientos más vulnerables para concentrar recursos, capacitación al personal y visitas técnicas de urgencia.</p>`
+    },
+
+    chart_sexo: {
+        icon: '⚤',
+        iconBg: 'rgba(219, 39, 119, 0.1)',
+        category: 'Demografía animal',
+        title: 'Mortalidad por Sexo',
+        formula: 'Tasa de bajas en Machos vs Tasa de bajas en Hembras',
+        desc: `<p><strong>¿A qué hace referencia?</strong><br>
+Compara el volumen y la tasa porcentual de mortandad entre terneros machos y terneras hembras criados en el establecimiento.</p>
+<p style="margin-top:8px;"><strong>¿Qué valores toma?</strong></p>
+<ul style="margin:4px 0 0 14px;padding:0;list-style:disc;">
+  <li>Sexo del animal (Macho o Hembra) cruzado con su condición final (Vivo o Fallecido).</li>
+</ul>
+<p style="margin-top:10px;"><strong>¿Qué significa?</strong><br>
+Permite corroborar si existe trato diferenciado en la rutina de crianza o en la asignación de calostro de calidad entre hembras de reposición y machos, o si hay impacto derivado del mayor peso al nacer de los machos.</p>`
+    },
+
+    chart_parto: {
+        icon: '🩺',
+        iconBg: 'rgba(99, 102, 241, 0.1)',
+        category: 'Manejo del parto',
+        title: 'Tipo y Dificultad de Parto',
+        formula: '% de Partos Normales (Eutócicos) vs Asistidos / Distócicos',
+        desc: `<p><strong>¿A qué hace referencia?</strong><br>
+Muestra la proporción de nacimientos que ocurrieron de forma natural y espontánea versus aquellos que requirieron asistencia del personal o intervención quirúrgica.</p>
+<p style="margin-top:8px;"><strong>¿Qué valores toma?</strong></p>
+<ul style="margin:4px 0 0 14px;padding:0;list-style:disc;">
+  <li>Clasificación de parto: <em>Normal</em>, <em>Asistido / Distócico</em>, <em>Cesárea</em>.</li>
+</ul>
+<p style="margin-top:10px;"><strong>¿Qué significa?</strong><br>
+El parto asistido es una de las principales causas de asfixia neonatal y baja vitalidad. Una tasa elevada de distocias indica desproporción pelvi-fetal, sugiriendo revisar la elección de reproductores o la nutrición de vacas en preparto.</p>`
+    },
+
+    chart_perinatal: {
+        icon: '⚠️',
+        iconBg: 'rgba(249, 115, 22, 0.1)',
+        category: 'Pérdidas tempranas',
+        title: 'Pérdidas Gestacionales y Perinatales',
+        formula: 'Abortos + Nacidos Muertos + Muertos en Periparto (< 24 hs)',
+        desc: `<p><strong>¿A qué hace referencia?</strong><br>
+Contabiliza las pérdidas ocurridas antes de que el ternero comience formalmente su crianza en la guachera.</p>
+<p style="margin-top:8px;"><strong>¿Qué valores toma?</strong></p>
+<ul style="margin:4px 0 0 14px;padding:0;list-style:disc;">
+  <li><strong>Aborto:</strong> interrupción de la gestación.</li>
+  <li><strong>Nacido muerto:</strong> óbito fetal al momento de nacer.</li>
+  <li><strong>Muerto al periparto:</strong> ternero nacido vivo que falleció en sus primeras 24 hs de vida.</li>
+</ul>
+<p style="margin-top:10px;"><strong>¿Qué significa?</strong><br>
+Distingue los problemas obstétricos y de sanidad reproductiva del tambo de la eficiencia propia de la guachera. Ayuda a investigar enfermedades infecciosas reproductivas y el protocolo de atención inmediata del recién nacido.</p>`
+    }
+};
+
+function toggleKpiInfoModal(type, _btn) {
+    const info = _kpiInfoData[type];
+    if (!info) return;
+
+    const modal = document.getElementById('kpiInfoModal');
+    if (!modal) return;
+
+    // Poblar contenido
+    const iconWrap = document.getElementById('kpiInfoIconWrap');
+    const iconEl   = document.getElementById('kpiInfoIcon');
+    const catEl    = document.getElementById('kpiInfoCategory');
+    const titleEl  = document.getElementById('kpiInfoTitle');
+    const formulaBox = document.getElementById('kpiInfoFormulaBox');
+    const formulaLabel = document.getElementById('kpiInfoFormulaLabel');
+    const formulaEl = document.getElementById('kpiInfoFormulaText');
+    const descEl   = document.getElementById('kpiInfoDescription');
+
+    if (iconWrap) iconWrap.style.background = info.iconBg || 'rgba(26,35,126,0.08)';
+    if (iconEl)   iconEl.textContent = info.icon || '📊';
+    if (catEl)    catEl.textContent  = info.category || 'Información';
+    if (titleEl)  titleEl.textContent = info.title || '';
+    
+    if (formulaLabel) {
+        formulaLabel.textContent = info.formulaLabel || (info.formula && info.formula.includes('÷') ? '📐 Fórmula' : '📊 Métrica / Indicador');
+    }
+    if (formulaBox) {
+        if (info.formula) {
+            formulaBox.style.display = 'block';
+            if (formulaEl) formulaEl.textContent = info.formula;
+        } else {
+            formulaBox.style.display = 'none';
+        }
+    }
+    if (descEl)   descEl.innerHTML = info.desc || '';
+
+    // Refrescar icono de cierre lucide
+    if (window.lucide) window.lucide.createIcons();
+
+    modal.classList.add('active');
+}
+window.toggleKpiInfoModal = toggleKpiInfoModal;
+window.openChartInfoModal = toggleKpiInfoModal;
+
+function closeKpiInfoModal(e) {
+    if (e && e.target !== document.getElementById('kpiInfoModal')) return;
+    const modal = document.getElementById('kpiInfoModal');
+    if (modal) modal.classList.remove('active');
+}
+window.closeKpiInfoModal = closeKpiInfoModal;
+
 // Guardar rangos y re-renderizar KPIs
 function saveKpiRanges(type) {
     if (type === 'mort') {
@@ -342,6 +665,12 @@ function saveKpiRanges(type) {
         _kpiThresholds[midKey]  = mid;
     }
     try { localStorage.setItem(_KPI_THRESHOLDS_KEY, JSON.stringify(_kpiThresholds)); } catch {}
+
+    // Sincronizar en la cuenta del usuario en la base de datos (nube)
+    if (typeof AuthManager !== 'undefined' && typeof AuthManager.saveDashboardConfig === 'function') {
+        AuthManager.saveDashboardConfig({ kpiThresholds: _kpiThresholds });
+    }
+
     // Cerrar panel y actualizar KPIs
     _closeAllKpiPanels();
     const data = _getDashRecords();
@@ -354,7 +683,11 @@ function refreshDashboardIgMetodo(metodo) {
     const isBrix = (metodo || _getIgMetodo()) === 'brix';
     const defIg = _getDefaultIgThresholds(isBrix ? 'brix' : 'mgdl');
     try {
-        const saved = JSON.parse(localStorage.getItem(_KPI_THRESHOLDS_KEY) || '{}');
+        let saved = JSON.parse(localStorage.getItem(_KPI_THRESHOLDS_KEY) || '{}');
+        if ((!saved || Object.keys(saved).length === 0) && typeof AuthManager !== 'undefined' && typeof AuthManager.getDashboardConfig === 'function') {
+            const dc = AuthManager.getDashboardConfig();
+            if (dc && dc.kpiThresholds) saved = dc.kpiThresholds;
+        }
         const highKey = isBrix ? 'igHigh_brix' : 'igHigh_mgdl';
         const midKey  = isBrix ? 'igMid_brix'  : 'igMid_mgdl';
         _kpiThresholds.igHigh = saved[highKey] ?? defIg.high;
@@ -388,6 +721,7 @@ window.refreshDashboardIgMetodo = refreshDashboardIgMetodo;
 
 // ─── INIT: llamado desde updateUI() de app.js ─────────────────
 function initDashboard() {
+    _kpiThresholds = _loadKpiThresholds();
     _populateDashFilterDropdowns();
     _bindDashFilterEvents();
     _initKpiPanelInputs();
@@ -556,6 +890,21 @@ function _bindDashFilterEvents() {
     });
 }
 
+// ─── Helpers de Clasificación Perinatal vs Guachera ──────────
+function _isPerinatal(r) {
+    if (!r) return false;
+    if (r.estado === 'Aborto' || r.estado === 'Nacido muerto' || r.estado === 'Muerto al periparto') return true;
+    if (r.tipo_parto === 'Muerto al parto' && r.estado === 'Muerto en Establecimiento') return true;
+    return false;
+}
+window._isPerinatal = _isPerinatal;
+
+function _isMuertoGuachera(r) {
+    if (!r || r.estado === 'Vivo') return false;
+    return !_isPerinatal(r);
+}
+window._isMuertoGuachera = _isMuertoGuachera;
+
 // ─── RENDER PRINCIPAL ─────────────────────────────────────────
 function renderDashboard() {
     const data = _getDashRecords();
@@ -569,6 +918,7 @@ function renderDashboard() {
     _renderRankingEstablecimientos(data);
     _renderMortalidadSexo(data);
     _renderTipoParto(data);
+    _renderPerinatal(data);
     _renderBrixSalud(data);
 }
 window.renderDashboard = renderDashboard;
@@ -578,17 +928,21 @@ window.renderDashboard = renderDashboard;
 // ────────────────────────────────────────────────────────────────
 function _renderKPIs(data) {
     const total = data.length;
-    const muertos = data.filter(r => r.estado !== 'Vivo').length;
-    const vivos = total - muertos;
-    const tasaMortalidad = total > 0 ? (muertos / total * 100) : 0;
+    const perinatales = data.filter(_isPerinatal).length;
+    const muertosGuachera = data.filter(_isMuertoGuachera).length;
+    const vivos = data.filter(r => r.estado === 'Vivo').length;
+    
+    // Total que ingresó a guachera / crianza (vivos + los que murieron en guachera)
+    const totalCrianza = vivos + muertosGuachera;
+    // Tasa de mortalidad real en guachera (NO se infla con abortos ni nacidos muertos)
+    const tasaMortalidad = totalCrianza > 0 ? (muertosGuachera / totalCrianza * 100) : 0;
 
     const igs = data.map(r => parseFloat(r.ig_ternero)).filter(v => !isNaN(v));
     const avgIg = igs.length > 0 ? igs.reduce((a, b) => a + b, 0) / igs.length : 0;
 
     const enTerapia = data.filter(r => r.estado === 'Muerto en Terapia').length;
-    const totalMuertos = muertos;
-    const tasaRecuperacion = total > 0
-        ? ((vivos / total) * 100)
+    const tasaRecuperacion = totalCrianza > 0
+        ? ((vivos / totalCrianza) * 100)
         : 0;
 
     const el = id => document.getElementById(id);
@@ -619,7 +973,14 @@ function _renderKPIs(data) {
     if (el('kpi_recuperacion')) el('kpi_recuperacion').textContent = tasaRecuperacion.toFixed(1) + '%';
 
     // Sub-labels
-    if (el('kpi_total_sub')) el('kpi_total_sub').textContent = `${muertos} fallecidos · ${vivos} vivos`;
+    if (el('kpi_total_sub')) {
+        el('kpi_total_sub').textContent = perinatales > 0 
+            ? `${totalCrianza} en crianza · ${perinatales} perinatales`
+            : `${vivos} vivos · ${muertosGuachera} muertos`;
+    }
+    if (el('kpi_mortalidad_sub')) {
+        el('kpi_mortalidad_sub').textContent = `${muertosGuachera} en crianza · ${vivos} vivos`;
+    }
     if (el('kpi_ig_sub')) {
         const igLevel = avgIg >= _kpiThresholds.igHigh
             ? '✅ Óptimo'
@@ -1830,8 +2191,10 @@ function _buildTendenciaChart(data, mode) {
             key = d.toISOString().split('T')[0];
         }
         if (!grouped[key]) grouped[key] = { total: 0, muertos: 0 };
-        grouped[key].total++;
-        if (r.estado !== 'Vivo') grouped[key].muertos++;
+        if (r.estado === 'Vivo' || _isMuertoGuachera(r)) {
+            grouped[key].total++;
+            if (_isMuertoGuachera(r)) grouped[key].muertos++;
+        }
     });
 
     const limit = mode === 'mensual' ? 12 : (mode === 'dia' ? 31 : 26);
@@ -1957,8 +2320,10 @@ function _renderRankingEstablecimientos(data) {
     data.forEach(r => {
         if (!r.establecimiento) return;
         if (!byEst[r.establecimiento]) byEst[r.establecimiento] = { total: 0, muertos: 0 };
-        byEst[r.establecimiento].total++;
-        if (r.estado !== 'Vivo') byEst[r.establecimiento].muertos++;
+        if (r.estado === 'Vivo' || _isMuertoGuachera(r)) {
+            byEst[r.establecimiento].total++;
+            if (_isMuertoGuachera(r)) byEst[r.establecimiento].muertos++;
+        }
     });
 
     const sorted = Object.entries(byEst)
@@ -2061,14 +2426,23 @@ function _renderTipoParto(data) {
     const asistido = data.filter(r => r.tipo_parto === 'Asistido').length;
     const muertoAlParto = data.filter(r => r.tipo_parto === 'Muerto al parto').length;
 
+    const labels = muertoAlParto > 0 ? ['Normal', 'Asistido', 'Muerto al parto'] : ['Normal', 'Asistido'];
+    const chartData = muertoAlParto > 0 ? [normal, asistido, muertoAlParto] : [normal, asistido];
+    const bgColors = muertoAlParto > 0 
+        ? [PALETTE.secondary + 'cc', PALETTE.warning + 'cc', PALETTE.danger + 'cc']
+        : [PALETTE.secondary + 'cc', PALETTE.warning + 'cc'];
+    const borderColors = muertoAlParto > 0
+        ? [PALETTE.secondary, PALETTE.warning, PALETTE.danger]
+        : [PALETTE.secondary, PALETTE.warning];
+
     _dashCharts.chart_parto = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Normal', 'Asistido', 'Muerto al parto'],
+            labels: labels,
             datasets: [{
-                data: [normal, asistido, muertoAlParto],
-                backgroundColor: [PALETTE.secondary + 'cc', PALETTE.warning + 'cc', PALETTE.danger + 'cc'],
-                borderColor: [PALETTE.secondary, PALETTE.warning, PALETTE.danger],
+                data: chartData,
+                backgroundColor: bgColors,
+                borderColor: borderColors,
                 borderWidth: 2,
                 hoverOffset: 6,
             }]
@@ -2081,6 +2455,90 @@ function _renderTipoParto(data) {
                 tooltip: {
                     callbacks: {
                         label: ctx => ` ${ctx.label}: ${ctx.raw} (${data.length > 0 ? ((ctx.raw/data.length)*100).toFixed(1) : 0}%)`
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ────────────────────────────────────────────────────────────────
+// 10. Pérdidas Gestacionales y Perinatales — Donut Chart
+// ────────────────────────────────────────────────────────────────
+function _renderPerinatal(data) {
+    const ctx = _getCtx('chart_perinatal');
+    if (!ctx) return;
+
+    const wrap = document.getElementById('chart_perinatal_wrap');
+    const oldOverlay = wrap ? wrap.querySelector('.dash-no-data-overlay') : null;
+    if (oldOverlay) oldOverlay.remove();
+
+    const abortos = data.filter(r => r.estado === 'Aborto').length;
+    const nacidosMuertos = data.filter(r => r.estado === 'Nacido muerto' || (r.tipo_parto === 'Muerto al parto' && r.estado === 'Muerto en Establecimiento')).length;
+    const periparto = data.filter(r => r.estado === 'Muerto al periparto').length;
+    const totalPerinatal = abortos + nacidosMuertos + periparto;
+
+    const sub = document.getElementById('perinatal-sub');
+    if (sub) {
+        if (totalPerinatal > 0) {
+            sub.innerHTML = `<strong>${totalPerinatal}</strong> en total · Abortos: <strong>${abortos}</strong> · Nacidos muertos: <strong>${nacidosMuertos}</strong> · Periparto: <strong>${periparto}</strong>`;
+        } else {
+            sub.textContent = 'Abortos · Nacidos muertos · Periparto (< 24 hs)';
+        }
+    }
+
+    if (totalPerinatal === 0) {
+        if (wrap) {
+            wrap.style.position = 'relative';
+            const overlay = document.createElement('div');
+            overlay.className = 'dash-no-data-overlay';
+            overlay.innerHTML = `
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+                            background:rgba(255,255,255,0.85);border-radius:12px;z-index:5;flex-direction:column;gap:6px;">
+                    <span style="font-size:2rem;">✅</span>
+                    <span style="color:#16a34a;font-size:0.92rem;font-weight:700;">Sin pérdidas perinatales</span>
+                    <span style="font-size:0.75rem;color:#64748b;text-align:center;max-width:240px;">
+                        No se registran abortos ni muertes al parto en este período.
+                    </span>
+                </div>`;
+            wrap.appendChild(overlay);
+        }
+    }
+
+    _dashCharts.chart_perinatal = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Abortos (gestación)', 'Nacidos muertos (al parto)', 'Periparto (< 24 hs)'],
+            datasets: [{
+                data: [abortos, nacidosMuertos, periparto],
+                backgroundColor: ['rgba(139, 92, 246, 0.8)', 'rgba(239, 68, 68, 0.8)', 'rgba(245, 158, 11, 0.8)'],
+                borderColor: ['#8b5cf6', '#ef4444', '#f59e0b'],
+                borderWidth: 2,
+                hoverOffset: 6,
+            }]
+        },
+        options: {
+            ...CHART_DEFAULTS,
+            cutout: '65%',
+            plugins: {
+                ...CHART_DEFAULTS.plugins,
+                legend: {
+                    ...CHART_DEFAULTS.plugins?.legend,
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 10,
+                        font: { size: 10, family: 'Inter' },
+                        color: _getChartTheme().legendText
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const val = ctx.raw;
+                            const pct = totalPerinatal > 0 ? ((val / totalPerinatal) * 100).toFixed(1) : 0;
+                            return ` ${ctx.label}: ${val} (${pct}%)`;
+                        }
                     }
                 }
             }
@@ -2103,8 +2561,9 @@ function _renderTipoParto(data) {
         _syncTimer = setTimeout(function() {
             var order = JSON.parse(localStorage.getItem(LS_ORDER) || 'null');
             var titles = JSON.parse(localStorage.getItem(LS_TITLES) || '{}');
+            var kpis = JSON.parse(localStorage.getItem(_KPI_THRESHOLDS_KEY) || 'null');
             if (typeof AuthManager !== 'undefined' && typeof AuthManager.saveDashboardConfig === 'function') {
-                AuthManager.saveDashboardConfig({ order: order, titles: titles });
+                AuthManager.saveDashboardConfig({ order: order, titles: titles, kpiThresholds: kpis });
             }
         }, 500);
     }
@@ -2128,15 +2587,24 @@ function _renderTipoParto(data) {
         });
     }
 
-    window.restoreDashboardOrderAndTitles = function(customOrder, customTitles) {
+    window.restoreDashboardOrderAndTitles = function(customOrder, customTitles, customKpiThresholds) {
         if (customOrder && Array.isArray(customOrder) && customOrder.length > 0) {
             localStorage.setItem(LS_ORDER, JSON.stringify(customOrder));
         }
         if (customTitles && typeof customTitles === 'object' && Object.keys(customTitles).length > 0) {
             localStorage.setItem(LS_TITLES, JSON.stringify(customTitles));
         }
+        if (customKpiThresholds && typeof customKpiThresholds === 'object' && Object.keys(customKpiThresholds).length > 0) {
+            localStorage.setItem(_KPI_THRESHOLDS_KEY, JSON.stringify(customKpiThresholds));
+        }
         restoreOrder(customOrder);
         restoreTitles(customTitles);
+        _kpiThresholds = _loadKpiThresholds(customKpiThresholds);
+        _initKpiPanelInputs();
+        const data = _getDashRecords();
+        if (data && data.length > 0) {
+            _renderKPIs(data);
+        }
     };
 
     function saveOrder() {
@@ -2202,7 +2670,7 @@ function _renderTipoParto(data) {
                 animation: 200,
                 delay: 200, // Tiempo presionando para iniciar arrastre en móviles
                 delayOnTouchOnly: true, // Sólo requerir delay en pantallas táctiles
-                filter: '.btn-causa-detail-header, .chart-edit-title-btn, button, input, select, textarea, [contenteditable]',
+                filter: '.btn-causa-detail-header, .chart-info-btn, .chart-edit-title-btn, button, input, select, textarea, [contenteditable]',
                 preventOnFilter: false,
                 ghostClass: 'is-dragging',
                 onEnd: function() {
@@ -2391,7 +2859,7 @@ window.exportDashboardPDF = function(btnEl) {
             const _kpiCards = [
                 { label: 'TOTAL EVALUADOS',     value: _kpiTotal,  sub: _kpiTotalSub,  color: _colorTotal },
                 { label: 'TASA DE MORTALIDAD',  value: _kpiMort,   sub: _kpiMortBadge, color: _colorMort  },
-                { label: 'PROMEDIO I.G. CALOSTRO', value: _kpiIg,  sub: _kpiIgSub,     color: _colorIg    },
+                { label: 'PROMEDIO I.G. TERNERO', value: _kpiIg,   sub: _kpiIgSub,     color: _colorIg    },
                 { label: 'TASA DE SUPERVIVENCIA',  value: _kpiRecup, sub: _kpiRecupSub, color: _colorRecup },
             ];
 
