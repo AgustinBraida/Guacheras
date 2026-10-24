@@ -62,6 +62,16 @@ html.dark textarea {
     color: var(--text-main);
 }
 
+html.dark select option {
+    background-color: #1e293b;
+    color: #f1f5f9;
+}
+
+select option {
+    background-color: #ffffff;
+    color: #1e293b;
+}
+
 html.dark input::placeholder,
 html.dark textarea::placeholder {
     color: var(--text-secondary);
@@ -697,6 +707,120 @@ textarea::placeholder {
     gap: 12px;
     box-shadow: var(--shadow-soft);
     cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.survival-group-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    margin: 1.25rem 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.survival-group-title:first-of-type {
+    margin-top: 0.25rem;
+}
+
+/* ── Desplegable Pérdidas Gestacionales y Perinatales ── */
+.perinatal-group-box {
+    margin-bottom: 0.75rem;
+    border: none;
+    background: transparent;
+    transition: all 0.2s ease;
+}
+
+.perinatal-group-box.active {
+    border: none;
+    background: transparent;
+}
+
+.radio-option.radio-option-perinatal-header {
+    border: none;
+    margin-bottom: 0.5rem;
+    user-select: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.radio-option.radio-option-perinatal-header:hover {
+    background: var(--radio-bg);
+}
+
+.perinatal-chevron {
+    transition: transform 0.25s ease;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 700;
+    margin-right: 4px;
+}
+
+.perinatal-group-box.active .perinatal-chevron {
+    transform: rotate(180deg);
+}
+
+.perinatal-dropdown-body {
+    display: none;
+    padding: 0.25rem 0 0.5rem 1.25rem;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.perinatal-group-box.active .perinatal-dropdown-body {
+    display: flex;
+}
+
+.radio-suboption {
+    display: flex;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    background: var(--radio-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    gap: 12px;
+    cursor: pointer;
+    box-shadow: var(--shadow-soft);
+    transition: all 0.15s ease;
+}
+
+.radio-suboption:hover {
+    border-color: var(--border-color, #cbd5e1);
+}
+
+.radio-suboption:has(input:checked) {
+    border-color: var(--border-color, #cbd5e1);
+    background: var(--radio-bg, #ffffff);
+    box-shadow: var(--shadow-soft);
+}
+
+.radio-suboption input {
+    width: auto;
+    margin: 0;
+    box-shadow: none;
+}
+
+.radio-option-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.radio-option-title {
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 0.95rem;
+}
+
+.radio-option-desc {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+    font-weight: 400;
 }
 
 .radio-option input {
@@ -1907,6 +2031,76 @@ html.dark .del-prod-warning {
     color: #dc2626;
 }
 
+/* ── KPI Info Button & Modal ── */
+.kpi-info-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(26, 35, 126, 0.05);
+    border: 1px solid rgba(26, 35, 126, 0.14);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary, #64748b);
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 2;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.kpi-info-btn:hover {
+    color: #ffffff;
+    background: var(--primary, #1a237e);
+    border-color: var(--primary, #1a237e);
+    transform: scale(1.15);
+    box-shadow: 0 2px 8px rgba(26, 35, 126, 0.28);
+}
+
+.kpi-info-btn:active {
+    transform: scale(0.92);
+}
+
+html.dark .kpi-info-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #94a3b8;
+}
+
+html.dark .kpi-info-btn:hover {
+    color: #ffffff;
+    background: #3b82f6;
+    border-color: #3b82f6;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
+/* Modal KPI Info Dark Mode & Custom Elements */
+html.dark #kpiInfoModal .modal-content {
+    background: #1e293b;
+    color: #f1f5f9;
+}
+
+html.dark #kpiInfoFormulaBox {
+    background: rgba(59, 130, 246, 0.08) !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
+    color: #e2e8f0 !important;
+}
+
+html.dark #kpiInfoTitle {
+    color: #ffffff !important;
+}
+
+html.dark #kpiInfoFormulaText {
+    color: #60a5fa !important;
+}
+
+html.dark #kpiInfoDescription {
+    color: #cbd5e1 !important;
+}
+
 /* ── Dashboard Layout Rows ── */
 .db-row {
     display: grid;
@@ -1962,6 +2156,51 @@ html.dark .del-prod-warning {
     width: 100% !important;
     height: 100% !important;
     /* Fix: Chart.js necesita height explícita en mobile */
+}
+
+/* ── Selects en cabeceras de gráficos (Dashboard) ── */
+.db-chart-select {
+    font-size: 0.78rem;
+    font-family: inherit;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    background-color: var(--input-bg, #f8fafc);
+    color: var(--text-main, #1e293b);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+}
+
+.db-chart-select:hover {
+    border-color: var(--primary-light, #3949ab);
+}
+
+.db-chart-select:focus {
+    border-color: var(--primary-light, #3949ab);
+    box-shadow: 0 0 0 2px rgba(57, 73, 171, 0.2);
+}
+
+html.dark .db-chart-select {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+html.dark .db-chart-select:hover {
+    border-color: #38bdf8;
+    background-color: #243044;
+}
+
+html.dark .db-chart-select:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+}
+
+html.dark .db-chart-select option {
+    background-color: #1e293b;
+    color: #f1f5f9;
 }
 
 /* ── Tendencia toggle Semanal/Mensual ── */
@@ -2784,6 +3023,53 @@ html.dark .rf-footer {
     border-radius: 0 0 4px 4px;
 }
 
+/* ── Chart Info Button (Header) ── */
+.chart-info-btn {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(26, 35, 126, 0.05);
+    border: 1px solid rgba(26, 35, 126, 0.15);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary, #64748b);
+    cursor: pointer;
+    padding: 0;
+    font-size: 11px;
+    font-weight: 700;
+    font-style: normal;
+    font-family: inherit;
+    line-height: 1;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.chart-info-btn:hover {
+    color: #ffffff;
+    background: var(--primary, #1a237e);
+    border-color: var(--primary, #1a237e);
+    transform: scale(1.15);
+    box-shadow: 0 2px 8px rgba(26, 35, 126, 0.28);
+}
+
+.chart-info-btn:active {
+    transform: scale(0.92);
+}
+
+html.dark .chart-info-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #94a3b8;
+}
+
+html.dark .chart-info-btn:hover {
+    color: #ffffff;
+    background: #3b82f6;
+    border-color: #3b82f6;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
 .chart-edit-title-btn {
     flex-shrink: 0;
     background: none;
@@ -3426,4 +3712,62 @@ html.dark .profile-lugar-row {
 .profile-lugar-del-btn:hover {
     color: #ef4444;
     background: rgba(239, 68, 68, 0.12);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   📱 FIX MÓVIL: Modales no quedan tapados por la barra de nav
+   El bottom-nav mide ~68px. Los modales de fondo necesitan ese
+   espacio extra. Los modales de info se centran en pantalla.
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+
+    /* ── Todos los bottom-sheet modales: dan espacio al nav ── */
+    .modal-overlay {
+        padding-bottom: calc(env(safe-area-inset-bottom) + 68px);
+    }
+
+    /* Asegura que el contenido no se recorte */
+    .modal-content {
+        max-height: calc(92vh - 68px - env(safe-area-inset-bottom));
+    }
+
+    /* ── Modales pequeños/informativos: centrar en pantalla ── */
+    #kpiInfoModal,
+    #rpConflictModal,
+    #deleteProductorModal {
+        align-items: center !important;
+        padding: 1rem !important;
+        padding-bottom: 1rem !important; /* centrados, no necesitan el offset */
+    }
+
+    #kpiInfoModal .modal-content,
+    #rpConflictModal .modal-content,
+    #deleteProductorModal .modal-content {
+        border-radius: 1.5rem !important;
+        max-height: 88vh !important;
+        margin-bottom: 0 !important;
+        transform: translateY(20px) scale(0.95) !important;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease !important;
+        opacity: 0;
+    }
+
+    #kpiInfoModal.active .modal-content,
+    #rpConflictModal.active .modal-content,
+    #deleteProductorModal.active .modal-content {
+        transform: translateY(0) scale(1) !important;
+        opacity: 1 !important;
+    }
+
+    /* ── Modales grandes (exportar/importar/detalle): bottom-sheet con margen ── */
+    #detailModal,
+    #exportModal,
+    #importExcelModal {
+        padding-bottom: calc(env(safe-area-inset-bottom) + 68px) !important;
+    }
+
+    #detailModal .modal-content,
+    #exportModal .modal-content,
+    #importExcelModal .modal-content {
+        max-height: calc(90vh - 68px - env(safe-area-inset-bottom)) !important;
+    }
 }

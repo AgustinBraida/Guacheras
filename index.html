@@ -32,8 +32,8 @@
     <!-- Chart.js for Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
     <!-- Estilos -->
-    <link rel="stylesheet" href="styles.css?v=83">
-    <link rel="stylesheet" href="recorridas.css?v=11">
+    <link rel="stylesheet" href="styles.css?v=84">
+    <link rel="stylesheet" href="recorridas.css?v=12">
     <!-- Módulo de Voz (Ocultado temporalmente) -->
     <!-- <link rel="stylesheet" href="voice.css?v=49"> -->
 
@@ -914,7 +914,7 @@
                     <div class="kpi-icon-wrap kpi-icon--green"><i data-lucide="droplets"
                             style="width:22px;height:22px;"></i></div>
                     <div class="kpi-content">
-                        <div class="kpi-label">Promedio I.G. Calostro</div>
+                        <div class="kpi-label">Promedio I.G. Ternero</div>
                         <div class="kpi-value" id="kpi_ig">—</div>
                         <div class="kpi-sub" id="kpi_ig_sub">% Brix promedio</div>
                     </div>
@@ -967,7 +967,7 @@
             </div>
 
             <div class="kpi-range-panel" id="kpi_ig_panel">
-                <div class="kpi-range-panel-title">🎚️ Umbrales de Calidad — I.G. Calostro</div>
+                <div class="kpi-range-panel-title">🎚️ Umbrales de Calidad — I.G. Ternero</div>
                 <div class="kpi-range-row">
                     <span class="kpi-range-dot kpi-range-dot--success"></span>
                     <span class="kpi-range-label">Óptimo</span>
@@ -1376,6 +1376,13 @@
                     <div class="form-group">
                         <label>R.P. Madre</label>
                         <input type="text" id="f_rp_madre" placeholder="ID de la Madre">
+                    </div>
+                    <div class="form-group">
+                        <label>Litros Calostro Madre</label>
+                        <div style="position: relative;">
+                            <input type="number" step="0.1" id="f_litros_calostro_madre" placeholder="0.0">
+                            <span style="position: absolute; right: 1rem; top: 0.85rem; color: var(--text-secondary); font-size: 0.8rem;">L</span>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Tipo de Calostro</label>
@@ -2275,15 +2282,28 @@
                     </div>
 
                     <!-- Área de texto rápida de campo -->
-                    <textarea id="rec_texto_hallazgo" class="rec-textarea" placeholder="Escribí lo que observaste en la guachera (ej: Baldes de leche sucios en fila 2, falta desratizar galpón)..."></textarea>
+                    <textarea id="rec_texto_hallazgo" class="rec-textarea" 
+                        spellcheck="true" 
+                        lang="es" 
+                        autocomplete="on" 
+                        autocorrect="on" 
+                        autocapitalize="sentences"
+                        placeholder="Escribí lo que observaste en la guachera (ej: Baldes de leche sucios en fila 2, falta desratizar galpón)..."></textarea>
+
+                    <!-- Feedback / Deshacer de corrección ortográfica -->
+                    <div id="rec-spell-feedback-main" class="rec-spell-feedback" style="display:none;"></div>
 
                     <!-- Opciones y Botón Agregar -->
                     <div class="rec-form-options">
-                        <div style="display:flex;align-items:center;gap:15px;flex-wrap:wrap;">
+                        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                             <label class="rec-toggle-wrap">
                                 <input type="checkbox" id="rec_chk_urgente">
                                 <span style="color:#dc2626;">🚨 Marcar como Urgente</span>
                             </label>
+                            <button type="button" class="rec-btn-spell" id="rec-btn-spell-main" onclick="corregirOrtografiaRecorrida('rec_texto_hallazgo', 'rec-btn-spell-main', 'rec-spell-feedback-main')" title="Corregir ortografía, tildes y redacción con IA">
+                                <i data-lucide="sparkles" style="width:14px;height:14px;"></i>
+                                <span>Corregir Ortografía</span>
+                            </button>
                         </div>
                         <button type="button" class="rec-btn-add" onclick="agregarObservacionHoy()">
                             <i data-lucide="plus" style="width:16px;height:16px;"></i>
@@ -2399,9 +2419,9 @@
     <!-- Dashboard Module -->
     <script src="dashboard.js?v=91" defer></script>
     <!-- App Script -->
-    <script src="app.js?v=91" defer></script>
+    <script src="app.js?v=92" defer></script>
     <!-- Recorridas Module -->
-    <script src="recorridas.js?v=12" defer></script>
+    <script src="recorridas.js?v=13" defer></script>
     <!-- Voice Module (Ocultado temporalmente) -->
     <!-- <script src="voice.js?v=62" defer></script> -->
 

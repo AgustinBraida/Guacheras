@@ -4,7 +4,7 @@
 // para forzar la actualización del caché en los dispositivos.
 // ============================================================
 
-const CACHE_VERSION = 'v101';
+const CACHE_VERSION = 'v112';
 const CACHE_NAME = 'vetfield-guacheras-' + CACHE_VERSION;
 
 // ── Recursos CRÍTICOS locales (deben estar todos disponibles) ──
