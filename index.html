@@ -32,7 +32,7 @@
     <!-- Chart.js for Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
     <!-- Estilos -->
-    <link rel="stylesheet" href="styles.css?v=80">
+    <link rel="stylesheet" href="styles.css?v=83">
     <link rel="stylesheet" href="recorridas.css?v=11">
     <!-- Módulo de Voz (Ocultado temporalmente) -->
     <!-- <link rel="stylesheet" href="voice.css?v=49"> -->
@@ -812,6 +812,9 @@
                 <button id="btn-sync-cloud" class="btn-sync" onclick="syncData()">
                     <i data-lucide="upload-cloud"></i> Sincronizar con la Nube
                 </button>
+                <button class="btn-sync" onclick="clearSyncCache()" style="margin-top:8px;background:rgba(255,255,255,0.08);font-size:0.8rem;padding:0.6rem;">
+                    <i data-lucide="refresh-ccw" style="width:15px;height:15px;"></i> Forzar revisión (si el contador quedó trabado)
+                </button>
             </div>
 
             <!-- ── FILTERS PANEL ── -->
@@ -889,13 +892,14 @@
                         <div class="kpi-value" id="kpi_total">—</div>
                         <div class="kpi-sub" id="kpi_total_sub">Cargando...</div>
                     </div>
+                    <button class="kpi-info-btn" onclick="toggleKpiInfoModal('total', this)" title="¿Cómo se calcula este dato?">ℹ</button>
                 </div>
                 <!-- KPI 2: Tasa de Mortalidad -->
                 <div class="kpi-card stagger-2" id="kpi_mortalidad_card">
                     <div class="kpi-icon-wrap kpi-icon--red"><i data-lucide="heart-pulse"
                             style="width:22px;height:22px;"></i></div>
                     <div class="kpi-content">
-                        <div class="kpi-label">Tasa de Mortalidad</div>
+                        <div class="kpi-label">Mortalidad Guachera</div>
                         <div class="kpi-value" id="kpi_mortalidad">—</div>
                         <div class="kpi-sub"><span class="kpi-badge" id="kpi_mortalidad_badge">...</span></div>
                     </div>
@@ -903,6 +907,7 @@
                     <button class="kpi-config-btn" id="kpi_mort_cfg_btn"
                         onclick="toggleKpiPanel('kpi_mort_panel', this)"
                         title="Configurar umbrales de alerta">⚙️</button>
+                    <button class="kpi-info-btn" style="right:34px;" onclick="toggleKpiInfoModal('mort', this)" title="¿Cómo se calcula este dato?">ℹ</button>
                 </div>
                 <!-- KPI 3: Promedio I.G. -->
                 <div class="kpi-card kpi-card--green stagger-3" id="kpi_ig_card">
@@ -916,6 +921,7 @@
                     <!-- Botón configurar rangos -->
                     <button class="kpi-config-btn" id="kpi_ig_cfg_btn" onclick="toggleKpiPanel('kpi_ig_panel', this)"
                         title="Configurar umbrales de calidad">⚙️</button>
+                    <button class="kpi-info-btn" style="right:34px;" onclick="toggleKpiInfoModal('ig', this)" title="¿Cómo se calcula este dato?">ℹ</button>
                 </div>
                 <!-- KPI 4: Tasa de Recuperación -->
                 <div class="kpi-card kpi-card--purple stagger-4">
@@ -926,6 +932,7 @@
                         <div class="kpi-value" id="kpi_recuperacion">—</div>
                         <div class="kpi-sub" id="kpi_recuperacion_sub">en terapia</div>
                     </div>
+                    <button class="kpi-info-btn" onclick="toggleKpiInfoModal('recuperacion', this)" title="¿Cómo se calcula este dato?">ℹ</button>
                 </div>
             </div>
 
@@ -1005,6 +1012,7 @@
                                         <button id="btn-tendencia-semanal" class="tendencia-toggle-btn active" onclick="setTendenciaMode('semanal')">Semanal</button>
                                         <button id="btn-tendencia-mensual" class="tendencia-toggle-btn" onclick="setTendenciaMode('mensual')">Mensual</button>
                                     </div>
+                                    <button class="chart-info-btn" title="Información sobre este gráfico" onclick="openChartInfoModal('chart_tendencia')">ℹ</button>
                                     <button class="chart-edit-title-btn" title="Editar título"
                                         onclick="dashEditTitle(this)"><i data-lucide="edit-3"
                                             class="icon-edit"></i></button>
@@ -1021,9 +1029,12 @@
                                         title="Doble clic para editar título">🎯 Mortalidad por Ubicación</div>
                                     <div class="db-chart-sub">Distribución por lugar de deceso</div>
                                 </div>
-                                <button class="chart-edit-title-btn" title="Editar título"
-                                    onclick="dashEditTitle(this)"><i data-lucide="edit-3"
-                                        class="icon-edit"></i></button>
+                                <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                                    <button class="chart-info-btn" title="Información sobre este gráfico" onclick="openChartInfoModal('chart_ubicacion')">ℹ</button>
+                                    <button class="chart-edit-title-btn" title="Editar título"
+                                        onclick="dashEditTitle(this)"><i data-lucide="edit-3"
+                                            class="icon-edit"></i></button>
+                                </div>
                             </div>
                             <div class="db-chart-wrap" style="height:220px;">
                                 <canvas id="chart_ubicacion"></canvas>
@@ -1048,6 +1059,7 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                                     <span>Ver detalle</span>
                                 </button>
+                                <button class="chart-info-btn" title="Información sobre este gráfico" onclick="openChartInfoModal('chart_causas')">ℹ</button>
                                 <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
                                         data-lucide="edit-3" class="icon-edit"></i></button>
                             </div>
@@ -1070,9 +1082,12 @@
                                         Supervivencia</div>
                                     <div class="db-chart-sub">Cada punto = un ternero evaluado</div>
                                 </div>
-                                <button class="chart-edit-title-btn" title="Editar título"
-                                    onclick="dashEditTitle(this)"><i data-lucide="edit-3"
-                                        class="icon-edit"></i></button>
+                                <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                                    <button class="chart-info-btn" title="Información sobre este gráfico" onclick="openChartInfoModal('chart_calostro')">ℹ</button>
+                                    <button class="chart-edit-title-btn" title="Editar título"
+                                        onclick="dashEditTitle(this)"><i data-lucide="edit-3"
+                                            class="icon-edit"></i></button>
+                                </div>
                             </div>
                             <div class="db-chart-wrap" style="height:230px;">
                                 <canvas id="chart_calostro"></canvas>
@@ -1085,9 +1100,12 @@
                                         title="Doble clic para editar título">🐄 Desempeño por Tipo de Madre</div>
                                     <div class="db-chart-sub">Vacas vs Vaquillonas — vivos y fallecidos</div>
                                 </div>
-                                <button class="chart-edit-title-btn" title="Editar título"
-                                    onclick="dashEditTitle(this)"><i data-lucide="edit-3"
-                                        class="icon-edit"></i></button>
+                                <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                                    <button class="chart-info-btn" title="Información sobre este gráfico" onclick="openChartInfoModal('chart_madre')">ℹ</button>
+                                    <button class="chart-edit-title-btn" title="Editar título"
+                                        onclick="dashEditTitle(this)"><i data-lucide="edit-3"
+                                            class="icon-edit"></i></button>
+                                </div>
                             </div>
                             <div class="db-chart-wrap" style="height:230px;">
                                 <canvas id="chart_madre"></canvas>
@@ -1106,18 +1124,17 @@
                                 <div class="db-chart-sub">° Brix según selección · salud resultante del <strong>ternero</strong> · cada punto = un ternero</div>
                             </div>
                             <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-                                <select id="brix_salud_fuente"
-                                    style="font-size:0.78rem;padding:4px 10px;border-radius:8px;border:1px solid var(--border,#e2e8f0);background:var(--card-bg,#fff);color:var(--text-primary,#1e293b);cursor:pointer;outline:none;max-width:180px;"
+                                <select id="brix_salud_fuente" class="db-chart-select" style="max-width:180px;"
                                     onchange="window._onBrixSaludFilter()">
                                     <option value="ternero" selected>° Brix del ternero</option>
                                     <option value="madre">° Brix de la madre</option>
                                     <option value="promedio">° Brix promedio</option>
                                 </select>
-                                <select id="brix_salud_filter"
-                                    style="font-size:0.78rem;padding:4px 10px;border-radius:8px;border:1px solid var(--border,#e2e8f0);background:var(--card-bg,#fff);color:var(--text-primary,#1e293b);cursor:pointer;outline:none;max-width:200px;"
+                                <select id="brix_salud_filter" class="db-chart-select" style="max-width:200px;"
                                     onchange="window._onBrixSaludFilter()">
                                     <option value="">Todas las enfermedades</option>
                                 </select>
+                                <button class="chart-info-btn" title="Información sobre este gráfico" onclick="openChartInfoModal('chart_brix_salud')">ℹ</button>
                                 <button class="chart-edit-title-btn" title="Editar título"
                                     onclick="dashEditTitle(this)"><i data-lucide="edit-3"
                                         class="icon-edit"></i></button>
@@ -1139,8 +1156,11 @@
                                     title="Doble clic para editar título">🔵 Salud de Ombligos</div>
                                 <div class="db-chart-sub">Estado sanitario al alta</div>
                             </div>
-                            <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
-                                    data-lucide="edit-3" class="icon-edit"></i></button>
+                            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                                <button class="chart-info-btn" title="Información sobre este gráfico" onclick="openChartInfoModal('chart_ombligos')">ℹ</button>
+                                <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
+                                        data-lucide="edit-3" class="icon-edit"></i></button>
+                            </div>
                         </div>
                         <div class="db-chart-wrap" style="height:220px;">
                             <canvas id="chart_ombligos"></canvas>
@@ -1159,8 +1179,11 @@
                                 </div>
                                 <div class="db-chart-sub">Priorización para acción veterinaria inmediata</div>
                             </div>
-                            <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
-                                    data-lucide="edit-3" class="icon-edit"></i></button>
+                            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                                <button class="chart-info-btn" title="Información sobre este gráfico" onclick="openChartInfoModal('chart_ranking')">ℹ</button>
+                                <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
+                                        data-lucide="edit-3" class="icon-edit"></i></button>
+                            </div>
                         </div>
                         <div class="table-container" style="margin-top:1rem;">
                             <table class="ranking-table">
@@ -1190,8 +1213,11 @@
                                     title="Doble clic para editar título">⚤ Mortalidad por Sexo</div>
                                 <div class="db-chart-sub">Comparativa de supervivencia Machos vs Hembras</div>
                             </div>
-                            <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
-                                    data-lucide="edit-3" class="icon-edit"></i></button>
+                            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                                <button class="chart-info-btn" title="Información sobre este gráfico" onclick="openChartInfoModal('chart_sexo')">ℹ</button>
+                                <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
+                                        data-lucide="edit-3" class="icon-edit"></i></button>
+                            </div>
                         </div>
                         <div class="sexo-stats">
                             <div class="sexo-stat-item">
@@ -1211,20 +1237,43 @@
                     </div>
                 </div>
 
-                <!-- BLOQUE: Tipo de Parto -->
+                <!-- BLOQUE: Parto y Pérdidas Perinatales -->
                 <div class="chart-block" data-chart-id="block_parto">
-                    <div class="db-chart-card card glass">
-                        <div class="db-chart-header">
-                            <div style="flex:1;min-width:0;">
-                                <div class="db-chart-title" data-title-key="title_parto" contenteditable="false"
-                                    title="Doble clic para editar título">🩺 Tipo y Dificultad de Parto</div>
-                                <div class="db-chart-sub">Normal vs Asistido vs Muerto al parto</div>
+                    <div class="db-row db-row--50-50">
+                        <div class="db-chart-card card glass">
+                            <div class="db-chart-header">
+                                <div style="flex:1;min-width:0;">
+                                    <div class="db-chart-title" data-title-key="title_parto" contenteditable="false"
+                                        title="Doble clic para editar título">🩺 Tipo y Dificultad de Parto</div>
+                                    <div class="db-chart-sub">Normal vs Asistido</div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                                    <button class="chart-info-btn" title="Información sobre este gráfico" onclick="openChartInfoModal('chart_parto')">ℹ</button>
+                                    <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
+                                            data-lucide="edit-3" class="icon-edit"></i></button>
+                                </div>
                             </div>
-                            <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
-                                    data-lucide="edit-3" class="icon-edit"></i></button>
+                            <div class="db-chart-wrap" style="height:220px;">
+                                <canvas id="chart_parto"></canvas>
+                            </div>
                         </div>
-                        <div class="db-chart-wrap" style="height:220px;">
-                            <canvas id="chart_parto"></canvas>
+
+                        <div class="db-chart-card card glass">
+                            <div class="db-chart-header">
+                                <div style="flex:1;min-width:0;">
+                                    <div class="db-chart-title" data-title-key="title_perinatal" contenteditable="false"
+                                        title="Doble clic para editar título">⚠️ Pérdidas Gestacionales y Perinatales</div>
+                                    <div class="db-chart-sub" id="perinatal-sub">Abortos · Nacidos muertos · Periparto (&lt; 24 hs)</div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                                    <button class="chart-info-btn" title="Información sobre este gráfico" onclick="openChartInfoModal('chart_perinatal')">ℹ</button>
+                                    <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i
+                                            data-lucide="edit-3" class="icon-edit"></i></button>
+                                </div>
+                            </div>
+                            <div class="db-chart-wrap" id="chart_perinatal_wrap" style="height:220px; position:relative;">
+                                <canvas id="chart_perinatal"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1523,7 +1572,11 @@
                         <select id="filterEstado" onchange="filterTable()" class="rf-select rf-select--icon">
                             <option value="">Estado: Todos</option>
                             <option value="Vivo">Vivos</option>
-                            <option value="Muerto">Muertos (Cualquiera)</option>
+                            <option value="Muerto">Muertos en Crianza / Guachera</option>
+                            <option value="Perinatal">Pérdidas Gestacionales / Perinatales</option>
+                            <option value="Aborto">↳ Aborto</option>
+                            <option value="Nacido muerto">↳ Nacido muerto</option>
+                            <option value="Muerto al periparto">↳ Muerto al periparto</option>
                         </select>
                     </div>
                     <div class="rf-input-wrap">
@@ -1866,6 +1919,35 @@
             </div>
         </div>
 
+        <!-- MODAL: KPI INFO -->
+        <div id="kpiInfoModal" class="modal-overlay" onclick="closeKpiInfoModal(event)">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width:440px; padding:1.6rem;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.1rem;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div id="kpiInfoIconWrap" style="width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <span id="kpiInfoIcon" style="font-size:18px;"></span>
+                        </div>
+                        <div>
+                            <p id="kpiInfoCategory" style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-secondary);margin:0 0 2px;"></p>
+                            <h3 id="kpiInfoTitle" style="color:var(--primary);font-size:1.05rem;font-weight:800;margin:0;"></h3>
+                        </div>
+                    </div>
+                    <button onclick="closeKpiInfoModal()" style="background:var(--bg-body);border:none;padding:6px;border-radius:8px;cursor:pointer;flex-shrink:0;">
+                        <i data-lucide="x" style="width:16px;height:16px;color:var(--text-secondary);"></i>
+                    </button>
+                </div>
+
+                <!-- Fórmula -->
+                <div id="kpiInfoFormulaBox" style="background:rgba(26,35,126,0.05);border:1px solid rgba(26,35,126,0.12);border-radius:12px;padding:12px 14px;margin-bottom:1rem;">
+                    <p id="kpiInfoFormulaLabel" style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-secondary);margin:0 0 5px;">📐 Métrica / Fórmula</p>
+                    <p id="kpiInfoFormulaText" style="font-size:0.88rem;font-weight:700;color:var(--primary);margin:0;font-family:monospace;"></p>
+                </div>
+
+                <!-- Descripción detallada -->
+                <div id="kpiInfoDescription" style="font-size:0.83rem;color:var(--text-secondary);line-height:1.6;"></div>
+            </div>
+        </div>
+
         <!-- MODAL: CONFIRMAR ELIMINACION DE PRODUCTOR -->
         <div id="deleteProductorModal" class="modal-overlay" onclick="closeDeleteProductorModal(event)">
             <div class="modal-content del-prod-modal" onclick="event.stopPropagation()" style="max-width:440px;">
@@ -2150,9 +2232,9 @@
                             </select>
                         </div>
                         <div>
-                            <label class="rec-field-label" for="rec_establecimiento">Establecimiento *</label>
-                            <select id="rec_establecimiento" class="rec-input" onchange="onRecorridaEstablecimientoChange()" required>
-                                <option value="">-- Primero seleccioná productor --</option>
+                            <label class="rec-field-label" for="rec_establecimiento">Establecimiento</label>
+                            <select id="rec_establecimiento" class="rec-input" onchange="onRecorridaEstablecimientoChange()">
+                                <option value="">-- Sin establecimiento (opcional) --</option>
                             </select>
                         </div>
                         <div>
@@ -2315,9 +2397,9 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
     <!-- Dashboard Module -->
-    <script src="dashboard.js?v=90" defer></script>
+    <script src="dashboard.js?v=91" defer></script>
     <!-- App Script -->
-    <script src="app.js?v=89" defer></script>
+    <script src="app.js?v=91" defer></script>
     <!-- Recorridas Module -->
     <script src="recorridas.js?v=12" defer></script>
     <!-- Voice Module (Ocultado temporalmente) -->

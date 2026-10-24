@@ -141,8 +141,22 @@ async function loadFromAPI() {
     ]);
 
     if (recData.ok) {
-        // Mezclar registros del servidor con pendientes offline
-        const offline = getOfflineRecords();
+        // Mezclar registros del servidor con pendientes offline.
+        // Descartar del cache offline cualquier registro que el servidor ya tiene,
+        // comparando por id real O por la terna rp_ternero+fecha+productor.
+        const serverIds = new Set(recData.records.map(r => String(r.id)).filter(Boolean));
+        // Clave compuesta para detectar duplicados sin id
+        const serverKeys = new Set(
+            recData.records.map(r => `${r.rp_ternero || ''}|${r.fecha || ''}|${r.productor || ''}`)
+        );
+        const offline = getOfflineRecords().filter(r => {
+            if (r.id && serverIds.has(String(r.id))) return false;
+            const key = `${r.rp_ternero || ''}|${r.fecha || ''}|${r.productor || ''}`;
+            if (key !== '||' && serverKeys.has(key)) return false;
+            return true;
+        });
+        // Persistir la cache limpia para que no reaparezcan en próximas recargas
+        saveOfflineRecords(offline);
         records = [...recData.records, ...offline];
         // Auto-corrección preventiva: si algún registro tiene I.G. >= 50 (sin coma decimal), normalizarlo
         records.forEach(r => {
@@ -199,6 +213,59 @@ function saveOfflineRecords(recs) {
 }
 
 // ─── Renderizar Opciones de Supervivencia Dinámicas ──────────
+function onSurvivalChange(val) {
+    const isPerinatal = ['Aborto', 'Nacido muerto', 'Muerto al periparto'].includes(val);
+    const box = document.getElementById('perinatal_group_box');
+    const indicator = document.getElementById('perinatal_indicator_radio');
+    if (box) box.classList.toggle('active', isPerinatal);
+    if (indicator) indicator.checked = isPerinatal;
+
+    if (typeof toggleCausa === 'function') toggleCausa(val);
+}
+window.onSurvivalChange = onSurvivalChange;
+
+function selectStandardSurvival(val) {
+    const radio = document.querySelector(`input[name="survival"][value="${val}"]`);
+    if (radio) {
+        radio.checked = true;
+        radio.dataset.dirty = 'true';
+    }
+    const box = document.getElementById('perinatal_group_box');
+    const indicator = document.getElementById('perinatal_indicator_radio');
+    if (box) box.classList.remove('active');
+    if (indicator) indicator.checked = false;
+
+    onSurvivalChange(val);
+}
+window.selectStandardSurvival = selectStandardSurvival;
+
+function togglePerinatalDropdown(e) {
+    if (e) e.stopPropagation();
+    const box = document.getElementById('perinatal_group_box');
+    if (!box) return;
+
+    let currentPerinatalRadio = document.querySelector('.perinatal-dropdown-body input[name="survival"]:checked');
+    let targetVal = currentPerinatalRadio ? currentPerinatalRadio.value : 'Nacido muerto';
+    selectPerinatalSub(targetVal);
+}
+window.togglePerinatalDropdown = togglePerinatalDropdown;
+
+function selectPerinatalSub(val, e) {
+    if (e) e.stopPropagation();
+    const subRadio = document.querySelector(`input[name="survival"][value="${val}"]`);
+    if (subRadio) {
+        subRadio.checked = true;
+        subRadio.dataset.dirty = 'true';
+    }
+    const box = document.getElementById('perinatal_group_box');
+    const indicator = document.getElementById('perinatal_indicator_radio');
+    if (box) box.classList.add('active');
+    if (indicator) indicator.checked = true;
+
+    onSurvivalChange(val);
+}
+window.selectPerinatalSub = selectPerinatalSub;
+
 function renderSurvivalRadios(preferredValue) {
     const container = document.getElementById('survival-radio-options');
     if (!container) return;
@@ -214,12 +281,17 @@ function renderSurvivalRadios(preferredValue) {
         ];
 
     const activeLugares = lugares.filter(l => l && l.activo && l.nombre);
+    const isPerinatalCurrent = ['Aborto', 'Nacido muerto', 'Muerto al periparto'].includes(currentChecked);
 
     let html = `
-        <label class="radio-option">
-            <input type="radio" name="survival" value="Vivo" ${currentChecked === 'Vivo' ? 'checked' : ''} onchange="toggleCausa(false)">
-            <span>Vivo</span>
+        <label class="radio-option" onclick="selectStandardSurvival('Vivo')">
+            <input type="radio" name="survival" value="Vivo" ${currentChecked === 'Vivo' ? 'checked' : ''} onchange="selectStandardSurvival('Vivo')">
+            <div class="radio-option-content">
+                <span class="radio-option-title">Vivo</span>
+                <span class="radio-option-desc">Ingresa vivo al sistema / guachera</span>
+            </div>
         </label>
+
     `;
 
     let matchedCurrent = (currentChecked === 'Vivo');
@@ -228,27 +300,67 @@ function renderSurvivalRadios(preferredValue) {
         const isChecked = (currentChecked === val);
         if (isChecked) matchedCurrent = true;
         html += `
-            <label class="radio-option">
-                <input type="radio" name="survival" value="${val}" ${isChecked ? 'checked' : ''} onchange="toggleCausa(true)">
-                <span>${val}</span>
+            <label class="radio-option" onclick="selectStandardSurvival('${val}')">
+                <input type="radio" name="survival" value="${val}" ${isChecked ? 'checked' : ''} onchange="selectStandardSurvival('${val}')">
+                <div class="radio-option-content">
+                    <span class="radio-option-title">${val}</span>
+                </div>
             </label>
         `;
     });
 
-    // Si el valor seleccionado es histórico o está temporalmente inactivo, conservarlo visible
-    if (!matchedCurrent && currentChecked && currentChecked !== 'Vivo') {
+    if (!matchedCurrent && !isPerinatalCurrent && currentChecked && currentChecked !== 'Vivo') {
         html += `
-            <label class="radio-option">
-                <input type="radio" name="survival" value="${currentChecked}" checked onchange="toggleCausa(true)">
-                <span>${currentChecked} <span style="font-size:0.75rem; opacity:0.7;">(inactivo)</span></span>
+            <label class="radio-option" onclick="selectStandardSurvival('${currentChecked}')">
+                <input type="radio" name="survival" value="${currentChecked}" checked onchange="selectStandardSurvival('${currentChecked}')">
+                <div class="radio-option-content">
+                    <span class="radio-option-title">${currentChecked}</span>
+                    <span class="radio-option-desc">(inactivo)</span>
+                </div>
             </label>
         `;
     }
 
+    html += `
+        <div class="perinatal-group-box ${isPerinatalCurrent ? 'active' : ''}" id="perinatal_group_box">
+            <div class="radio-option radio-option-perinatal-header" onclick="togglePerinatalDropdown(event)">
+                <input type="radio" id="perinatal_indicator_radio" name="survival_display_indicator" ${isPerinatalCurrent ? 'checked' : ''} style="pointer-events:none;">
+                <div class="radio-option-content" style="flex:1;">
+                    <span class="radio-option-title">Pérdidas Gestacionales y Perinatales</span>
+                    <span class="radio-option-desc">Tocar para desplegar opciones (Aborto, Nacido muerto, Periparto)</span>
+                </div>
+                <span class="perinatal-chevron">▼</span>
+            </div>
+            <div class="perinatal-dropdown-body" id="perinatal_dropdown_body">
+                <label class="radio-suboption" onclick="selectPerinatalSub('Nacido muerto', event)">
+                    <input type="radio" name="survival" value="Nacido muerto" ${currentChecked === 'Nacido muerto' ? 'checked' : ''} onchange="selectPerinatalSub('Nacido muerto', event)">
+                    <div class="radio-option-content">
+                        <span class="radio-option-title">Nacido muerto</span>
+                        <span class="radio-option-desc">Al parto / óbito fetal</span>
+                    </div>
+                </label>
+                <label class="radio-suboption" onclick="selectPerinatalSub('Aborto', event)">
+                    <input type="radio" name="survival" value="Aborto" ${currentChecked === 'Aborto' ? 'checked' : ''} onchange="selectPerinatalSub('Aborto', event)">
+                    <div class="radio-option-content">
+                        <span class="radio-option-title">Aborto</span>
+                        <span class="radio-option-desc">Muerte dentro del período de gestación</span>
+                    </div>
+                </label>
+                <label class="radio-suboption" onclick="selectPerinatalSub('Muerto al periparto', event)">
+                    <input type="radio" name="survival" value="Muerto al periparto" ${currentChecked === 'Muerto al periparto' ? 'checked' : ''} onchange="selectPerinatalSub('Muerto al periparto', event)">
+                    <div class="radio-option-content">
+                        <span class="radio-option-title">Muerto al periparto</span>
+                        <span class="radio-option-desc">Dentro de las primeras 24 hs</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+    `;
+
     container.innerHTML = html;
 
-    const isMuerto = !!document.querySelector('input[name="survival"]:checked')?.value?.includes('Muerto');
-    if (typeof toggleCausa === 'function') toggleCausa(isMuerto);
+    const checkedVal = document.querySelector('input[name="survival"]:checked')?.value || 'Vivo';
+    if (typeof toggleCausa === 'function') toggleCausa(checkedVal);
 }
 window.renderSurvivalRadios = renderSurvivalRadios;
 
@@ -369,15 +481,15 @@ function setSegmented(btn, val) {
 function setSegmentedParto(btn, val) {
     setSegmented(btn, val);
     if (val === 'Muerto al parto') {
-        const vivoRadio = document.querySelector('input[name="survival"][value="Vivo"]');
-        let muertoRadio = document.querySelector('input[name="survival"][value="Muerto en Establecimiento"]');
-        if (!muertoRadio) {
-            muertoRadio = document.querySelector('input[name="survival"]:not([value="Vivo"])');
+        if (typeof selectPerinatalSub === 'function') {
+            selectPerinatalSub('Nacido muerto');
         }
-        if (vivoRadio && vivoRadio.checked && muertoRadio) {
-            muertoRadio.checked = true;
-            muertoRadio.dataset.dirty = 'true';
-            if (typeof toggleCausa === 'function') toggleCausa(true);
+    } else if (val === 'Normal' || val === 'Asistido') {
+        const currentSurvival = document.querySelector('input[name="survival"]:checked')?.value;
+        if (currentSurvival === 'Nacido muerto') {
+            if (typeof selectStandardSurvival === 'function') {
+                selectStandardSurvival('Vivo');
+            }
         }
     }
 }
@@ -561,14 +673,28 @@ function toggleEditDetalleSalud(val) {
 }
 window.toggleEditDetalleSalud = toggleEditDetalleSalud;
 
-function toggleCausa(show) {
+function toggleCausa(statusOrShow) {
+    let currentStatus = '';
+    if (typeof statusOrShow === 'string') {
+        currentStatus = statusOrShow;
+    } else {
+        const checkedRadio = document.querySelector('input[name="survival"]:checked');
+        currentStatus = checkedRadio ? checkedRadio.value : (statusOrShow === false ? 'Vivo' : 'Muerto');
+    }
+
+    const isVivo = (currentStatus === 'Vivo');
+    const isPerinatal = ['Aborto', 'Nacido muerto', 'Muerto al periparto'].includes(currentStatus);
+
+    const showSalud = (statusOrShow === false) || isVivo;
+    const showCausa = (statusOrShow === true && !isPerinatal) || (!isVivo && !isPerinatal && statusOrShow !== false);
+
     const seccionSalud = document.getElementById('seccion_estado_salud');
     if (seccionSalud) {
-        seccionSalud.classList.toggle('hidden', show);
+        seccionSalud.classList.toggle('hidden', !showSalud);
     }
     const group = document.getElementById('causaGroup');
     if (group) {
-        group.classList.toggle('hidden', !show);
+        group.classList.toggle('hidden', !showCausa);
     }
     
     const specificSelect = document.getElementById('f_causa_especifica');
@@ -576,21 +702,23 @@ function toggleCausa(show) {
     
     if (specificSelect) {
         const catVal = document.getElementById('f_causa_categoria_val')?.value;
-        specificSelect.required = show && (catVal !== 'Otra Causa');
+        specificSelect.required = showCausa && (catVal !== 'Otra Causa' && catVal !== '');
     }
     if (customInput) {
         const catVal = document.getElementById('f_causa_categoria_val')?.value;
-        customInput.required = show && (catVal === 'Otra Causa');
+        customInput.required = showCausa && (catVal === 'Otra Causa');
     }
     
-    if (!show) {
+    if (!showCausa) {
         document.querySelectorAll('.causa-segmented .segmented-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById('f_causa_categoria_val').value = '';
+        const catValEl = document.getElementById('f_causa_categoria_val');
+        if (catValEl) catValEl.value = '';
         const subGroup = document.getElementById('subCausaGroup');
         if (subGroup) subGroup.classList.add('hidden');
         if (specificSelect) {
             specificSelect.innerHTML = '<option value="">Primero seleccione una categoría arriba...</option>';
             specificSelect.value = '';
+            specificSelect.required = false;
         }
         const customGroup = document.getElementById('customCausaGroup');
         if (customGroup) customGroup.classList.add('hidden');
@@ -598,6 +726,9 @@ function toggleCausa(show) {
             customInput.value = '';
             customInput.required = false;
         }
+    }
+
+    if (showSalud) {
         toggleDetalleSalud(document.getElementById('f_estado_salud')?.value);
     } else {
         const detGroup = document.getElementById('f_detalle_salud_group');
@@ -758,6 +889,25 @@ async function syncData() {
     if (synced > 0) showToast(`✅ ${synced} registros sincronizados.`);
 }
 
+// ─── Forzar revisión / limpiar cache atascado ────────────────
+async function clearSyncCache() {
+    const btn = event?.currentTarget;
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin" style="width:15px;height:15px;"></i> Revisando...'; if (typeof lucide !== 'undefined') lucide.createIcons(); }
+
+    await loadFromAPI();
+    updateUI();
+
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="refresh-ccw" style="width:15px;height:15px;"></i> Forzar revisión (si el contador quedó trabado)'; if (typeof lucide !== 'undefined') lucide.createIcons(); }
+
+    const remaining = records.filter(r => !r.synced).length;
+    if (remaining === 0) {
+        showToast('✅ Cache limpio. No hay registros pendientes.');
+    } else {
+        showToast(`⚠️ Quedan ${remaining} registros pendientes reales.`);
+    }
+}
+window.clearSyncCache = clearSyncCache;
+
 // ─── Guardar nuevo registro ──────────────────────────────────
 let _entryFormBound = false; // Evitar doble binding
 
@@ -797,9 +947,11 @@ function bindEntryForm() {
         let matchedRecord = null;
 
         // ── Construir el registro nuevo desde el formulario ──────────────────
-        const isVivo = document.querySelector('input[name="survival"]:checked').value === 'Vivo';
-        const catVal = isVivo ? '' : document.getElementById('f_causa_categoria_val').value;
-        const espVal = isVivo ? '' : (catVal === 'Otra Causa'
+        const survivalVal = document.querySelector('input[name="survival"]:checked')?.value || 'Vivo';
+        const isVivo = survivalVal === 'Vivo';
+        const isPerinatal = ['Aborto', 'Nacido muerto', 'Muerto al periparto'].includes(survivalVal);
+        const catVal = (isVivo || isPerinatal) ? '' : document.getElementById('f_causa_categoria_val').value;
+        const espVal = (isVivo || isPerinatal) ? '' : (catVal === 'Otra Causa'
             ? document.getElementById('f_causa_especifica_custom').value.trim()
             : document.getElementById('f_causa_especifica').value);
 
@@ -821,12 +973,12 @@ function bindEntryForm() {
             tipo_calostro:   (document.getElementById('f_tipo_calostro_val')?.value) || 'De la madre',
             metodo_calostrado: (document.getElementById('f_metodo_calostrado_val')?.value) || 'Con mamadera',
             ig_calostro:     document.getElementById('f_ig_calostro').value,
-            estado:          document.querySelector('input[name="survival"]:checked').value,
+            estado:          survivalVal,
             estado_salud:    estSaludVal,
             detalle_salud:   detSaludVal,
-            causa:           isVivo ? '' : (catVal && espVal ? `${catVal} - ${espVal}` : (catVal || espVal || '')),
-            causa_categoria: catVal,
-            causa_especifica:espVal,
+            causa:           (isVivo || isPerinatal) ? '' : (catVal && espVal ? `${catVal} - ${espVal}` : (catVal || espVal || '')),
+            causa_categoria: (isVivo || isPerinatal) ? '' : catVal,
+            causa_especifica:(isVivo || isPerinatal) ? '' : espVal,
             synced:          false,
             _local_id:       Date.now(),
         };
@@ -978,12 +1130,17 @@ function openDetail(recordId) {
     const activeLugares = (typeof window.getLugaresMuerte === 'function' ? window.getLugaresMuerte() : [])
         .filter(l => l && l.activo && l.nombre)
         .map(l => `Muerto en ${l.nombre}`);
-    const estadoOpts = ['Vivo', ...activeLugares];
-    if (r.estado && !estadoOpts.includes(r.estado)) {
-        estadoOpts.push(r.estado); // Preservar estado existente si está inactivo
+    const isPerinatalRecord = ['Aborto', 'Nacido muerto', 'Muerto al periparto'].includes(r.estado);
+    const currentMainEstado = isPerinatalRecord ? 'Pérdidas Gestacionales y Perinatales' : (r.estado || 'Vivo');
+
+    const mainEstadoOpts = ['Vivo', ...activeLugares];
+    if (r.estado && r.estado.startsWith('Muerto en ') && !mainEstadoOpts.includes(r.estado)) {
+        mainEstadoOpts.push(r.estado); // Preservar estado si el lugar de muerte fue desactivado
     }
-    const estadoOptionsHtml = estadoOpts.map(o =>
-        `<option value="${o}" ${r.estado === o ? 'selected' : ''}>${o}</option>`
+    mainEstadoOpts.push('Pérdidas Gestacionales y Perinatales');
+
+    const estadoOptionsHtml = mainEstadoOpts.map(o =>
+        `<option value="${o}" ${currentMainEstado === o ? 'selected' : ''}>${o}</option>`
     ).join('');
 
     const causaCatOpts = ['', 'Enfermedades e Infecciones', 'Problemas Digestivos y Metabólicos', 'Factores Externos y de Manejo', 'Otra Causa'];
@@ -1106,6 +1263,14 @@ function openDetail(recordId) {
                         ${estadoOptionsHtml}
                     </select>
                 </div>
+                <div class="form-group col-span-2" id="edit_perinatal_group" style="${isPerinatalRecord ? '' : 'display:none;'}">
+                    <label>Tipo de Pérdida Perinatal / Gestacional</label>
+                    <select id="edit_perinatal_sub">
+                        <option value="Nacido muerto" ${(!r.estado || r.estado === 'Nacido muerto') ? 'selected' : ''}>Nacido muerto (al parto / óbito fetal)</option>
+                        <option value="Aborto" ${r.estado === 'Aborto' ? 'selected' : ''}>Aborto (dentro del período de gestación)</option>
+                        <option value="Muerto al periparto" ${r.estado === 'Muerto al periparto' ? 'selected' : ''}>Muerto al periparto (dentro de las primeras 24 hs)</option>
+                    </select>
+                </div>
                 <div class="form-group col-span-2" id="edit_salud_group" style="${r.estado === 'Vivo' ? '' : 'display:none;'}">
                     <label>Condición Sanitaria / Salud (Animal Vivo)</label>
                     <select id="edit_estado_salud" onchange="toggleEditDetalleSalud(this.value)">
@@ -1119,19 +1284,19 @@ function openDetail(recordId) {
                     <label id="edit_detalle_salud_label">Especifique el problema o enfermedad</label>
                     <input id="edit_detalle_salud" list="salud_sugerencias_list" value="${escHtml(r.detalle_salud || '')}" placeholder="Escriba o elija una sugerencia...">
                 </div>
-                <div class="form-group ${(!r.causa_categoria || r.causa_categoria === 'Otra Causa') ? 'col-span-2' : ''}" id="edit_causa_cat_group" style="${r.estado !== 'Vivo' ? '' : 'display:none;'}">
+                <div class="form-group ${(!r.causa_categoria || r.causa_categoria === 'Otra Causa') ? 'col-span-2' : ''}" id="edit_causa_cat_group" style="${(!['Aborto', 'Nacido muerto', 'Muerto al periparto'].includes(r.estado) && r.estado !== 'Vivo') ? '' : 'display:none;'}">
                     <label>Categoría Muerte</label>
                     <select id="edit_causa_categoria" onchange="refreshEditCausaEsp(this.value)">
                         ${causaCatOptionsHtml}
                     </select>
                 </div>
-                <div class="form-group" id="edit_causa_esp_group" style="${(r.estado !== 'Vivo' && r.causa_categoria && r.causa_categoria !== 'Otra Causa') ? '' : 'display:none;'}">
+                <div class="form-group" id="edit_causa_esp_group" style="${(!['Aborto', 'Nacido muerto', 'Muerto al periparto'].includes(r.estado) && r.estado !== 'Vivo' && r.causa_categoria && r.causa_categoria !== 'Otra Causa') ? '' : 'display:none;'}">
                     <label>Causa Específica</label>
                     <select id="edit_causa_especifica">
                         ${causaEspOptionsHtml}
                     </select>
                 </div>
-                <div class="form-group col-span-2" id="edit_causa_custom_group" style="${(r.estado !== 'Vivo' && r.causa_categoria === 'Otra Causa') ? '' : 'display:none;'}">
+                <div class="form-group col-span-2" id="edit_causa_custom_group" style="${(!['Aborto', 'Nacido muerto', 'Muerto al periparto'].includes(r.estado) && r.estado !== 'Vivo' && r.causa_categoria === 'Otra Causa') ? '' : 'display:none;'}">
                     <label>Especifique la Causa</label>
                     <input id="edit_causa_especifica_custom" value="${escHtml(r.causa_categoria === 'Otra Causa' ? r.causa_especifica || '' : '')}">
                 </div>
@@ -1153,25 +1318,38 @@ function toggleEditCausa(estado) {
     const customGroup = document.getElementById('edit_causa_custom_group');
     const saludGroup = document.getElementById('edit_salud_group');
     const detalleSaludGroup = document.getElementById('edit_detalle_salud_group');
-    if (!catGroup) return;
+    const perinatalGroup = document.getElementById('edit_perinatal_group');
+
+    const isPerinatal = (estado === 'Pérdidas Gestacionales y Perinatales') || ['Aborto', 'Nacido muerto', 'Muerto al periparto'].includes(estado);
+
+    if (perinatalGroup) {
+        perinatalGroup.style.display = isPerinatal ? '' : 'none';
+    }
+
     if (estado === 'Vivo') {
-        catGroup.style.display = 'none';
-        espGroup.style.display = 'none';
+        if (catGroup) catGroup.style.display = 'none';
+        if (espGroup) espGroup.style.display = 'none';
         if (customGroup) customGroup.style.display = 'none';
         if (saludGroup) saludGroup.style.display = '';
         toggleEditDetalleSalud(document.getElementById('edit_estado_salud')?.value);
+    } else if (isPerinatal) {
+        if (catGroup) catGroup.style.display = 'none';
+        if (espGroup) espGroup.style.display = 'none';
+        if (customGroup) customGroup.style.display = 'none';
+        if (saludGroup) saludGroup.style.display = 'none';
+        if (detalleSaludGroup) detalleSaludGroup.style.display = 'none';
     } else {
         if (saludGroup) saludGroup.style.display = 'none';
         if (detalleSaludGroup) detalleSaludGroup.style.display = 'none';
-        catGroup.style.display = '';
-        const cat = document.getElementById('edit_causa_categoria').value;
+        if (catGroup) catGroup.style.display = '';
+        const cat = document.getElementById('edit_causa_categoria')?.value;
         if (cat === 'Otra Causa') {
-            catGroup.classList.add('col-span-2');
-            espGroup.style.display = 'none';
+            if (catGroup) catGroup.classList.add('col-span-2');
+            if (espGroup) espGroup.style.display = 'none';
             if (customGroup) customGroup.style.display = '';
         } else {
-            catGroup.classList.toggle('col-span-2', !cat);
-            espGroup.style.display = cat ? '' : 'none';
+            if (catGroup) catGroup.classList.toggle('col-span-2', !cat);
+            if (espGroup) espGroup.style.display = cat ? '' : 'none';
             if (customGroup) customGroup.style.display = 'none';
         }
     }
@@ -1214,13 +1392,18 @@ async function saveDetail() {
     const errEl = document.getElementById('edit_save_error');
     const saveBtn = document.getElementById('modal-save-btn');
 
-    const estado = document.getElementById('edit_estado').value;
+    const mainEstado = document.getElementById('edit_estado').value;
+    const isPerinatal = (mainEstado === 'Pérdidas Gestacionales y Perinatales') || ['Aborto', 'Nacido muerto', 'Muerto al periparto'].includes(mainEstado);
+    const estado = isPerinatal
+        ? (document.getElementById('edit_perinatal_sub')?.value || 'Nacido muerto')
+        : mainEstado;
+
     const estSaludEdit = estado === 'Vivo' ? (document.getElementById('edit_estado_salud')?.value || 'Sano, sin problemas aparentes') : null;
     const detSaludEdit = (estado === 'Vivo' && estSaludEdit !== 'Sano, sin problemas aparentes') ? (document.getElementById('edit_detalle_salud')?.value.trim() || '') : null;
     if (detSaludEdit) saveCustomSaludTerm(detSaludEdit);
 
-    const causaCat = estado !== 'Vivo' ? (document.getElementById('edit_causa_categoria')?.value || '') : '';
-    const causaEsp = estado !== 'Vivo' && causaCat 
+    const causaCat = (!isPerinatal && estado !== 'Vivo') ? (document.getElementById('edit_causa_categoria')?.value || '') : '';
+    const causaEsp = (!isPerinatal && estado !== 'Vivo' && causaCat) 
         ? (causaCat === 'Otra Causa' 
             ? (document.getElementById('edit_causa_especifica_custom')?.value || '').trim() 
             : (document.getElementById('edit_causa_especifica')?.value || ''))
@@ -1393,8 +1576,11 @@ function getFilteredRecords() {
         if (dateTo && r.fecha > dateTo) matchDate = false;
         
         let matchEstado = true;
+        const isPerinatal = ['Aborto', 'Nacido muerto', 'Muerto al periparto'].includes(r.estado);
         if (estadoFilter === 'Vivo' && r.estado !== 'Vivo') matchEstado = false;
-        if (estadoFilter === 'Muerto' && r.estado === 'Vivo') matchEstado = false;
+        if (estadoFilter === 'Muerto' && (r.estado === 'Vivo' || isPerinatal)) matchEstado = false;
+        if (estadoFilter === 'Perinatal' && !isPerinatal) matchEstado = false;
+        if (['Aborto', 'Nacido muerto', 'Muerto al periparto'].includes(estadoFilter) && r.estado !== estadoFilter) matchEstado = false;
         
         let matchMadre = true;
         if (madreFilter && r.tipo_madre !== madreFilter) matchMadre = false;
@@ -1618,8 +1804,8 @@ function renderTable() {
             <td>
                 <div style="font-weight:700;color:var(--primary);">${r.ig_ternero ?? '-'}%</div>
                 <span style="display:inline-block;margin-top:3px;padding:2px 8px;border-radius:99px;font-size:0.68rem;font-weight:700;
-                    background:${vivo?'rgba(16,185,129,0.12)':'rgba(220,38,38,0.1)'};
-                    color:${vivo?'var(--secondary)':'#dc2626'};">${r.estado}</span>
+                    background:${vivo ? 'rgba(16,185,129,0.12)' : 'rgba(220,38,38,0.1)'};
+                    color:${vivo ? 'var(--secondary)' : '#dc2626'};">${r.estado}</span>
                 ${saludBadge}
             </td>
         `;
