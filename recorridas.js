@@ -813,18 +813,18 @@ function actualizarBotonesPendientes() {
     }
 
     if (selCount === 0) {
-        if (txtWa) txtWa.textContent = 'Enviar Pendientes por WhatsApp (0 selecc.)';
-        if (txtPdf) txtPdf.textContent = 'Descargar Pendientes en PDF (0 selecc.)';
+        if (txtWa) txtWa.textContent = 'Enviar Pendientes por WhatsApp';
+        if (txtPdf) txtPdf.textContent = 'Descargar Pendientes en PDF';
         if (btnWa) {
-            btnWa.style.opacity = '0.55';
-            btnWa.style.filter = 'grayscale(0.3)';
+            btnWa.style.opacity = '1';
+            btnWa.style.filter = 'none';
         }
         if (btnPdf) {
-            btnPdf.style.opacity = '0.55';
-            btnPdf.style.filter = 'grayscale(0.3)';
+            btnPdf.style.opacity = '1';
+            btnPdf.style.filter = 'none';
         }
     } else {
-        const plural = selCount === 1 ? '1 fecha' : `${selCount} fechas`;
+        const plural = selCount === 1 ? '1 fecha seleccionada' : `${selCount} fechas seleccionadas`;
         if (txtWa) txtWa.textContent = `Enviar Pendientes por WhatsApp (${plural})`;
         if (txtPdf) txtPdf.textContent = `Descargar Pendientes en PDF (${plural})`;
         if (btnWa) {
@@ -2159,14 +2159,132 @@ window.exportarRecorridaPDF = function () {
     doc.save(fileName);
 };
 
+// ─── Modal Premium: Aviso de Selección Requerida ─────────────
+window.mostrarModalSeleccionarPendientes = function (accion) {
+    let overlay = document.getElementById('rec-aviso-seleccion-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'rec-aviso-seleccion-overlay';
+        overlay.className = 'rec-modal-overlay';
+        document.body.appendChild(overlay);
+    }
+
+    const esWA = accion === 'whatsapp';
+    const accionTitulo = esWA ? 'Compartir por WhatsApp' : 'Descargar en PDF';
+    const accionBtn = esWA ? 'Seleccionar todas y enviar' : 'Seleccionar todas y descargar';
+
+    overlay.innerHTML = `
+        <div class="rec-modal-card is-aviso-seleccion" role="dialog" aria-modal="true" aria-labelledby="rec-aviso-title">
+            <button type="button" class="rec-modal-close" style="position:absolute;top:1rem;right:1rem;" onclick="cerrarModalSeleccionarPendientes(false)" aria-label="Cerrar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+
+            <div class="rec-modal-icon is-warning">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                    <path d="m9 16 2 2 4-4"></path>
+                </svg>
+            </div>
+            
+            <h3 class="rec-modal-title" id="rec-aviso-title" style="font-size:1.25rem;">
+                Seleccioná las fechas a incluir
+            </h3>
+            
+            <p class="rec-modal-subtitle" style="margin-top:0.5rem;font-size:0.9rem;line-height:1.5;">
+                Para <strong>${accionTitulo}</strong>, debés marcar con la casilla de verificación (checkbox) al menos un día u observación que desees procesar.
+            </p>
+
+            <div class="rec-modal-preview-box" style="margin:1.1rem 0;display:flex;align-items:center;gap:10px;background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.25);">
+                <span style="font-size:1.3rem;">💡</span>
+                <span style="font-size:0.82rem;color:var(--text-main);line-height:1.4;">
+                    Podés tildar los días que quieras en la lista o tocar el botón de abajo para incluir todas automáticamente.
+                </span>
+            </div>
+
+            <div class="rec-modal-actions" style="flex-direction:column;gap:0.6rem;margin-top:1.25rem;">
+                <button type="button" class="rec-modal-btn warning-confirm" style="width:100%;justify-content:center;padding:0.75rem 1rem;font-size:0.92rem;" onclick="ejecutarSeleccionarTodasYAccion('${accion}')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>${accionBtn}</span>
+                </button>
+                <button type="button" class="rec-modal-btn cancel" style="width:100%;justify-content:center;padding:0.65rem 1rem;" onclick="cerrarModalSeleccionarPendientes(true)">
+                    Elegir manualmente en la lista
+                </button>
+            </div>
+        </div>
+    `;
+
+    overlay.style.display = 'flex';
+
+    overlay._keyListener = (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            cerrarModalSeleccionarPendientes(false);
+        }
+    };
+    document.addEventListener('keydown', overlay._keyListener);
+
+    overlay.onclick = (e) => {
+        if (e.target === overlay) cerrarModalSeleccionarPendientes(false);
+    };
+};
+
+window.cerrarModalSeleccionarPendientes = function (enfocarLista = false) {
+    const overlay = document.getElementById('rec-aviso-seleccion-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        if (overlay._keyListener) {
+            document.removeEventListener('keydown', overlay._keyListener);
+        }
+    }
+    if (enfocarLista) {
+        const lista = document.getElementById('rec-pendientes-list');
+        if (lista) {
+            lista.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            lista.classList.add('rec-pulse-highlight');
+            setTimeout(() => lista.classList.remove('rec-pulse-highlight'), 1600);
+        }
+    }
+};
+
+window.ejecutarSeleccionarTodasYAccion = function (accion) {
+    const todasLasFechas = [...new Set((RecorridasState.pendientesAnteriores || []).map(p => p.fecha_origen || 'sin-fecha'))];
+    RecorridasState.fechasPendientesSeleccionadas = [...todasLasFechas];
+
+    document.querySelectorAll('.rec-pending-date-checkbox').forEach(chk => {
+        const f = chk.getAttribute('data-fecha');
+        const checked = RecorridasState.fechasPendientesSeleccionadas.includes(f);
+        chk.checked = checked;
+        const grp = document.getElementById(`group-pending-${f}`);
+        if (grp) grp.classList.toggle('is-selected', checked);
+    });
+
+    actualizarBotonesPendientes();
+    cerrarModalSeleccionarPendientes(false);
+
+    if (accion === 'whatsapp') {
+        window.compartirPendientesWhatsApp();
+    } else if (accion === 'pdf') {
+        window.exportarPendientesPDF();
+    }
+};
+
 // ─── Enviar Pendientes Seleccionados por WhatsApp ────────────
 window.compartirPendientesWhatsApp = function () {
-    // Si no hay fechas seleccionadas, seleccionamos TODAS automáticamente
-    if (!RecorridasState.fechasPendientesSeleccionadas || RecorridasState.fechasPendientesSeleccionadas.length === 0) {
-        const todasLasFechas = [...new Set((RecorridasState.pendientesAnteriores || []).map(p => p.fecha_origen || 'sin-fecha'))];
-        RecorridasState.fechasPendientesSeleccionadas = todasLasFechas;
+    const fechasSel = RecorridasState.fechasPendientesSeleccionadas || [];
+
+    // Solo mandar si el usuario seleccionó al menos un día
+    if (fechasSel.length === 0) {
+        mostrarModalSeleccionarPendientes('whatsapp');
+        return;
     }
-    const fechasSel = RecorridasState.fechasPendientesSeleccionadas;
 
     const { productor, establecimiento, fecha } = RecorridasState;
     const profesional = getNombreProfesional();
@@ -2174,7 +2292,7 @@ window.compartirPendientesWhatsApp = function () {
     const pendientes = (RecorridasState.pendientesAnteriores || []).filter(p => fechasSel.includes(p.fecha_origen || 'sin-fecha'));
 
     if (pendientes.length === 0) {
-        alert('No hay observaciones pendientes en las fechas seleccionadas.');
+        mostrarModalSeleccionarPendientes('whatsapp');
         return;
     }
 
@@ -2246,12 +2364,13 @@ window.exportarPendientesPDF = function () {
         return;
     }
 
-    // Si no hay fechas seleccionadas, seleccionamos TODAS automáticamente
-    if (!RecorridasState.fechasPendientesSeleccionadas || RecorridasState.fechasPendientesSeleccionadas.length === 0) {
-        const todasLasFechas = [...new Set((RecorridasState.pendientesAnteriores || []).map(p => p.fecha_origen || 'sin-fecha'))];
-        RecorridasState.fechasPendientesSeleccionadas = todasLasFechas;
+    const fechasSel = RecorridasState.fechasPendientesSeleccionadas || [];
+
+    // Solo descargar si el usuario seleccionó al menos un día
+    if (fechasSel.length === 0) {
+        mostrarModalSeleccionarPendientes('pdf');
+        return;
     }
-    const fechasSel = RecorridasState.fechasPendientesSeleccionadas;
 
     const { productor, establecimiento, fecha } = RecorridasState;
     const profesional = getNombreProfesional();
@@ -2259,7 +2378,7 @@ window.exportarPendientesPDF = function () {
     const pendientes = (RecorridasState.pendientesAnteriores || []).filter(p => fechasSel.includes(p.fecha_origen || 'sin-fecha'));
 
     if (pendientes.length === 0) {
-        alert('No hay observaciones pendientes para exportar.');
+        mostrarModalSeleccionarPendientes('pdf');
         return;
     }
 

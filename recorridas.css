@@ -1327,6 +1327,49 @@ html.dark .rec-modal-preview-box {
     background: linear-gradient(135deg, #dc2626, #b91c1c);
 }
 
+/* ── Modal de Aviso de Selección Requerida ── */
+.rec-modal-card.is-aviso-seleccion {
+    position: relative;
+    max-width: 440px;
+    text-align: center;
+    padding: 2.2rem 1.75rem 1.6rem;
+}
+
+.rec-modal-icon.is-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    box-shadow: 0 6px 18px rgba(245, 158, 11, 0.38);
+    margin: 0 auto 1.1rem;
+    width: 52px;
+    height: 52px;
+    color: #ffffff;
+}
+
+.rec-modal-btn.warning-confirm {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.32);
+}
+
+.rec-modal-btn.warning-confirm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+    background: linear-gradient(135deg, #d97706, #b45309);
+}
+
+.rec-pulse-highlight {
+    animation: pulseBorderHighlight 1.5s ease-in-out;
+}
+
+@keyframes pulseBorderHighlight {
+    0%, 100% {
+        box-shadow: none;
+    }
+    50% {
+        box-shadow: 0 0 0 3px #f59e0b, 0 0 22px rgba(245, 158, 11, 0.4);
+        border-radius: 0.75rem;
+    }
+}
+
 /* ── Barra de Acciones de Constancia (WhatsApp & PDF) ── */
 .rec-actions-bar {
     display: grid;
