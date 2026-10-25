@@ -181,6 +181,7 @@ html.dark .rec-pendientes-title {
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
+    transition: all 0.2s ease;
 }
 
 .rec-pending-date-header {
@@ -188,11 +189,12 @@ html.dark .rec-pendientes-title {
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    padding: 0.4rem 0.75rem;
+    padding: 0.45rem 0.75rem;
     background: rgba(180, 83, 9, 0.07);
-    border: 1px solid rgba(180, 83, 9, 0.18);
-    border-radius: 0.6rem;
+    border: 1.5px solid rgba(180, 83, 9, 0.18);
+    border-radius: 0.65rem;
     flex-wrap: wrap;
+    transition: all 0.2s ease;
 }
 
 html.dark .rec-pending-date-header {
@@ -200,11 +202,24 @@ html.dark .rec-pending-date-header {
     border-color: rgba(217, 119, 6, 0.25);
 }
 
+.rec-pending-date-group.is-selected .rec-pending-date-header {
+    background: rgba(180, 83, 9, 0.13);
+    border-color: rgba(180, 83, 9, 0.45);
+    box-shadow: 0 1px 6px rgba(180, 83, 9, 0.12);
+}
+
+html.dark .rec-pending-date-group.is-selected .rec-pending-date-header {
+    background: rgba(245, 158, 11, 0.22);
+    border-color: rgba(245, 158, 11, 0.5);
+    box-shadow: 0 1px 6px rgba(245, 158, 11, 0.2);
+}
+
 .rec-pending-date-label {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     font-weight: 800;
     color: #92400e;
     letter-spacing: -0.01em;
+    user-select: none;
 }
 
 html.dark .rec-pending-date-label {
@@ -220,6 +235,53 @@ html.dark .rec-pending-date-label {
 
 html.dark .rec-pending-date-age {
     color: #fbbf24;
+}
+
+.rec-btn-wa-single-date {
+    background: #25d366;
+    color: #ffffff;
+    border: none;
+    border-radius: 0.45rem;
+    padding: 0.22rem 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.18s ease;
+    box-shadow: 0 2px 6px rgba(37, 211, 102, 0.22);
+}
+
+.rec-btn-wa-single-date:hover {
+    background: #1eb956;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(37, 211, 102, 0.32);
+}
+
+.rec-btn-toggle-all-pendientes {
+    background: transparent;
+    border: 1px solid rgba(180, 83, 9, 0.35);
+    color: #92400e;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.rec-btn-toggle-all-pendientes:hover {
+    background: rgba(180, 83, 9, 0.1);
+}
+
+html.dark .rec-btn-toggle-all-pendientes {
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fcd34d;
+}
+
+html.dark .rec-btn-toggle-all-pendientes:hover {
+    background: rgba(245, 158, 11, 0.15);
 }
 
 .rec-pending-date-items {

@@ -16,6 +16,7 @@ const RecorridasState = {
     categoriaSeleccionada: 'higiene',
     hallazgosHoy: [],        // Lista de hallazgos anotados en la visita activa
     pendientesAnteriores: [], // Pendientes arrastrados de visitas pasadas
+    fechasPendientesSeleccionadas: [], // Fechas seleccionadas para exportar pendientes
     tareasResueltasHoy: [],  // Pendientes marcados como resueltos hoy
     recorridasHistorial: [],  // Historial de visitas para este establecimiento
     profesional: '',
@@ -375,6 +376,7 @@ window.onRecorridaProductorChange = function () {
                 // Limpiar estado al cambiar de productor
                 RecorridasState.hallazgosHoy = [];
                 RecorridasState.pendientesAnteriores = [];
+                RecorridasState.fechasPendientesSeleccionadas = [];
                 RecorridasState.tareasResueltasHoy = [];
                 RecorridasState.recorridasHistorial = [];
                 RecorridasState.establecimiento = '';
@@ -392,6 +394,7 @@ window.onRecorridaProductorChange = function () {
     // Evita que observaciones del productor anterior se mezclen
     RecorridasState.hallazgosHoy = [];
     RecorridasState.pendientesAnteriores = [];
+    RecorridasState.fechasPendientesSeleccionadas = [];
     RecorridasState.tareasResueltasHoy = [];
     RecorridasState.recorridasHistorial = [];
     RecorridasState.establecimiento = '';
@@ -509,6 +512,7 @@ window.onRecorridaContextChange = async function () {
 
     if (!RecorridasState.productor && !RecorridasState.establecimiento) {
         RecorridasState.pendientesAnteriores = [];
+        RecorridasState.fechasPendientesSeleccionadas = [];
         RecorridasState.hallazgosHoy = [];
         RecorridasState.recorridasHistorial = [];
         RecorridasState.recorridaId = null;
@@ -671,10 +675,17 @@ function renderPendientesAnteriores() {
     });
     const fechasOrdenadas = Object.keys(grupos).sort((a, b) => a.localeCompare(b));
 
+    // Mantener sincronizada la lista de fechas seleccionadas válidas
+    if (!Array.isArray(RecorridasState.fechasPendientesSeleccionadas)) {
+        RecorridasState.fechasPendientesSeleccionadas = [];
+    }
+    RecorridasState.fechasPendientesSeleccionadas = RecorridasState.fechasPendientesSeleccionadas.filter(f => fechasOrdenadas.includes(f));
+
     list.innerHTML = fechasOrdenadas.map(fecha => {
         const items = grupos[fecha];
         const diasAbierto = items[0].dias_abierto ?? 0;
         const diasTxt = diasAbierto === 0 ? 'hoy mismo' : `hace ${diasAbierto} día${diasAbierto > 1 ? 's' : ''}`;
+        const isSelected = RecorridasState.fechasPendientesSeleccionadas.includes(fecha);
 
         const itemsHtml = items.map(item => {
             const catObj = CATEGORIAS_RECORRIDA.find(c => c.id === item.categoria) || { emoji: '📌', label: item.categoria };
@@ -710,17 +721,121 @@ function renderPendientesAnteriores() {
         }).join('');
 
         return `
-            <div class="rec-pending-date-group">
+            <div class="rec-pending-date-group ${isSelected ? 'is-selected' : ''}" id="group-pending-${fecha}">
                 <div class="rec-pending-date-header">
-                    <span class="rec-pending-date-label">📅 ${formatearFechaLocal(fecha)}</span>
-                    <span class="rec-pending-date-age">${diasTxt} &nbsp;·&nbsp; ${items.length} observación${items.length > 1 ? 'es' : ''}</span>
+                    <label class="rec-pending-date-check-wrap" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                        <input type="checkbox" 
+                               class="rec-pending-date-checkbox" 
+                               data-fecha="${fecha}" 
+                               ${isSelected ? 'checked' : ''} 
+                               onchange="toggleFechaPendiente('${fecha}', this.checked)"
+                               style="width:17px;height:17px;cursor:pointer;accent-color:#b45309;">
+                        <span class="rec-pending-date-label">📅 Visita del ${formatearFechaLocal(fecha)}</span>
+                    </label>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span class="rec-pending-date-age">${diasTxt} &nbsp;·&nbsp; ${items.length} observación${items.length > 1 ? 'es' : ''}</span>
+                        <button type="button" class="rec-btn-wa-single-date" onclick="compartirPendientesFechaWhatsApp('${fecha}')" title="Enviar solo las observaciones de este día por WhatsApp">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+                                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.634.076-1.922-.459-1.579-.655-2.61-2.261-2.688-2.366-.078-.105-.639-.851-.639-1.624 0-.773.405-1.156.551-1.314.146-.157.322-.196.43-.196.107 0 .215.002.308.006.098.005.23-.037.36.275.132.317.451 1.1.49 1.18.039.079.066.171.013.276-.052.105-.078.17-.156.262-.078.092-.164.205-.234.275-.078.079-.16.165-.069.321.091.156.406.669.871 1.082.599.532 1.103.697 1.26.776.157.078.248.066.34-.039.091-.105.391-.457.496-.613.104-.157.209-.131.352-.078.144.052.912.43 1.069.508.157.079.261.118.299.184.039.065.039.38-.105.785z"/>
+                            </svg>
+                            <span>WhatsApp</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="rec-pending-date-items">${itemsHtml}</div>
             </div>
         `;
     }).join('');
 
+    actualizarBotonesPendientes();
     if (window.lucide) window.lucide.createIcons();
+}
+
+// ─── Control de Selección de Fechas en Pendientes ─────────────
+window.toggleFechaPendiente = function (fecha, isChecked) {
+    if (!Array.isArray(RecorridasState.fechasPendientesSeleccionadas)) {
+        RecorridasState.fechasPendientesSeleccionadas = [];
+    }
+    if (isChecked) {
+        if (!RecorridasState.fechasPendientesSeleccionadas.includes(fecha)) {
+            RecorridasState.fechasPendientesSeleccionadas.push(fecha);
+        }
+    } else {
+        RecorridasState.fechasPendientesSeleccionadas = RecorridasState.fechasPendientesSeleccionadas.filter(f => f !== fecha);
+    }
+    const groupEl = document.getElementById(`group-pending-${fecha}`);
+    if (groupEl) {
+        groupEl.classList.toggle('is-selected', isChecked);
+    }
+    actualizarBotonesPendientes();
+};
+
+window.toggleSeleccionarTodosPendientes = function () {
+    const pendientes = RecorridasState.pendientesAnteriores || [];
+    const todasLasFechas = [...new Set(pendientes.map(p => p.fecha_origen || 'sin-fecha'))];
+
+    if (!Array.isArray(RecorridasState.fechasPendientesSeleccionadas)) {
+        RecorridasState.fechasPendientesSeleccionadas = [];
+    }
+
+    const todosEstanSeleccionados = todasLasFechas.length > 0 && todasLasFechas.every(f => RecorridasState.fechasPendientesSeleccionadas.includes(f));
+
+    if (todosEstanSeleccionados) {
+        RecorridasState.fechasPendientesSeleccionadas = [];
+    } else {
+        RecorridasState.fechasPendientesSeleccionadas = [...todasLasFechas];
+    }
+
+    document.querySelectorAll('.rec-pending-date-checkbox').forEach(chk => {
+        const f = chk.getAttribute('data-fecha');
+        const checked = RecorridasState.fechasPendientesSeleccionadas.includes(f);
+        chk.checked = checked;
+        const grp = document.getElementById(`group-pending-${f}`);
+        if (grp) grp.classList.toggle('is-selected', checked);
+    });
+
+    actualizarBotonesPendientes();
+};
+
+function actualizarBotonesPendientes() {
+    const selCount = (RecorridasState.fechasPendientesSeleccionadas || []).length;
+    const btnWa = document.getElementById('rec-btn-wa-pendientes');
+    const btnPdf = document.getElementById('rec-btn-pdf-pendientes');
+    const txtWa = document.getElementById('rec-btn-wa-pendientes-txt');
+    const txtPdf = document.getElementById('rec-btn-pdf-pendientes-txt');
+    const toggleAllTxt = document.getElementById('rec-toggle-all-txt');
+
+    const pendientes = RecorridasState.pendientesAnteriores || [];
+    const totalFechas = new Set(pendientes.map(p => p.fecha_origen || 'sin-fecha')).size;
+
+    if (toggleAllTxt) {
+        toggleAllTxt.textContent = (selCount === totalFechas && totalFechas > 0) ? 'Deseleccionar todas' : 'Seleccionar todas';
+    }
+
+    if (selCount === 0) {
+        if (txtWa) txtWa.textContent = 'Enviar Pendientes por WhatsApp (0 selecc.)';
+        if (txtPdf) txtPdf.textContent = 'Descargar Pendientes en PDF (0 selecc.)';
+        if (btnWa) {
+            btnWa.style.opacity = '0.55';
+            btnWa.style.filter = 'grayscale(0.3)';
+        }
+        if (btnPdf) {
+            btnPdf.style.opacity = '0.55';
+            btnPdf.style.filter = 'grayscale(0.3)';
+        }
+    } else {
+        const plural = selCount === 1 ? '1 fecha' : `${selCount} fechas`;
+        if (txtWa) txtWa.textContent = `Enviar Pendientes por WhatsApp (${plural})`;
+        if (txtPdf) txtPdf.textContent = `Descargar Pendientes en PDF (${plural})`;
+        if (btnWa) {
+            btnWa.style.opacity = '1';
+            btnWa.style.filter = 'none';
+        }
+        if (btnPdf) {
+            btnPdf.style.opacity = '1';
+            btnPdf.style.filter = 'none';
+        }
+    }
 }
 
 // ─── Resolver Pendiente ──────────────────────────────────────
@@ -2041,6 +2156,256 @@ window.exportarRecorridaPDF = function () {
 
     const targetNombre = establecimiento || productor || 'Campo';
     const fileName = `Recorrida_${targetNombre.replace(/\s+/g, '_')}_${fecha}.pdf`;
+    doc.save(fileName);
+};
+
+// ─── Enviar Pendientes Seleccionados por WhatsApp ────────────
+window.compartirPendientesWhatsApp = function () {
+    // Si no hay fechas seleccionadas, seleccionamos TODAS automáticamente
+    if (!RecorridasState.fechasPendientesSeleccionadas || RecorridasState.fechasPendientesSeleccionadas.length === 0) {
+        const todasLasFechas = [...new Set((RecorridasState.pendientesAnteriores || []).map(p => p.fecha_origen || 'sin-fecha'))];
+        RecorridasState.fechasPendientesSeleccionadas = todasLasFechas;
+    }
+    const fechasSel = RecorridasState.fechasPendientesSeleccionadas;
+
+    const { productor, establecimiento, fecha } = RecorridasState;
+    const profesional = getNombreProfesional();
+    // Normalizamos fecha_origen nula a 'sin-fecha' para que el filtro siempre matchee
+    const pendientes = (RecorridasState.pendientesAnteriores || []).filter(p => fechasSel.includes(p.fecha_origen || 'sin-fecha'));
+
+    if (pendientes.length === 0) {
+        alert('No hay observaciones pendientes en las fechas seleccionadas.');
+        return;
+    }
+
+    let msg = `*VETFIELD PRO — SEGUIMIENTO DE PENDIENTES*\n`;
+    if (productor) msg += `👤 *Productor:* ${productor}\n`;
+    if (establecimiento) msg += `📍 *Establecimiento:* ${establecimiento}\n`;
+    if (profesional) msg += `👨‍⚕️ *Profesional:* ${profesional}\n`;
+    msg += `📅 *Fecha de Emisión:* ${formatearFechaLocal(fecha)}\n`;
+    msg += `------------------------------------\n\n`;
+
+    const totalActivas = pendientes.filter(p => p.estado !== 'resuelto').length;
+    msg += `⚠️ *OBSERVACIONES PENDIENTES DE VISITAS ANTERIORES* (${totalActivas} activa${totalActivas === 1 ? '' : 's'}):\n`;
+
+    // Agrupar por fecha
+    const grupos = {};
+    pendientes.forEach(p => {
+        const f = p.fecha_origen || 'sin-fecha';
+        if (!grupos[f]) grupos[f] = [];
+        grupos[f].push(p);
+    });
+
+    const fechasOrdenadas = Object.keys(grupos).sort((a, b) => a.localeCompare(b));
+
+    fechasOrdenadas.forEach(f => {
+        const items = grupos[f];
+        const dias = items[0].dias_abierto > 0 ? ` (hace ${items[0].dias_abierto} día${items[0].dias_abierto > 1 ? 's' : ''})` : '';
+        msg += `\n📅 *Visita del ${formatearFechaLocal(f)}*${dias}:\n`;
+
+        items.forEach(p => {
+            const catObj = CATEGORIAS_RECORRIDA.find(c => c.id === p.categoria) || { label: p.categoria, emoji: '📌' };
+            let prefix = '⏳ ';
+            if (p.estado === 'resuelto') {
+                prefix = '✓ [RESUELTO HOY] ';
+            } else if ((p.visitas_reincidente || 0) > 0) {
+                prefix = `🚨 [REINCIDENTE x${p.visitas_reincidente}] `;
+            }
+            msg += `  ${prefix}[${catObj.label}] ${p.texto}\n`;
+        });
+    });
+
+    msg += `\n_Constancia técnica generada con VETFIELD PRO_\n`;
+
+    const encoded = encodeURIComponent(msg);
+    const waUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+
+    const opened = window.open(waUrl, '_blank');
+    if (!opened) {
+        navigator.clipboard.writeText(msg).then(() => {
+            alert('El informe de pendientes fue copiado al portapapeles. Podés pegarlo directamente en WhatsApp.');
+        }).catch(() => {
+            window.location.href = waUrl;
+        });
+    }
+};
+
+// ─── Enviar Solo una Fecha de Pendientes por WhatsApp ─────────
+window.compartirPendientesFechaWhatsApp = function (fecha) {
+    const anteriores = [...(RecorridasState.fechasPendientesSeleccionadas || [])];
+    RecorridasState.fechasPendientesSeleccionadas = [fecha];
+    window.compartirPendientesWhatsApp(); // window. explícito para funcionar desde onclick dinámico
+    RecorridasState.fechasPendientesSeleccionadas = anteriores;
+    actualizarBotonesPendientes();
+};
+
+// ─── Exportar Pendientes Seleccionados en PDF ─────────────────
+window.exportarPendientesPDF = function () {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('Cargando librería de PDF... Aguardá un segundo y volvé a presionar.');
+        return;
+    }
+
+    // Si no hay fechas seleccionadas, seleccionamos TODAS automáticamente
+    if (!RecorridasState.fechasPendientesSeleccionadas || RecorridasState.fechasPendientesSeleccionadas.length === 0) {
+        const todasLasFechas = [...new Set((RecorridasState.pendientesAnteriores || []).map(p => p.fecha_origen || 'sin-fecha'))];
+        RecorridasState.fechasPendientesSeleccionadas = todasLasFechas;
+    }
+    const fechasSel = RecorridasState.fechasPendientesSeleccionadas;
+
+    const { productor, establecimiento, fecha } = RecorridasState;
+    const profesional = getNombreProfesional();
+    // Normalizamos fecha_origen nula a 'sin-fecha' para que el filtro siempre matchee
+    const pendientes = (RecorridasState.pendientesAnteriores || []).filter(p => fechasSel.includes(p.fecha_origen || 'sin-fecha'));
+
+    if (pendientes.length === 0) {
+        alert('No hay observaciones pendientes para exportar.');
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+
+    // ── Header con Branding
+    doc.setFillColor(26, 35, 126);
+    doc.rect(0, 0, 210, 24, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(255, 255, 255);
+    doc.text('VETFIELD PRO — AUDITORÍA Y SEGUIMIENTO DE PENDIENTES', 14, 15);
+
+    // ── Metadatos
+    doc.setFontSize(9.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(33, 37, 41);
+
+    let y = 34;
+    doc.text(`Fecha Emisión: ${formatearFechaLocal(fecha)}`, 14, y);
+    if (productor) {
+        doc.text(`Productor: ${productor}`, 14, y + 6);
+        if (establecimiento) {
+            doc.text(`Establecimiento: ${establecimiento}`, 14, y + 12);
+        }
+    } else if (establecimiento) {
+        doc.text(`Establecimiento: ${establecimiento}`, 14, y + 6);
+    }
+    doc.text(`Profesional: ${profesional}`, 120, y);
+    doc.text(`Tipo de Documento: Constancia de Pendientes Acumulados`, 120, y + 6);
+
+    y += 20;
+
+    // ── Tabla de Pendientes Seleccionados
+    const tableData = [];
+
+    // Agrupar por fecha
+    const grupos = {};
+    pendientes.forEach(p => {
+        const f = p.fecha_origen || 'sin-fecha';
+        if (!grupos[f]) grupos[f] = [];
+        grupos[f].push(p);
+    });
+
+    const fechasOrdenadas = Object.keys(grupos).sort((a, b) => a.localeCompare(b));
+
+    fechasOrdenadas.forEach(f => {
+        const items = grupos[f];
+        items.forEach(p => {
+            const catObj = CATEGORIAS_RECORRIDA.find(c => c.id === p.categoria);
+            const catLabel = catObj ? catObj.label.toUpperCase() : (p.categoria || 'GENERAL').toUpperCase();
+
+            let estadoLabel = 'PENDIENTE';
+            let prioridad = 'ALTA';
+            if (p.estado === 'resuelto') {
+                estadoLabel = 'RESUELTO HOY';
+                prioridad = 'NORMAL';
+            } else if ((p.visitas_reincidente || 0) > 0) {
+                estadoLabel = `REINCIDENTE (${p.visitas_reincidente})`;
+                prioridad = 'CRÍTICA';
+            } else {
+                const d = p.dias_abierto || 0;
+                estadoLabel = d > 0 ? `ABIERTO (${d}d)` : 'PENDIENTE';
+            }
+
+            tableData.push([
+                formatearFechaLocal(f),
+                catLabel,
+                limpiarParaPDF(p.texto),
+                estadoLabel,
+                prioridad
+            ]);
+        });
+    });
+
+    if (doc.autoTable) {
+        doc.autoTable({
+            startY: y,
+            head: [['Fecha Origen', 'Categoría', 'Descripción del Hallazgo / Pendiente', 'Estado', 'Prioridad']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: {
+                fillColor: [180, 83, 9],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 9
+            },
+            styles: {
+                fontSize: 8.5,
+                cellPadding: 3.5,
+                overflow: 'linebreak'
+            },
+            columnStyles: {
+                0: { cellWidth: 26, fontStyle: 'bold' },
+                1: { cellWidth: 28 },
+                2: { cellWidth: 85 },
+                3: { cellWidth: 28, fontStyle: 'bold' },
+                4: { cellWidth: 22 }
+            },
+            didParseCell: function (data) {
+                if (data.section === 'body') {
+                    const est = String(data.row.raw[3] || '');
+                    if (est.includes('REINCIDENTE')) {
+                        data.cell.styles.textColor = [220, 38, 38];
+                    } else if (est.includes('RESUELTO')) {
+                        data.cell.styles.textColor = [22, 163, 74];
+                    } else if (est.includes('PENDIENTE') || est.includes('ABIERTO')) {
+                        data.cell.styles.textColor = [217, 119, 6];
+                    }
+                }
+            }
+        });
+
+        y = doc.lastAutoTable.finalY + 25;
+    } else {
+        y += 40;
+    }
+
+    // ── Firmas y Constancia Legal
+    if (y > 250) {
+        doc.addPage();
+        y = 40;
+    }
+
+    doc.setDrawColor(180, 180, 180);
+    doc.line(25, y + 15, 85, y + 15);
+    doc.line(125, y + 15, 185, y + 15);
+
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Firma Profesional Veterinario', 35, y + 20);
+    doc.text('Recepción / Encargado de Guachera', 130, y + 20);
+
+    if (profesional && profesional !== 'Veterinario Actuante') {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(33, 37, 41);
+        doc.text(profesional, 55, y + 24, { align: 'center' });
+    }
+
+    doc.text('Constancia de seguimiento de pendientes de recorridas anteriores. Documento generado por VETFIELD PRO.', 14, 285);
+
+    const targetNombre = establecimiento || productor || 'Campo';
+    const fileName = `Pendientes_${targetNombre.replace(/\s+/g, '_')}_${fecha}.pdf`;
     doc.save(fileName);
 };
 

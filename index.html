@@ -2258,13 +2258,32 @@
                             <i data-lucide="alert-triangle" style="width:18px;height:18px;"></i>
                             <span>Tareas y Problemas Pendientes de Visitas Anteriores</span>
                         </div>
-                        <span id="rec-pendientes-count" class="rec-badge-count">0 pendientes</span>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <button type="button" class="rec-btn-toggle-all-pendientes" onclick="toggleSeleccionarTodosPendientes()" title="Seleccionar o deseleccionar todas las fechas">
+                                <span id="rec-toggle-all-txt">Seleccionar todas</span>
+                            </button>
+                            <span id="rec-pendientes-count" class="rec-badge-count">0 pendientes</span>
+                        </div>
                     </div>
                     <p style="font-size:0.80rem;color:#92400e;margin-bottom:0.75rem;line-height:1.4;">
-                        Estos puntos fueron advertidos en recorridas pasadas y aún no tenían resolución constatada. Podés marcarlos como resueltos o reiterar que siguen pendientes.
+                        Estos puntos fueron advertidos en recorridas pasadas y aún no tenían resolución constatada. Marcá las casillas por fecha para enviar constancia por WhatsApp o descargar en PDF.
                     </p>
                     <div id="rec-pendientes-list" class="rec-pendientes-list">
                         <!-- Se renderiza vía recorridas.js -->
+                    </div>
+
+                    <!-- Botones de Acción para Pendientes Seleccionados -->
+                    <div id="rec-pendientes-actions-bar" class="rec-actions-bar" style="margin-top:1rem;">
+                        <button type="button" class="rec-btn-whatsapp" id="rec-btn-wa-pendientes" onclick="compartirPendientesWhatsApp()" title="Enviar pendientes seleccionados por WhatsApp al productor">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.634.076-1.922-.459-1.579-.655-2.61-2.261-2.688-2.366-.078-.105-.639-.851-.639-1.624 0-.773.405-1.156.551-1.314.146-.157.322-.196.43-.196.107 0 .215.002.308.006.098.005.23-.037.36.275.132.317.451 1.1.49 1.18.039.079.066.171.013.276-.052.105-.078.17-.156.262-.078.092-.164.205-.234.275-.078.079-.16.165-.069.321.091.156.406.669.871 1.082.599.532 1.103.697 1.26.776.157.078.248.066.34-.039.091-.105.391-.457.496-.613.104-.157.209-.131.352-.078.144.052.912.43 1.069.508.157.079.261.118.299.184.039.065.039.38-.105.785z"/>
+                            </svg>
+                            <span id="rec-btn-wa-pendientes-txt">Enviar Pendientes por WhatsApp</span>
+                        </button>
+                        <button type="button" class="rec-btn-pdf" id="rec-btn-pdf-pendientes" onclick="exportarPendientesPDF()" title="Descargar acta de pendientes seleccionados en PDF">
+                            <i data-lucide="download" style="width:18px;height:18px;"></i>
+                            <span id="rec-btn-pdf-pendientes-txt">Descargar Pendientes en PDF</span>
+                        </button>
                     </div>
                 </div>
 
