@@ -82,11 +82,12 @@ CREATE TABLE IF NOT EXISTS `registros` (
   `tipo_madre`      ENUM('Vaca','Vaquillona') NOT NULL DEFAULT 'Vaca',
   `tipo_parto`      ENUM('Normal','Asistido','Muerto al parto') NOT NULL DEFAULT 'Normal',
   `rp_madre`        VARCHAR(50)   DEFAULT NULL,
+  `litros_calostro_madre`  DECIMAL(5,2) DEFAULT NULL               COMMENT 'Cantidad de litros de calostro de la madre',
   `tipo_calostro`   ENUM('De la madre','Banco de calostro','Calostro mejorado') NOT NULL DEFAULT 'De la madre',
   `metodo_calostrado` ENUM('Con mamadera','Con sonda','Mamó solo') NOT NULL DEFAULT 'Con mamadera',
   `ig_calostro`     DECIMAL(5,2)  DEFAULT NULL,
   `estado`          VARCHAR(60)   NOT NULL DEFAULT 'Vivo',
-  `estado_salud`    ENUM('Sano, sin problemas aparentes','Nació con algún problema o malformación','Está enfermo actualmente','Tuvo una enfermedad anteriormente') NOT NULL DEFAULT 'Sano, sin problemas aparentes',
+  `estado_salud`    ENUM('Sano, sin problemas aparentes','Nació con algún problema o malformación','Está enfermo actualmente','Tuvo una enfermedad anteriormente') DEFAULT NULL,
   `detalle_salud`   VARCHAR(255)  DEFAULT NULL,
   `causa`           TEXT          DEFAULT NULL,
   `causa_categoria` VARCHAR(100)  DEFAULT NULL,
@@ -98,6 +99,13 @@ CREATE TABLE IF NOT EXISTS `registros` (
   CONSTRAINT `fk_registros_user`
     FOREIGN KEY (`user_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─── MIGRACIÓN REGISTROS: Si la tabla `registros` ya existe, ejecutar estas líneas ──
+-- ALTER TABLE `registros` MODIFY COLUMN `estado_salud` ENUM('Sano, sin problemas aparentes','Nació con algún problema o malformación','Está enfermo actualmente','Tuvo una enfermedad anteriormente') DEFAULT NULL;
+-- ALTER TABLE `registros` ADD COLUMN IF NOT EXISTS `litros_calostro_madre` DECIMAL(5,2) DEFAULT NULL AFTER `rp_madre`;
+-- ALTER TABLE `registros` ADD COLUMN IF NOT EXISTS `causa_categoria` VARCHAR(100) DEFAULT NULL AFTER `causa`;
+-- ALTER TABLE `registros` ADD COLUMN IF NOT EXISTS `causa_especifica` VARCHAR(100) DEFAULT NULL AFTER `causa_categoria`;
+
 
 -- ─── TABLA: productores ──────────────────────────────────────
 -- Entidad principal. Alimenta los selectores del formulario.

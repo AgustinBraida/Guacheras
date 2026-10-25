@@ -46,6 +46,9 @@ if ($method === 'GET') {
         case 'delete':
             action_delete($uid, $input);
             break;
+        case 'corregir_texto':
+            action_corregir_texto($uid, $input);
+            break;
         default:
             json_response(['ok' => false, 'error' => 'Acción POST desconocida.'], 400);
     }
@@ -62,8 +65,8 @@ function ensure_recorridas_table(): void {
         $db->exec("CREATE TABLE IF NOT EXISTS `recorridas` (
             `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `user_id` VARCHAR(36) NOT NULL,
-            `productor` VARCHAR(100) NOT NULL,
-            `establecimiento` VARCHAR(100) NOT NULL,
+            `productor` VARCHAR(100) NOT NULL DEFAULT '',
+            `establecimiento` VARCHAR(100) NOT NULL DEFAULT '',
             `fecha` DATE NOT NULL,
             `profesional` VARCHAR(100) DEFAULT NULL,
             `hallazgos` LONGTEXT NOT NULL,
@@ -74,6 +77,11 @@ function ensure_recorridas_table(): void {
             KEY `idx_recorridas_user_est` (`user_id`, `establecimiento`, `fecha`),
             KEY `idx_recorridas_user_prod` (`user_id`, `productor`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+
+        try {
+            $db->exec("ALTER TABLE `recorridas` MODIFY COLUMN `establecimiento` VARCHAR(100) NOT NULL DEFAULT ''");
+        } catch (Exception $eEst) {}
+
         $created = true;
     } catch (Exception $e) {
         // Silenciar si falla por permisos, el código cliente tiene fallback en localStorage
@@ -186,6 +194,8 @@ function action_list(string $uid): void {
     if ($establecimiento !== '') {
         $sql .= " AND establecimiento = :est";
         $params[':est'] = $establecimiento;
+    } elseif (isset($_GET['establecimiento'])) {
+        $sql .= " AND (establecimiento = '' OR establecimiento IS NULL)";
     }
 
     $sql .= " ORDER BY fecha DESC, id DESC";
@@ -207,20 +217,27 @@ function action_list(string $uid): void {
     }
 }
 
-// ── PENDIENTES ACTIVOS DE UN ESTABLECIMIENTO ─────────────────
+// ── PENDIENTES ACTIVOS ───────────────────────────────────────
 function action_pendientes(string $uid): void {
     $db = getDB();
     $establecimiento = trim($_GET['establecimiento'] ?? '');
     $productor = trim($_GET['productor'] ?? '');
 
-    if (!$establecimiento) {
-        json_response(['ok' => false, 'error' => 'Establecimiento requerido.'], 400);
+    if (!$establecimiento && !$productor) {
+        json_response(['ok' => false, 'error' => 'Se requiere productor o establecimiento.'], 400);
     }
 
     $sql = "SELECT id, productor, establecimiento, fecha, hallazgos
             FROM recorridas
-            WHERE user_id = :uid AND establecimiento = :est";
-    $params = [':uid' => $uid, ':est' => $establecimiento];
+            WHERE user_id = :uid";
+    $params = [':uid' => $uid];
+
+    if ($establecimiento !== '') {
+        $sql .= " AND establecimiento = :est";
+        $params[':est'] = $establecimiento;
+    } elseif (isset($_GET['establecimiento'])) {
+        $sql .= " AND (establecimiento = '' OR establecimiento IS NULL)";
+    }
 
     if ($productor !== '') {
         $sql .= " AND productor = :prod";
@@ -266,8 +283,12 @@ function action_save(string $uid, array $in): void {
     $resumen_general = trim($in['resumen_general'] ?? '');
     $hallazgos = is_array($in['hallazgos'] ?? null) ? $in['hallazgos'] : [];
 
-    if (!$productor) json_response(['ok' => false, 'error' => 'El productor es obligatorio.']);
-    if (!$establecimiento) json_response(['ok' => false, 'error' => 'El establecimiento es obligatorio.']);
+    if (!$productor && !$establecimiento) {
+        json_response(['ok' => false, 'error' => 'El productor es obligatorio.']);
+    }
+    if (!$productor) {
+        $productor = 'General';
+    }
     if (!$fecha || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
         json_response(['ok' => false, 'error' => 'Fecha inválida.']);
     }
@@ -276,13 +297,23 @@ function action_save(string $uid, array $in): void {
 
     try {
         // Si no viene ID explícito, buscar si ya existe un registro para
-        // este usuario + establecimiento + fecha. Evita duplicados que
+        // este usuario + productor + establecimiento + fecha. Evita duplicados que
         // hacían que los hallazgos borrados volvieran a aparecer.
         if (!$id) {
-            $stmtFind = $db->prepare(
-                "SELECT id FROM recorridas WHERE user_id = :uid AND establecimiento = :est AND fecha = :fecha LIMIT 1"
-            );
-            $stmtFind->execute([':uid' => $uid, ':est' => $establecimiento, ':fecha' => $fecha]);
+            $sqlFind = "SELECT id FROM recorridas 
+                        WHERE user_id = :uid AND productor = :prod AND fecha = :fecha";
+            $paramsFind = [':uid' => $uid, ':prod' => $productor, ':fecha' => $fecha];
+
+            if ($establecimiento !== '') {
+                $sqlFind .= " AND establecimiento = :est";
+                $paramsFind[':est'] = $establecimiento;
+            } else {
+                $sqlFind .= " AND (establecimiento = '' OR establecimiento IS NULL)";
+            }
+            $sqlFind .= " LIMIT 1";
+
+            $stmtFind = $db->prepare($sqlFind);
+            $stmtFind->execute($paramsFind);
             $existing = $stmtFind->fetch(PDO::FETCH_ASSOC);
             if ($existing) {
                 $id = (int)$existing['id'];
@@ -422,3 +453,138 @@ function action_delete(string $uid, array $in): void {
         json_response(['ok' => false, 'error' => 'Error al eliminar recorrida: ' . $e->getMessage()], 500);
     }
 }
+
+// ── CORREGIR ORTOGRAFÍA Y REDACCIÓN VETERINARIA ───────────────
+function action_corregir_texto(string $uid, array $in): void {
+    $texto = trim($in['texto'] ?? '');
+    if ($texto === '') {
+        json_response(['ok' => true, 'corregido' => '', 'original' => '', 'cambio' => false]);
+    }
+
+    // Limitar longitud
+    if (mb_strlen($texto, 'UTF-8') > 3000) {
+        $texto = mb_substr($texto, 0, 3000, 'UTF-8');
+    }
+
+    $corregido = null;
+    $metodo = 'none';
+    $apiKey = defined('OPENAI_API_KEY') ? OPENAI_API_KEY : '';
+
+    // 1. Intento principal: OpenAI con gpt-4o-mini (contexto veterinario)
+    if (!empty($apiKey)) {
+        $payload = [
+            'model' => 'gpt-4o-mini',
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => "Sos un asistente y corrector ortográfico especializado en veterinaria y producción lechera (tambos y guacheras de Argentina y el Cono Sur).\n"
+                        . "Tu tarea es corregir errores de ortografía, tildes/acentos, mayúsculas iniciales, puntuación y concordancia gramatical del texto de campo que te envíe el profesional.\n"
+                        . "REGLAS FUNDAMENTALES:\n"
+                        . "1. Mantené intactos los números, caravanas, RPs, nombres de productos o drogas (ej: ceftiofur, oxitetraciclina, desinfectante, calostro, brix, etc.).\n"
+                        . "2. Respetá la jerga del tambo (ej: guachera, calostrado, diarrea neonatal, onfalitis, piqueras, sarro en baldes, boyero, pezonera, etc.).\n"
+                        . "3. No inventes datos, animales ni cambies el sentido de lo que el usuario quiso decir.\n"
+                        . "4. No agregues introducciones, explicaciones, ni comillas envolventes.\n"
+                        . "5. Respondé ÚNICAMENTE con el texto corregido en español."
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $texto
+                ]
+            ],
+            'temperature' => 0.1,
+            'max_tokens' => 500
+        ];
+
+        $ch = curl_init('https://api.openai.com/v1/chat/completions');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => json_encode($payload),
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Bearer ' . $apiKey,
+                'Content-Type: application/json'
+            ],
+            CURLOPT_TIMEOUT        => 12,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+
+        $rawResponse = curl_exec($ch);
+        $httpCode    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError   = curl_error($ch);
+        curl_close($ch);
+
+        if (!$curlError && $httpCode === 200) {
+            $data = json_decode($rawResponse, true);
+            $aiText = trim($data['choices'][0]['message']['content'] ?? '');
+            if ($aiText !== '') {
+                // Quitar comillas envolventes si el modelo las agregó
+                $aiText = preg_replace('/^["\'«»]+|["\'«»]+$/u', '', $aiText);
+                $corregido = trim($aiText);
+                $metodo = 'openai';
+            }
+        }
+    }
+
+    // 2. Fallback secundario: LanguageTool público
+    if ($corregido === null) {
+        $corregido = corregir_con_languagetool($texto);
+        if ($corregido !== null) {
+            $metodo = 'languagetool';
+        }
+    }
+
+    // 3. Si todo lo externo falla, devolver texto original
+    if ($corregido === null) {
+        $corregido = $texto;
+        $metodo = 'original';
+    }
+
+    json_response([
+        'ok'        => true,
+        'corregido' => $corregido,
+        'original'  => $texto,
+        'cambio'    => ($corregido !== $texto),
+        'metodo'    => $metodo
+    ]);
+}
+
+// ── Fallback gratuito LanguageTool ───────────────────────────
+function corregir_con_languagetool(string $texto): ?string {
+    $ch = curl_init('https://api.languagetool.org/v2/check');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => http_build_query([
+            'text'     => $texto,
+            'language' => 'es'
+        ]),
+        CURLOPT_TIMEOUT        => 6,
+        CURLOPT_SSL_VERIFYPEER => true
+    ]);
+    $res = curl_exec($ch);
+    $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http !== 200 || !$res) return null;
+    $data = json_decode($res, true);
+    if (!isset($data['matches']) || !is_array($data['matches'])) return null;
+
+    $matches = $data['matches'];
+    // Ordenar de mayor a menor offset para no alterar índices al reemplazar
+    usort($matches, fn($a, $b) => ($b['offset'] ?? 0) <=> ($a['offset'] ?? 0));
+
+    $resultado = $texto;
+    foreach ($matches as $m) {
+        $offset = $m['offset'] ?? null;
+        $length = $m['length'] ?? null;
+        $replacements = $m['replacements'] ?? [];
+        if ($offset !== null && $length !== null && !empty($replacements)) {
+            $mejor = $replacements[0]['value'] ?? '';
+            $antes = mb_substr($resultado, 0, $offset, 'UTF-8');
+            $despues = mb_substr($resultado, $offset + $length, null, 'UTF-8');
+            $resultado = $antes . $mejor . $despues;
+        }
+    }
+    return $resultado;
+}
+

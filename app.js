@@ -858,10 +858,17 @@ async function syncData() {
     let synced = 0;
     let limitReachedError = null;
     for (const r of pending) {
-        const res = await apiFetchApp(API_RECORDS, {
+        let res = await apiFetchApp(API_RECORDS, {
             method: 'POST',
             body: JSON.stringify({ action: 'save', ...r }),
         });
+        if (res.conflict) {
+            // Reintentar con force_create para sincronizar los datos pendientes
+            res = await apiFetchApp(API_RECORDS, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'save', force_create: true, ...r }),
+            });
+        }
         if (res.ok) {
             r.synced = true;
             r.id     = res.id || r.id; // actualizar ID con el real de la BD
@@ -970,6 +977,7 @@ function bindEntryForm() {
             tipo_madre:      document.getElementById('f_tipo_madre').value,
             tipo_parto:      (document.getElementById('f_tipo_parto_val')?.value) || 'Normal',
             rp_madre:        document.getElementById('f_rp_madre').value,
+            litros_calostro_madre:  document.getElementById('f_litros_calostro_madre').value,
             tipo_calostro:   (document.getElementById('f_tipo_calostro_val')?.value) || 'De la madre',
             metodo_calostrado: (document.getElementById('f_metodo_calostrado_val')?.value) || 'Con mamadera',
             ig_calostro:     document.getElementById('f_ig_calostro').value,
@@ -1018,10 +1026,12 @@ function bindEntryForm() {
                 } else {
                     showToast('🚫 ' + res.error);
                 }
-            } else {
                 console.warn('[VETFIELD] ⚠️ API falló, guardando offline. Error:', res.error);
                 _saveOffline(newRecord, establecimientoVal, productorVal);
-                showToast('⚠️ Error al guardar en nube. Guardado localmente.');
+                const errorMsg = (res && res.error && res.error !== 'Respuesta inesperada del servidor.') 
+                    ? `⚠️ ${res.error}. Guardado localmente.` 
+                    : '⚠️ Error al guardar en nube. Guardado localmente.';
+                showToast(errorMsg);
                 _pendingNewRecord = null;
             }
 
@@ -1226,9 +1236,13 @@ function openDetail(recordId) {
                         <option value="Muerto al parto" ${r.tipo_parto === 'Muerto al parto' ? 'selected' : ''}>Muerto al parto</option>
                     </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group col-span-2">
                     <label>R.P. Madre</label>
                     <input id="edit_rp_madre" value="${escHtml(r.rp_madre || '')}">
+                </div>
+                <div class="form-group col-span-2">
+                    <label>Litros Calostro Madre</label>
+                    <input id="edit_litros_calostro_madre" type="number" step="0.1" value="${r.litros_calostro_madre ?? ''}">
                 </div>
                 <div class="form-group">
                     <label>Tipo de Calostro</label>
@@ -1246,7 +1260,7 @@ function openDetail(recordId) {
                         <option value="Mamó solo" ${r.metodo_calostrado === 'Mamó solo' ? 'selected' : ''}>Mamó solo</option>
                     </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group col-span-2">
                     <label>I.G. Calostro (${(typeof AuthManager !== 'undefined' && AuthManager.getIgMetodo() === 'brix') ? '% Brix' : 'mg/dL'})</label>
                     <input id="edit_ig_calostro" type="number" step="0.1" value="${r.ig_calostro ?? ''}">
                 </div>
@@ -1427,6 +1441,7 @@ async function saveDetail() {
         establecimiento: document.getElementById('edit_establecimiento').value.trim(),
         rp_ternero:      document.getElementById('edit_rp_ternero').value.trim(),
         rp_madre:        document.getElementById('edit_rp_madre').value.trim(),
+        litros_calostro_madre:  document.getElementById('edit_litros_calostro_madre').value,
         tipo_calostro:   document.getElementById('edit_tipo_calostro')?.value || 'De la madre',
         metodo_calostrado: document.getElementById('edit_metodo_calostrado')?.value || 'Con mamadera',
         ig_calostro:     document.getElementById('edit_ig_calostro').value,
@@ -2073,28 +2088,33 @@ async function generateXlsxReport(res) {
             "Establecimiento": e.establecimiento
         }));
         
-        const sheetRegistros = registros.map(r => ({
-            "ID": r.id,
-            "Fecha": r.fecha || "-",
-            "Productor": r.productor || "-",
-            "Establecimiento": r.establecimiento || "-",
-            "R.P. Ternero": r.rp_ternero || "-",
-            "I.G. Ternero (%)": r.ig_ternero !== null ? Number(r.ig_ternero) : "-",
-            "Sexo": r.sexo || "-",
-            "Estado Ombligo": r.ombligo || "-",
-            "Tipo Madre": r.tipo_madre || "-",
-            "Tipo de Parto": r.tipo_parto || "Normal",
-            "R.P. Madre": r.rp_madre || "-",
-            "Tipo de Calostro": r.tipo_calostro || "De la madre",
-            "Método de Calostrado": r.metodo_calostrado || "Con mamadera",
-            [((typeof AuthManager !== 'undefined' && AuthManager.getIgMetodo() === 'brix') ? "I.G. Calostro (% Brix)" : "I.G. Calostro (mg/dL)")]: r.ig_calostro !== null ? Number(r.ig_calostro) : "-",
-            "Estado": r.estado || "-",
-            "Condición Salud (Vivo)": (r.estado === 'Vivo') ? (r.estado_salud || "Sano, sin problemas aparentes") : "-",
-            "Detalle Enfermedad (Vivo)": (r.estado === 'Vivo') ? (r.detalle_salud || "-") : "-",
-            "Causa Muerte": r.causa || "-",
-            "Categoría Causa": r.causa_categoria || "-",
-            "Especificación Causa": r.causa_especifica || "-"
-        }));
+        const sheetRegistros = registros.map(r => {
+            const isPerinatal = ['Aborto', 'Nacido muerto', 'Muerto al periparto'].includes(r.estado);
+            return {
+                "ID": r.id,
+                "Fecha": r.fecha || "-",
+                "Productor": r.productor || "-",
+                "Establecimiento": r.establecimiento || "-",
+                "R.P. Ternero": r.rp_ternero || "-",
+                "I.G. Ternero (%)": r.ig_ternero !== null ? Number(r.ig_ternero) : "-",
+                "Sexo": r.sexo || "-",
+                "Estado Ombligo": r.ombligo || "-",
+                "Tipo Madre": r.tipo_madre || "-",
+                "Tipo de Parto": r.tipo_parto || "Normal",
+                "R.P. Madre": r.rp_madre || "-",
+                "Litros Calostro Madre": r.litros_calostro_madre !== null && r.litros_calostro_madre !== undefined && r.litros_calostro_madre !== '' ? Number(r.litros_calostro_madre) : "-",
+                "Tipo de Calostro": r.tipo_calostro || "De la madre",
+                "Método de Calostrado": r.metodo_calostrado || "Con mamadera",
+                [((typeof AuthManager !== 'undefined' && AuthManager.getIgMetodo() === 'brix') ? "I.G. Calostro (% Brix)" : "I.G. Calostro (mg/dL)")]: r.ig_calostro !== null ? Number(r.ig_calostro) : "-",
+                "Estado": isPerinatal ? "Pérdidas Gestacionales y Perinatales" : (r.estado || "-"),
+                "Tipo Pérdida Perinatal": isPerinatal ? r.estado : "-",
+                "Condición Salud (Vivo)": (r.estado === 'Vivo') ? (r.estado_salud || "Sano, sin problemas aparentes") : "-",
+                "Detalle Enfermedad (Vivo)": (r.estado === 'Vivo') ? (r.detalle_salud || "-") : "-",
+                "Causa Muerte": r.causa || "-",
+                "Categoría Causa": r.causa_categoria || "-",
+                "Especificación Causa": r.causa_especifica || "-"
+            };
+        });
         
         const wb = XLSX.utils.book_new();
         
@@ -2320,10 +2340,12 @@ function downloadExcelTemplate() {
             "Tipo Madre",
             "Tipo de Parto",
             "R.P. Madre",
+            "Litros Calostro Madre",
             "Tipo de Calostro",
             "Método de Calostrado",
             "I.G. Calostro",
             "Estado",
+            "Tipo Pérdida Perinatal",
             "Condición Salud (Vivo)",
             "Detalle Enfermedad (Vivo)",
             "Causa Categoría",
@@ -2340,10 +2362,12 @@ function downloadExcelTemplate() {
             "Vaca",
             "Normal",
             "8832",
+            "4",
             "De la madre",
             "Con mamadera",
             "22.5",
             "Vivo",
+            "",
             "Sano, sin problemas aparentes",
             "",
             "",
@@ -2360,10 +2384,12 @@ function downloadExcelTemplate() {
             "Vaquillona",
             "Normal",
             "8835",
+            "3.5",
             "De la madre",
             "Con mamadera",
             "18.1",
             "Vivo",
+            "",
             "Está enfermo actualmente",
             "Diarrea neonatal",
             "",
@@ -2380,17 +2406,70 @@ function downloadExcelTemplate() {
             "Vaca",
             "Asistido",
             "8840",
+            "",
             "Banco de calostro",
             "Con sonda",
             "14.5",
             "Muerto en Terapia",
             "",
             "",
+            "",
             "Enfermedades e Infecciones",
             "Neumonía"
         ];
-        
-        const data = [headers, row1, row2, row3];
+        const row4 = [
+            "Estancia Santa Julia",
+            "Lote 4",
+            "2026-06-02",
+            "",
+            "",
+            "",
+            "",
+            "Vaca",
+            "Normal",
+            "8841",
+            "",
+            "",
+            "",
+            "",
+            "Pérdidas Gestacionales y Perinatales",
+            "Aborto",
+            "",
+            "",
+            "",
+            ""
+        ];
+        const row5 = [
+            "Estancia Santa Julia",
+            "Lote 4",
+            "2026-06-03",
+            "",
+            "",
+            "",
+            "",
+            "Vaquillona",
+            "Muerto al parto",
+            "8842",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "Pérdidas Gestacionales y Perinatales",
+            "Nacido muerto",
+            "",
+            "",
+            "",
+            ""
+        ];
+
+        // Nota aclaratoria sobre opciones válidas:
+        // Columna "Estado":
+        //   Vivo | Muerto en Establecimiento | Muerto en Guachería | Muerto en Terapia | Pérdidas Gestacionales y Perinatales
+        // Columna "Tipo Pérdida Perinatal" (sólo si Estado es Pérdidas Gestacionales y Perinatales):
+        //   Aborto | Nacido muerto | Muerto al periparto
+
+        const data = [headers, row1, row2, row3, row4, row5];
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(data);
         XLSX.utils.book_append_sheet(wb, ws, "Plantilla Importación");
@@ -2605,8 +2684,33 @@ function handleImportExcelFile(event) {
                 return "Sano, sin problemas aparentes";
             }
 
-            function sanitizeEstado(val) {
+            function sanitizePerinatal(val) {
                 const str = trimValue(val).toLowerCase();
+                if (!str) return null;
+                if (str.includes("abort")) return "Aborto";
+                if (str.includes("peripart") || str.includes("peri parto") || str.includes("24 hs") || str.includes("24hs")) return "Muerto al periparto";
+                if (str.includes("nacid") || str.includes("parto") || str.includes("obito") || str.includes("óbito") || str.includes("nacer")) return "Nacido muerto";
+                return null;
+            }
+
+            function sanitizeEstado(val, rawPerinatal) {
+                // 1. Si en la columna de tipo perinatal viene un valor especificado
+                if (rawPerinatal) {
+                    const peri = sanitizePerinatal(rawPerinatal);
+                    if (peri) return peri;
+                }
+
+                const str = trimValue(val).toLowerCase();
+
+                // 2. Si en la columna Estado pusieron directamente Aborto, Nacido muerto o Periparto (retrocompatibilidad)
+                const periDirect = sanitizePerinatal(str);
+                if (periDirect) return periDirect;
+
+                // 3. Si pusieron "Pérdidas Gestacionales y Perinatales" o "Perinatal" sin especificar subtipo
+                if (str.includes("perinatal") || str.includes("gestacion") || str.includes("gestación") || str.includes("perdida") || str.includes("pérdida")) {
+                    return "Nacido muerto";
+                }
+
                 const configLug = (typeof window.getLugaresMuerte === 'function' ? window.getLugaresMuerte() : []);
                 for (const lug of configLug) {
                     if (lug && lug.activo && lug.nombre && str.includes(lug.nombre.toLowerCase())) {
@@ -2773,10 +2877,16 @@ function handleImportExcelFile(event) {
                 const tipo_madre = sanitizeTipoMadre(findValue(row, ["tipo madre", "tipo_madre", "madre tipo"]));
                 const tipo_parto = sanitizeTipoParto(findValue(row, ["tipo de parto", "tipo parto", "tipo_parto", "parto"]));
                 const rp_madre = trimValue(findValue(row, ["rp madre", "rp_madre", "rp de la madre", "madre id"])) || "";
+                const litros_calostro_madre  = parseNumeric(findValue(row, ["litros calostro madre", "litros_calostro_madre", "litros madre", "cantidad litros", "litros"]), true);
                 const tipo_calostro = sanitizeTipoCalostro(findValue(row, ["tipo de calostro", "tipo calostro", "tipo_calostro", "calostro tipo", "origen calostro"]));
                 const metodo_calostrado = sanitizeMetodoCalostrado(findValue(row, ["metodo de calostrado", "metodo calostrado", "metodo_calostrado", "calostrado", "via de calostrado", "via calostrado", "forma calostrado", "modo calostrado"]));
                 const ig_calostro = parseNumeric(findIgMadre(row), true);
-                const estado = sanitizeEstado(findValue(row, ["estado", "supervivencia", "status"]));
+                const raw_estado = findValue(row, ["estado", "supervivencia", "status"]);
+                const raw_tipo_perinatal = findValue(row, [
+                    "tipo perdida perinatal", "tipo pérdida perinatal", "tipo de perdida perinatal", "tipo de pérdida perinatal",
+                    "perdida perinatal", "pérdida perinatal", "tipo perdida", "tipo pérdida", "tipo perinatal", "subtipo perinatal", "perinatal"
+                ]);
+                const estado = sanitizeEstado(raw_estado, raw_tipo_perinatal);
                 const raw_estado_salud = findValue(row, ["condicion salud", "condición salud", "estado salud", "estado_salud", "salud", "morbilidad"]);
                 const raw_detalle_salud = trimValue(findValue(row, ["detalle enfermedad", "detalle salud", "detalle_salud", "enfermedad vivo", "problema vivo", "diagnostico vivo", "diagnóstico vivo", "malformacion", "malformación"]));
                 let estado_salud = null;
@@ -2805,6 +2915,7 @@ function handleImportExcelFile(event) {
                     tipo_madre,
                     tipo_parto,
                     rp_madre: rp_madre || null,
+                    litros_calostro_madre: litros_calostro_madre,
                     tipo_calostro,
                     metodo_calostrado,
                     ig_calostro: ig_calostro,

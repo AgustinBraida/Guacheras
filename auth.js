@@ -95,6 +95,9 @@ const AuthManager = {
             if (dashConfig.titles && typeof dashConfig.titles === 'object') {
                 localStorage.setItem('vf_chart_titles', JSON.stringify(dashConfig.titles));
             }
+            if (dashConfig.kpiThresholds && typeof dashConfig.kpiThresholds === 'object') {
+                localStorage.setItem('vetfield_kpi_thresholds', JSON.stringify(dashConfig.kpiThresholds));
+            }
             localStorage.setItem('vetfield_dashboard_config', JSON.stringify(dashConfig));
         }
 
@@ -143,7 +146,7 @@ const AuthManager = {
         ];
     },
 
-    // Devuelve la configuración guardada del dashboard {order, titles}
+    // Devuelve la configuración guardada del dashboard {order, titles, kpiThresholds}
     getDashboardConfig() {
         const sess = this.getSession();
         if (sess && sess.dashboardConfig) return sess.dashboardConfig;
@@ -154,19 +157,25 @@ const AuthManager = {
         return null;
     },
 
-    // Guarda la configuración del dashboard {order, titles} en local y nube
+    // Guarda la configuración del dashboard {order, titles, kpiThresholds} en local y nube
     async saveDashboardConfig(config) {
         if (!config || typeof config !== 'object') return { ok: false };
-        localStorage.setItem('vetfield_dashboard_config', JSON.stringify(config));
-        if (Array.isArray(config.order)) {
-            localStorage.setItem('vf_chart_block_order', JSON.stringify(config.order));
+        const currentConfig = this.getDashboardConfig() || {};
+        const mergedConfig = { ...currentConfig, ...config };
+
+        localStorage.setItem('vetfield_dashboard_config', JSON.stringify(mergedConfig));
+        if (Array.isArray(mergedConfig.order)) {
+            localStorage.setItem('vf_chart_block_order', JSON.stringify(mergedConfig.order));
         }
-        if (config.titles && typeof config.titles === 'object') {
-            localStorage.setItem('vf_chart_titles', JSON.stringify(config.titles));
+        if (mergedConfig.titles && typeof mergedConfig.titles === 'object') {
+            localStorage.setItem('vf_chart_titles', JSON.stringify(mergedConfig.titles));
+        }
+        if (mergedConfig.kpiThresholds && typeof mergedConfig.kpiThresholds === 'object') {
+            localStorage.setItem('vetfield_kpi_thresholds', JSON.stringify(mergedConfig.kpiThresholds));
         }
         const sess = this.getSession();
         if (sess) {
-            sess.dashboardConfig = config;
+            sess.dashboardConfig = mergedConfig;
             localStorage.setItem(SESSION_KEY, JSON.stringify(sess));
         }
 
@@ -176,7 +185,7 @@ const AuthManager = {
             method: 'POST',
             body: JSON.stringify({
                 action: 'save_dashboard_config',
-                dashboard_config: config
+                dashboard_config: mergedConfig
             })
         });
     },
@@ -195,6 +204,7 @@ const AuthManager = {
         localStorage.removeItem(API_TOKEN_KEY);
         localStorage.removeItem('vf_chart_block_order');
         localStorage.removeItem('vf_chart_titles');
+        localStorage.removeItem('vetfield_kpi_thresholds');
         localStorage.removeItem('vetfield_dashboard_config');
     },
 
@@ -388,13 +398,14 @@ const AuthUI = {
                     this._syncProfile(sess);
                     this._syncAvatar(sess);
                     if (sess.dashboardConfig && typeof window.restoreDashboardOrderAndTitles === 'function') {
-                        window.restoreDashboardOrderAndTitles(sess.dashboardConfig.order, sess.dashboardConfig.titles);
+                        window.restoreDashboardOrderAndTitles(sess.dashboardConfig.order, sess.dashboardConfig.titles, sess.dashboardConfig.kpiThresholds);
                     } else if (!sess.dashboardConfig) {
                         try {
                             const localOrder = JSON.parse(localStorage.getItem('vf_chart_block_order') || 'null');
                             const localTitles = JSON.parse(localStorage.getItem('vf_chart_titles') || '{}');
-                            if (localOrder && Array.isArray(localOrder) && localOrder.length > 0) {
-                                AuthManager.saveDashboardConfig({ order: localOrder, titles: localTitles });
+                            const localKpis = JSON.parse(localStorage.getItem('vetfield_kpi_thresholds') || 'null');
+                            if ((localOrder && Array.isArray(localOrder) && localOrder.length > 0) || (localTitles && Object.keys(localTitles).length > 0) || localKpis) {
+                                AuthManager.saveDashboardConfig({ order: localOrder, titles: localTitles, kpiThresholds: localKpis });
                             }
                         } catch(e) {}
                     }
@@ -436,7 +447,7 @@ const AuthUI = {
         this._syncAvatar(sess);
         this._syncProfile(sess);
         if (sess && sess.dashboardConfig && typeof window.restoreDashboardOrderAndTitles === 'function') {
-            window.restoreDashboardOrderAndTitles(sess.dashboardConfig.order, sess.dashboardConfig.titles);
+            window.restoreDashboardOrderAndTitles(sess.dashboardConfig.order, sess.dashboardConfig.titles, sess.dashboardConfig.kpiThresholds);
         }
         // Cargar imágenes desde el servidor y refrescar UI (para otros dispositivos)
         AuthManager.loadProfileImages().then(() => {

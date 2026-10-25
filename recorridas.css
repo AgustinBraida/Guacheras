@@ -1773,3 +1773,199 @@ html.dark .rec-emoji-picker-grid { background: rgba(15,23,42,0.7); border-color:
     transition: background 0.12s, transform 0.1s;
 }
 .rec-emoji-pick:hover { background: rgba(100,116,139,0.15); transform: scale(1.2); }
+
+/* ── Asistente de Corrección Ortográfica y Redacción ─────────── */
+.rec-btn-spell {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.12));
+    color: #6366f1;
+    border: 1.5px solid rgba(99, 102, 241, 0.35);
+    border-radius: 0.75rem;
+    padding: 0.55rem 1.05rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.rec-btn-spell:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(168, 85, 247, 0.22));
+    border-color: #6366f1;
+    color: #4f46e5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+html.dark .rec-btn-spell {
+    background: linear-gradient(135deg, rgba(129, 140, 248, 0.15), rgba(192, 132, 252, 0.15));
+    color: #a5b4fc;
+    border-color: rgba(129, 140, 248, 0.4);
+}
+
+html.dark .rec-btn-spell:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(129, 140, 248, 0.25), rgba(192, 132, 252, 0.25));
+    border-color: #818cf8;
+    color: #c7d2fe;
+    box-shadow: 0 4px 14px rgba(129, 140, 248, 0.25);
+}
+
+.rec-btn-spell:disabled,
+.rec-btn-spell-mini:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* Versión compacta para headers de modales */
+.rec-btn-spell-mini {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+    color: #6366f1;
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    border-radius: 9999px;
+    padding: 3px 9px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+}
+
+.rec-btn-spell-mini:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
+    border-color: #6366f1;
+    color: #4f46e5;
+    transform: translateY(-1px);
+}
+
+html.dark .rec-btn-spell-mini {
+    background: linear-gradient(135deg, rgba(129, 140, 248, 0.15), rgba(192, 132, 252, 0.15));
+    color: #a5b4fc;
+    border-color: rgba(129, 140, 248, 0.35);
+}
+
+html.dark .rec-btn-spell-mini:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(129, 140, 248, 0.25), rgba(192, 132, 252, 0.25));
+    color: #c7d2fe;
+}
+
+/* Spinner de carga para corrección */
+.rec-spell-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: recSpin 0.75s linear infinite;
+    display: inline-block;
+}
+
+@keyframes recSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* Mensajes de feedback tras corregir */
+.rec-spell-feedback {
+    margin-top: 0.45rem;
+    padding: 0.45rem 0.8rem;
+    border-radius: 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    animation: recFadeDown 0.2s ease-out;
+}
+
+@keyframes recFadeDown {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.rec-spell-feedback.rec-spell-success {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #065f46;
+}
+
+html.dark .rec-spell-feedback.rec-spell-success {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #6ee7b7;
+}
+
+.rec-spell-feedback.rec-spell-same {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: #1e40af;
+}
+
+html.dark .rec-spell-feedback.rec-spell-same {
+    background: rgba(59, 130, 246, 0.18);
+    border-color: rgba(59, 130, 246, 0.35);
+    color: #93c5fd;
+}
+
+.rec-spell-feedback.rec-spell-info {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #92400e;
+}
+
+html.dark .rec-spell-feedback.rec-spell-info {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fde68a;
+}
+
+.rec-spell-feedback.rec-spell-error {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #991b1b;
+}
+
+html.dark .rec-spell-feedback.rec-spell-error {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+}
+
+/* Botón deshacer */
+.rec-spell-undo-btn {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: opacity 0.15s ease;
+}
+
+.rec-spell-undo-btn:hover {
+    opacity: 0.8;
+}
+
+/* Efecto de pulso en el textarea cuando se corrige */
+.rec-textarea-pulse {
+    animation: recTextareaGlow 1.2s ease-out;
+}
+
+@keyframes recTextareaGlow {
+    0% {
+        border-color: #10b981;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.35);
+    }
+    100% {
+        border-color: var(--border-color, #e2e8f0);
+        box-shadow: none;
+    }
+}
+

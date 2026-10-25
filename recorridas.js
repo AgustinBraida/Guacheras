@@ -304,7 +304,7 @@ window.initRecorridasView = async function () {
     await loadRecorridasOptions();
     window.updateRecorridasSelects();
 
-    if (RecorridasState.establecimiento) {
+    if (RecorridasState.productor || RecorridasState.establecimiento) {
         onRecorridaContextChange();
     } else {
         renderPendientesAnteriores();
@@ -415,7 +415,7 @@ window.updateRecorridasEstablecimientos = function (productor) {
     if (!productor) {
         const defaultOpt = document.createElement('option');
         defaultOpt.value = '';
-        defaultOpt.textContent = '-- Primero seleccioná productor --';
+        defaultOpt.textContent = '-- Opcional: primero seleccioná productor --';
         estSelect.appendChild(defaultOpt);
         RecorridasState.establecimiento = '';
         window.onRecorridaContextChange();
@@ -426,7 +426,7 @@ window.updateRecorridasEstablecimientos = function (productor) {
 
     const defaultOpt = document.createElement('option');
     defaultOpt.value = '';
-    defaultOpt.textContent = ests.length > 0 ? '-- Seleccioná establecimiento --' : '-- Sin establecimientos para este productor --';
+    defaultOpt.textContent = ests.length > 0 ? '-- Sin establecimiento (opcional) --' : '-- Sin establecimientos para este productor (opcional) --';
     estSelect.appendChild(defaultOpt);
 
     let foundCurrent = false;
@@ -507,7 +507,7 @@ window.onRecorridaContextChange = async function () {
     RecorridasState.establecimiento = estEl ? estEl.value.trim() : '';
     RecorridasState.fecha = fechaEl ? (fechaEl.value || new Date().toISOString().split('T')[0]) : '';
 
-    if (!RecorridasState.establecimiento) {
+    if (!RecorridasState.productor && !RecorridasState.establecimiento) {
         RecorridasState.pendientesAnteriores = [];
         RecorridasState.hallazgosHoy = [];
         RecorridasState.recorridasHistorial = [];
@@ -527,7 +527,7 @@ async function cargarDatosEstablecimiento(productor, establecimiento) {
     // 1. Intentar cargar desde el backend
     let remotasCargadas = false;
     try {
-        const url = `${API_RECORRIDAS}?action=list&establecimiento=${encodeURIComponent(establecimiento)}&productor=${encodeURIComponent(productor)}`;
+        const url = `${API_RECORRIDAS}?action=list&establecimiento=${encodeURIComponent(establecimiento || '')}&productor=${encodeURIComponent(productor || '')}`;
         const res = await apiFetchApp(url, { method: 'GET' });
         if (res && res.ok && Array.isArray(res.recorridas)) {
             RecorridasState.recorridasHistorial = res.recorridas;
@@ -542,10 +542,13 @@ async function cargarDatosEstablecimiento(productor, establecimiento) {
     // 2. Fallback a LocalStorage si falló la API
     if (!remotasCargadas) {
         const todasLocales = getRecorridasLocal();
-        RecorridasState.recorridasHistorial = todasLocales.filter(r => 
-            (!productor || r.productor.toLowerCase() === productor.toLowerCase()) &&
-            r.establecimiento.toLowerCase() === establecimiento.toLowerCase()
-        );
+        RecorridasState.recorridasHistorial = todasLocales.filter(r => {
+            const matchProd = !productor || ((r.productor || '').toLowerCase() === productor.toLowerCase());
+            const matchEst = establecimiento 
+                ? ((r.establecimiento || '').toLowerCase() === establecimiento.toLowerCase())
+                : (!r.establecimiento || r.establecimiento === '');
+            return matchProd && matchEst;
+        });
     }
 
     // 3. Extraer pendientes activos de visitas anteriores (anteriores a hoy)
@@ -818,9 +821,9 @@ window.agregarObservacionHoy = function () {
     const txtArea = document.getElementById('rec_texto_hallazgo');
     const chkUrgente = document.getElementById('rec_chk_urgente');
 
-    if (!RecorridasState.establecimiento) {
-        alert('Por favor seleccioná un Establecimiento antes de registrar una observación.');
-        document.getElementById('rec_establecimiento')?.focus();
+    if (!RecorridasState.productor && !RecorridasState.establecimiento) {
+        alert('Por favor seleccioná al menos un Productor antes de registrar una observación.');
+        document.getElementById('rec_productor')?.focus();
         return;
     }
 
@@ -843,9 +846,11 @@ window.agregarObservacionHoy = function () {
 
     RecorridasState.hallazgosHoy.push(nuevoHallazgo);
 
-    // Limpiar input
+    // Limpiar input y mensaje de corrección
     if (txtArea) txtArea.value = '';
     if (chkUrgente) chkUrgente.checked = false;
+    const fbMain = document.getElementById('rec-spell-feedback-main');
+    if (fbMain) fbMain.style.display = 'none';
     txtArea?.focus();
 
     renderHallazgosHoy();
@@ -1152,7 +1157,8 @@ window.ejecutarEliminarHallazgo = async function (index) {
     const key = getRecorridasKey();
     const listLoc = getRecorridasLocal();
     const idxLoc = listLoc.findIndex(r => 
-        r.establecimiento.toLowerCase() === RecorridasState.establecimiento.toLowerCase() &&
+        (r.productor || '').toLowerCase() === (RecorridasState.productor || '').toLowerCase() &&
+        (r.establecimiento || '').toLowerCase() === (RecorridasState.establecimiento || '').toLowerCase() &&
         r.fecha === fechaHoy
     );
     if (idxLoc >= 0) {
@@ -1258,16 +1264,31 @@ window.abrirEditarHallazgoModal = function (idx) {
                 </div>
 
                 <div class="rec-modal-field">
-                    <label class="rec-modal-label" for="rec-edit-texto">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="16" y1="13" x2="8" y2="13"/>
-                            <line x1="16" y1="17" x2="8" y2="17"/>
-                        </svg>
-                        Detalle de la Observación
-                    </label>
-                    <textarea id="rec-edit-texto" class="rec-modal-textarea" rows="4" placeholder="Escribí el detalle...">${escapeHtml(it.texto)}</textarea>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;gap:8px;">
+                        <label class="rec-modal-label" for="rec-edit-texto" style="margin-bottom:0;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                            </svg>
+                            Detalle de la Observación
+                        </label>
+                        <button type="button" class="rec-btn-spell-mini" id="rec-btn-spell-modal" onclick="corregirOrtografiaRecorrida('rec-edit-texto', 'rec-btn-spell-modal', 'rec-spell-feedback-modal')" title="Corregir ortografía y redacción con IA">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                            </svg>
+                            <span>Corregir Ortografía</span>
+                        </button>
+                    </div>
+                    <textarea id="rec-edit-texto" class="rec-modal-textarea" rows="4" 
+                        spellcheck="true" 
+                        lang="es" 
+                        autocomplete="on" 
+                        autocorrect="on" 
+                        autocapitalize="sentences"
+                        placeholder="Escribí el detalle...">${escapeHtml(it.texto)}</textarea>
+                    <div id="rec-spell-feedback-modal" class="rec-spell-feedback" style="display:none;"></div>
                 </div>
 
                 <div class="rec-modal-toggles">
@@ -1700,13 +1721,13 @@ window.cerrarGestionCategoriasModal = function () {
 
 // ─── Guardado y Persistencia ─────────────────────────────────
 async function autoGuardarRecorrida() {
-    if (!RecorridasState.establecimiento) return;
+    if (!RecorridasState.productor && !RecorridasState.establecimiento) return;
 
     RecorridasState.profesional = getNombreProfesional();
 
     const payload = {
         productor: RecorridasState.productor,
-        establecimiento: RecorridasState.establecimiento,
+        establecimiento: RecorridasState.establecimiento || '',
         fecha: RecorridasState.fecha,
         profesional: RecorridasState.profesional,
         hallazgos: RecorridasState.hallazgosHoy
@@ -1756,8 +1777,8 @@ async function autoGuardarRecorrida() {
 
 // ─── Generación de Constancia: WhatsApp (1 Toque) ─────────────
 window.compartirRecorridaWhatsApp = function () {
-    if (!RecorridasState.establecimiento) {
-        alert('Seleccioná un establecimiento primero.');
+    if (!RecorridasState.productor && !RecorridasState.establecimiento) {
+        alert('Seleccioná un productor o establecimiento primero.');
         return;
     }
 
@@ -1771,8 +1792,8 @@ window.compartirRecorridaWhatsApp = function () {
 
     let msg = `*VETFIELD PRO — CONSTANCIA DE RECORRIDA*\n`;
     msg += `📅 *Fecha:* ${formatearFechaLocal(fecha)}\n`;
-    msg += `📍 *Establecimiento:* ${establecimiento}\n`;
     if (productor) msg += `👤 *Productor:* ${productor}\n`;
+    if (establecimiento) msg += `📍 *Establecimiento:* ${establecimiento}\n`;
     if (profesional) msg += `👨‍⚕️ *Profesional:* ${profesional}\n`;
     msg += `------------------------------------\n\n`;
 
@@ -1864,8 +1885,8 @@ window.exportarRecorridaPDF = function () {
     RecorridasState.profesional = getNombreProfesional();
     const { productor, establecimiento, fecha, profesional, hallazgosHoy, pendientesAnteriores, tareasResueltasHoy } = RecorridasState;
 
-    if (!establecimiento) {
-        alert('Seleccioná un establecimiento.');
+    if (!productor && !establecimiento) {
+        alert('Seleccioná un productor o establecimiento primero.');
         return;
     }
 
@@ -1888,8 +1909,14 @@ window.exportarRecorridaPDF = function () {
 
     let y = 34;
     doc.text(`Fecha: ${formatearFechaLocal(fecha)}`, 14, y);
-    doc.text(`Establecimiento: ${establecimiento}`, 14, y + 6);
-    if (productor) doc.text(`Productor: ${productor}`, 14, y + 12);
+    if (productor) {
+        doc.text(`Productor: ${productor}`, 14, y + 6);
+        if (establecimiento) {
+            doc.text(`Establecimiento: ${establecimiento}`, 14, y + 12);
+        }
+    } else if (establecimiento) {
+        doc.text(`Establecimiento: ${establecimiento}`, 14, y + 6);
+    }
     doc.text(`Profesional: ${profesional}`, 120, y);
     doc.text(`Tipo de Control: Auditoría de Campo y Manejo`, 120, y + 6);
 
@@ -2012,7 +2039,8 @@ window.exportarRecorridaPDF = function () {
 
     doc.text('Constancia de visita y recomendaciones técnicas de manejo. Documento generado por VETFIELD PRO.', 14, 285);
 
-    const fileName = `Recorrida_${establecimiento.replace(/\s+/g, '_')}_${fecha}.pdf`;
+    const targetNombre = establecimiento || productor || 'Campo';
+    const fileName = `Recorrida_${targetNombre.replace(/\s+/g, '_')}_${fecha}.pdf`;
     doc.save(fileName);
 };
 
@@ -2035,7 +2063,7 @@ function renderHistorial() {
     if (historial.length === 0) {
         container.innerHTML = `
             <div style="text-align:center;padding:1.5rem 0;color:var(--text-secondary);font-size:0.82rem;">
-                No hay recorridas anteriores registradas para este establecimiento.
+                No hay recorridas anteriores registradas para esta selección.
             </div>
         `;
         return;
@@ -2147,7 +2175,8 @@ function guardarRecorridasLocal(list) {
 function actualizarRecorridaLocal(payload) {
     const list = getRecorridasLocal();
     const idx = list.findIndex(r => 
-        r.establecimiento.toLowerCase() === payload.establecimiento.toLowerCase() &&
+        (r.productor || '').toLowerCase() === (payload.productor || '').toLowerCase() &&
+        (r.establecimiento || '').toLowerCase() === (payload.establecimiento || '').toLowerCase() &&
         r.fecha === payload.fecha
     );
 
@@ -2195,3 +2224,120 @@ function limpiarParaPDF(txt) {
     if (!txt) return '';
     return txt.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
 }
+
+// ─── Asistente de Corrección Ortográfica y Redacción ─────────
+const _spellUndoHistory = {};
+
+window.corregirOrtografiaRecorrida = async function (textareaId, buttonId, feedbackId) {
+    const txtArea = document.getElementById(textareaId);
+    const btn = document.getElementById(buttonId);
+    const fb = document.getElementById(feedbackId);
+
+    if (!txtArea) return;
+    const originalText = txtArea.value.trim();
+
+    if (!originalText) {
+        if (fb) {
+            fb.style.display = 'flex';
+            fb.className = 'rec-spell-feedback rec-spell-info';
+            fb.innerHTML = '<span>ℹ️ Escribí una observación primero para poder corregirla.</span>';
+            setTimeout(() => { if (fb) fb.style.display = 'none'; }, 3000);
+        } else {
+            alert('Escribí una observación primero para poder corregirla.');
+        }
+        txtArea.focus();
+        return;
+    }
+
+    // Estado cargando en el botón
+    const originalBtnHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.classList.add('loading');
+        btn.innerHTML = `
+            <span class="rec-spell-spinner"></span>
+            <span>Corrigiendo...</span>
+        `;
+    }
+    if (fb) {
+        fb.style.display = 'none';
+    }
+
+    try {
+        const res = await apiFetchApp(API_RECORRIDAS, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'corregir_texto',
+                texto: originalText
+            })
+        });
+
+        if (res && res.ok && typeof res.corregido === 'string') {
+            const corregido = res.corregido;
+
+            if (res.cambio && corregido !== originalText) {
+                // Guardar para deshacer
+                _spellUndoHistory[textareaId] = originalText;
+
+                txtArea.value = corregido;
+                txtArea.classList.add('rec-textarea-pulse');
+                setTimeout(() => txtArea.classList.remove('rec-textarea-pulse'), 1500);
+
+                if (fb) {
+                    fb.style.display = 'flex';
+                    fb.className = 'rec-spell-feedback rec-spell-success';
+                    fb.innerHTML = `
+                        <span>✨ Ortografía y redacción corregidas</span>
+                        <button type="button" class="rec-spell-undo-btn" onclick="deshacerCorreccionOrtografia('${textareaId}', '${feedbackId}')" title="Volver al texto que escribiste originalmente">
+                            ↩ Deshacer
+                        </button>
+                    `;
+                }
+            } else {
+                if (fb) {
+                    fb.style.display = 'flex';
+                    fb.className = 'rec-spell-feedback rec-spell-same';
+                    fb.innerHTML = `<span>✓ ¡Excelente ortografía! No se detectaron errores en el texto.</span>`;
+                    setTimeout(() => { if (fb) fb.style.display = 'none'; }, 4000);
+                }
+            }
+        } else {
+            throw new Error(res?.error || 'No se pudo corregir el texto');
+        }
+    } catch (err) {
+        console.warn('[Recorridas] Error al corregir ortografía:', err);
+        if (fb) {
+            fb.style.display = 'flex';
+            fb.className = 'rec-spell-feedback rec-spell-error';
+            fb.innerHTML = `<span>⚠️ No se pudo conectar con el corrector. Podés seguir escribiendo normalmente.</span>`;
+            setTimeout(() => { if (fb) fb.style.display = 'none'; }, 4500);
+        }
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('loading');
+            btn.innerHTML = originalBtnHtml;
+            if (window.lucide && typeof lucide.createIcons === 'function') {
+                lucide.createIcons();
+            }
+        }
+    }
+};
+
+window.deshacerCorreccionOrtografia = function (textareaId, feedbackId) {
+    const txtArea = document.getElementById(textareaId);
+    const fb = document.getElementById(feedbackId);
+    if (!txtArea || !_spellUndoHistory[textareaId]) return;
+
+    txtArea.value = _spellUndoHistory[textareaId];
+    delete _spellUndoHistory[textareaId];
+
+    if (fb) {
+        fb.style.display = 'flex';
+        fb.className = 'rec-spell-feedback rec-spell-info';
+        fb.innerHTML = `<span>↩ Se restauró el texto original.</span>`;
+        setTimeout(() => { if (fb) fb.style.display = 'none'; }, 3000);
+    }
+    txtArea.focus();
+};
+

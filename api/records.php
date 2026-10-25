@@ -17,6 +17,9 @@ $uid    = $session['id'];
 // internas puedan acceder al plan sin re-consultar la BD.
 $GLOBALS['_vf_session'] = $session;
 
+// Asegurar compatibilidad de esquema de registros (autosanación)
+ensure_registros_schema(getDB());
+
 $input  = json_decode(file_get_contents('php://input'), true) ?? [];
 $action = $input['action'] ?? ($_GET['action'] ?? '');
 $method = $_SERVER['REQUEST_METHOD'];
@@ -59,6 +62,41 @@ function normalize_ig_val(?float $val): ?float {
     return $val;
 }
 
+// ── Autosanación del esquema de registros (asegura columnas y nulos) ──
+function ensure_registros_schema(PDO $db): void {
+    static $done = false;
+    if ($done) return;
+    $done = true;
+
+    try {
+        // 1. Asegurar que estado_salud admita NULL (crucial para animales muertos/perinatales)
+        $db->exec("ALTER TABLE `registros` MODIFY COLUMN `estado_salud` ENUM('Sano, sin problemas aparentes','Nació con algún problema o malformación','Está enfermo actualmente','Tuvo una enfermedad anteriormente') DEFAULT NULL");
+    } catch (\Throwable $e) {}
+
+    try {
+        // 2. Asegurar que litros_calostro_madre exista si la BD fue creada con versión previa
+        $chk = $db->query("SHOW COLUMNS FROM `registros` LIKE 'litros_calostro_madre'");
+        if (!$chk || $chk->rowCount() === 0) {
+            $db->exec("ALTER TABLE `registros` ADD COLUMN `litros_calostro_madre` DECIMAL(5,2) DEFAULT NULL AFTER `rp_madre`");
+        }
+    } catch (\Throwable $e) {}
+
+    try {
+        // 3. Asegurar columnas de causa si faltasen
+        $chk2 = $db->query("SHOW COLUMNS FROM `registros` LIKE 'causa_categoria'");
+        if (!$chk2 || $chk2->rowCount() === 0) {
+            $db->exec("ALTER TABLE `registros` ADD COLUMN `causa_categoria` VARCHAR(100) DEFAULT NULL AFTER `causa`");
+        }
+    } catch (\Throwable $e) {}
+
+    try {
+        $chk3 = $db->query("SHOW COLUMNS FROM `registros` LIKE 'causa_especifica'");
+        if (!$chk3 || $chk3->rowCount() === 0) {
+            $db->exec("ALTER TABLE `registros` ADD COLUMN `causa_especifica` VARCHAR(100) DEFAULT NULL AFTER `causa_categoria`");
+        }
+    } catch (\Throwable $e) {}
+}
+
 // ============================================================
 // UPDATE — Actualizar un registro existente
 // ============================================================
@@ -90,6 +128,7 @@ function action_update(string $uid, array $in): void {
              tipo_madre = :tipo_madre,
              tipo_parto = :tipo_parto,
              rp_madre = :rp_madre,
+             litros_calostro_madre = :litros_calostro_madre,
              tipo_calostro = :tipo_calostro,
              metodo_calostrado = :metodo_calostrado,
              ig_calostro = :ig_calostro,
@@ -122,7 +161,7 @@ function action_update(string $uid, array $in): void {
         $detalle_salud = ($estado_salud !== 'Sano, sin problemas aparentes') ? (trim($in['detalle_salud'] ?? '') ?: null) : null;
     }
 
-    $stmt->execute([
+    $update_params = [
         ':id'              => $id,
         ':uid'             => $uid,
         ':productor'       => $productor,
@@ -135,6 +174,7 @@ function action_update(string $uid, array $in): void {
         ':tipo_madre'      => in_array($in['tipo_madre'] ?? '', ['Vaca','Vaquillona']) ? $in['tipo_madre'] : 'Vaca',
         ':tipo_parto'      => in_array($in['tipo_parto'] ?? '', ['Normal','Asistido','Muerto al parto']) ? $in['tipo_parto'] : 'Normal',
         ':rp_madre'        => trim($in['rp_madre']    ?? '') ?: null,
+        ':litros_calostro_madre'  => is_numeric($in['litros_calostro_madre']  ?? null) ? (float)$in['litros_calostro_madre']  : null,
         ':tipo_calostro'   => in_array($in['tipo_calostro'] ?? '', ['De la madre','Banco de calostro','Calostro mejorado']) ? $in['tipo_calostro'] : 'De la madre',
         ':metodo_calostrado' => in_array($in['metodo_calostrado'] ?? '', ['Con mamadera','Con sonda','Mamó solo']) ? $in['metodo_calostrado'] : 'Con mamadera',
         ':ig_calostro'     => $ig_calostro,
@@ -144,7 +184,24 @@ function action_update(string $uid, array $in): void {
         ':causa'           => $causa,
         ':causa_cat'       => $causa_cat,
         ':causa_esp'       => $causa_esp,
-    ]);
+    ];
+
+    try {
+        $stmt->execute($update_params);
+    } catch (\PDOException $e) {
+        if (str_contains($e->getMessage(), 'estado_salud') || $e->getCode() == 23000) {
+            try {
+                $db->exec("ALTER TABLE `registros` MODIFY COLUMN `estado_salud` ENUM('Sano, sin problemas aparentes','Nació con algún problema o malformación','Está enfermo actualmente','Tuvo una enfermedad anteriormente') DEFAULT NULL");
+                $stmt->execute($update_params);
+            } catch (\Throwable $e2) {
+                $update_params[':estado_salud'] = $update_params[':estado_salud'] ?? 'Sano, sin problemas aparentes';
+                $stmt->execute($update_params);
+            }
+        } else {
+            error_log('[action_update] Error PDO: ' . $e->getMessage());
+            json_response(['ok' => false, 'error' => 'Error al actualizar en base de datos: ' . $e->getMessage()], 500);
+        }
+    }
 
     if ($stmt->rowCount() === 0) {
         // Podría ser que no cambió nada o que el registro no existe
@@ -338,15 +395,15 @@ function action_save(string $uid, array $in): void {
     $stmt = $db->prepare(
         "INSERT INTO registros
             (user_id, establecimiento, fecha, productor, rp_ternero, ig_ternero,
-             sexo, ombligo, tipo_madre, tipo_parto, rp_madre, tipo_calostro, metodo_calostrado, ig_calostro, estado, 
+             sexo, ombligo, tipo_madre, tipo_parto, rp_madre, litros_calostro_madre, tipo_calostro, metodo_calostrado, ig_calostro, estado, 
              estado_salud, detalle_salud, causa, causa_categoria, causa_especifica)
          VALUES
             (:uid, :establecimiento, :fecha, :productor, :rp_ternero, :ig_ternero,
-             :sexo, :ombligo, :tipo_madre, :tipo_parto, :rp_madre, :tipo_calostro, :metodo_calostrado, :ig_calostro, :estado,
+             :sexo, :ombligo, :tipo_madre, :tipo_parto, :rp_madre, :litros_calostro_madre, :tipo_calostro, :metodo_calostrado, :ig_calostro, :estado,
              :estado_salud, :detalle_salud, :causa, :causa_cat, :causa_esp)"
     );
 
-    $stmt->execute([
+    $save_params = [
         ':uid'             => $uid,
         ':productor'       => $productor,
         ':establecimiento' => $establecimiento ?: null,
@@ -358,6 +415,7 @@ function action_save(string $uid, array $in): void {
         ':tipo_madre'  => in_array($in['tipo_madre'] ?? '', ['Vaca','Vaquillona']) ? $in['tipo_madre'] : 'Vaca',
         ':tipo_parto'  => in_array($in['tipo_parto'] ?? '', ['Normal','Asistido','Muerto al parto']) ? $in['tipo_parto'] : 'Normal',
         ':rp_madre'    => trim($in['rp_madre']    ?? '') ?: null,
+        ':litros_calostro_madre'  => is_numeric($in['litros_calostro_madre']  ?? null) ? (float)$in['litros_calostro_madre']  : null,
         ':tipo_calostro' => in_array($in['tipo_calostro'] ?? '', ['De la madre','Banco de calostro','Calostro mejorado']) ? $in['tipo_calostro'] : 'De la madre',
         ':metodo_calostrado' => in_array($in['metodo_calostrado'] ?? '', ['Con mamadera','Con sonda','Mamó solo']) ? $in['metodo_calostrado'] : 'Con mamadera',
         ':ig_calostro' => $ig_calostro,
@@ -367,7 +425,25 @@ function action_save(string $uid, array $in): void {
         ':causa'       => $causa,
         ':causa_cat'   => $causa_cat,
         ':causa_esp'   => $causa_esp,
-    ]);
+    ];
+
+    try {
+        $stmt->execute($save_params);
+    } catch (\PDOException $e) {
+        if (str_contains($e->getMessage(), 'estado_salud') || $e->getCode() == 23000) {
+            try {
+                $db->exec("ALTER TABLE `registros` MODIFY COLUMN `estado_salud` ENUM('Sano, sin problemas aparentes','Nació con algún problema o malformación','Está enfermo actualmente','Tuvo una enfermedad anteriormente') DEFAULT NULL");
+                $stmt->execute($save_params);
+            } catch (\Throwable $e2) {
+                // Fallback: si la base no permite NULL ni ALTER, enviar valor default para no perder el dato
+                $save_params[':estado_salud'] = $save_params[':estado_salud'] ?? 'Sano, sin problemas aparentes';
+                $stmt->execute($save_params);
+            }
+        } else {
+            error_log('[action_save] Error PDO: ' . $e->getMessage());
+            json_response(['ok' => false, 'error' => 'Error al guardar en base de datos: ' . $e->getMessage()], 500);
+        }
+    }
 
     $new_id = $db->lastInsertId();
 
@@ -628,6 +704,7 @@ function action_backup_import(string $uid, array $in): void {
             $tipo_madre  = in_array($r['tipo_madre'] ?? '', ['Vaca', 'Vaquillona']) ? $r['tipo_madre'] : 'Vaca';
             $tipo_parto    = in_array($r['tipo_parto'] ?? '', ['Normal', 'Asistido', 'Muerto al parto']) ? $r['tipo_parto'] : 'Normal';
             $rp_madre      = trim($r['rp_madre'] ?? '') ?: null;
+            $litros_calostro_madre  = is_numeric($r['litros_calostro_madre']  ?? null) ? (float)$r['litros_calostro_madre']  : null;
             $tipo_calostro     = in_array($r['tipo_calostro'] ?? '', ['De la madre', 'Banco de calostro', 'Calostro mejorado']) ? $r['tipo_calostro'] : 'De la madre';
             $metodo_calostrado = in_array($r['metodo_calostrado'] ?? '', ['Con mamadera', 'Con sonda', 'Mamó solo']) ? $r['metodo_calostrado'] : 'Con mamadera';
             $estado            = trim($r['estado'] ?? 'Vivo');
@@ -662,6 +739,7 @@ function action_backup_import(string $uid, array $in): void {
                          tipo_madre = :tipo_madre,
                          tipo_parto = :tipo_parto,
                          rp_madre = :rp_madre,
+                         litros_calostro_madre = :litros_calostro_madre,
                          tipo_calostro = :tipo_calostro,
                          metodo_calostrado = :metodo_calostrado,
                          ig_calostro = :ig_calostro,
@@ -685,6 +763,7 @@ function action_backup_import(string $uid, array $in): void {
                     ':tipo_madre' => $tipo_madre,
                     ':tipo_parto' => $tipo_parto,
                     ':rp_madre' => $rp_madre,
+                    ':litros_calostro_madre'  => $litros_calostro_madre,
                     ':tipo_calostro' => $tipo_calostro,
                     ':metodo_calostrado' => $metodo_calostrado,
                     ':ig_calostro' => $ig_calostro,
@@ -700,11 +779,11 @@ function action_backup_import(string $uid, array $in): void {
                 $stmt_ins = $db->prepare(
                     "INSERT INTO registros
                         (user_id, establecimiento, fecha, productor, rp_ternero, ig_ternero,
-                         sexo, ombligo, tipo_madre, tipo_parto, rp_madre, tipo_calostro, metodo_calostrado, ig_calostro, estado, 
+                         sexo, ombligo, tipo_madre, tipo_parto, rp_madre, litros_calostro_madre, tipo_calostro, metodo_calostrado, ig_calostro, estado, 
                          estado_salud, detalle_salud, causa, causa_categoria, causa_especifica)
                     VALUES
                         (:uid, :establecimiento, :fecha, :productor, :rp_ternero, :ig_ternero,
-                         :sexo, :ombligo, :tipo_madre, :tipo_parto, :rp_madre, :tipo_calostro, :metodo_calostrado, :ig_calostro, :estado,
+                         :sexo, :ombligo, :tipo_madre, :tipo_parto, :rp_madre, :litros_calostro_madre, :tipo_calostro, :metodo_calostrado, :ig_calostro, :estado,
                          :estado_salud, :detalle_salud, :causa, :causa_cat, :causa_esp)"
                 );
                 $stmt_ins->execute([
@@ -719,6 +798,7 @@ function action_backup_import(string $uid, array $in): void {
                     ':tipo_madre' => $tipo_madre,
                     ':tipo_parto' => $tipo_parto,
                     ':rp_madre' => $rp_madre,
+                    ':litros_calostro_madre'  => $litros_calostro_madre,
                     ':tipo_calostro' => $tipo_calostro,
                     ':metodo_calostrado' => $metodo_calostrado,
                     ':ig_calostro' => $ig_calostro,

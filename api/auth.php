@@ -392,7 +392,20 @@ function action_save_dashboard_config(array $in): void {
         }
     } catch (Exception $e) {}
 
-    $json = json_encode($config, JSON_UNESCAPED_UNICODE);
+    // Obtener configuración previa para fusionar y no sobreescribir claves existentes
+    $existing = [];
+    try {
+        $stmtEx = $db->prepare("SELECT dashboard_config FROM usuarios WHERE id = ?");
+        $stmtEx->execute([$session['id']]);
+        $row = $stmtEx->fetch();
+        if ($row && !empty($row['dashboard_config'])) {
+            $dec = json_decode($row['dashboard_config'], true);
+            if (is_array($dec)) $existing = $dec;
+        }
+    } catch (Exception $e) {}
+
+    $merged = array_merge($existing, $config);
+    $json = json_encode($merged, JSON_UNESCAPED_UNICODE);
     $stmt = $db->prepare("UPDATE usuarios SET dashboard_config = ? WHERE id = ?");
     $stmt->execute([$json, $session['id']]);
 
