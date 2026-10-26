@@ -32,9 +32,9 @@
     <!-- Chart.js for Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
     <!-- Estilos -->
-    <link rel="stylesheet" href="styles.css?v=85">
+    <link rel="stylesheet" href="styles.css?v=86">
     <link rel="stylesheet" href="recorridas.css?v=14">
-    <link rel="stylesheet" href="informes.css?v=3">
+    <link rel="stylesheet" href="informes.css?v=4">
     <!-- Módulo de Voz (Ocultado temporalmente) -->
     <!-- <link rel="stylesheet" href="voice.css?v=49"> -->
 
@@ -2472,15 +2472,14 @@
                     <!-- Título del Estudio -->
                     <div class="form-group">
                         <label class="inf-label" for="inf-modal-titulo">Título / Estudio *</label>
-                        <input type="text" id="inf-modal-titulo" placeholder="Ej: Análisis Coprológico Lote 1, Antibiograma..." required
-                            style="width:100%;height:42px;padding:0 14px;border:1.5px solid rgba(26,35,126,0.15);border-radius:0.85rem;font-size:0.9rem;font-family:inherit;background:transparent;color:var(--text-main);">
+                        <input type="text" id="inf-modal-titulo" class="inf-input" placeholder="Ej: Análisis Coprológico Lote 1, Antibiograma..." required>
                     </div>
 
                     <!-- Tipo de Análisis y Fecha -->
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
                         <div class="form-group">
                             <label class="inf-label" for="inf-modal-tipo">Tipo de Estudio</label>
-                            <select id="inf-modal-tipo" class="inf-select" style="padding-left:14px;height:42px;font-size:0.85rem;">
+                            <select id="inf-modal-tipo" class="inf-select" style="padding-left:14px;height:44px;font-size:0.85rem;">
                                 <option value="General">General / Otro</option>
                                 <option value="Coprología / Parásitos">Coprología / Parásitos</option>
                                 <option value="Serología / Sangre">Serología / Sangre</option>
@@ -2492,8 +2491,7 @@
                         </div>
                         <div class="form-group">
                             <label class="inf-label" for="inf-modal-fecha">Fecha del Análisis</label>
-                            <input type="date" id="inf-modal-fecha" required
-                                style="width:100%;height:42px;padding:0 12px;border:1.5px solid rgba(26,35,126,0.15);border-radius:0.85rem;font-size:0.85rem;font-family:inherit;background:transparent;color:var(--text-main);">
+                            <input type="date" id="inf-modal-fecha" class="inf-input" required>
                         </div>
                     </div>
 
@@ -2513,14 +2511,12 @@
                     <!-- Observaciones / Dictamen Veterinario -->
                     <div class="form-group">
                         <label class="inf-label" for="inf-modal-notas">Observaciones / Dictamen Técnico (opcional)</label>
-                        <textarea id="inf-modal-notas" rows="3" placeholder="Diagnóstico, recuento, sugerencia de tratamiento para el productor..."
-                            style="width:100%;padding:10px 14px;border:1.5px solid rgba(26,35,126,0.15);border-radius:0.85rem;font-size:0.85rem;font-family:inherit;background:transparent;color:var(--text-main);resize:vertical;"></textarea>
+                        <textarea id="inf-modal-notas" class="inf-textarea" rows="3" placeholder="Diagnóstico, recuento, sugerencia de tratamiento para el productor..."></textarea>
                     </div>
 
                     <!-- Botones de Acción -->
-                    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:0.5rem;padding-top:0.75rem;border-top:1px solid rgba(0,0,0,0.06);">
-                        <button type="button" onclick="InformesApp.closeUploadModal()"
-                            style="padding:0.65rem 1.25rem;border-radius:0.75rem;border:1px solid rgba(0,0,0,0.12);background:transparent;color:var(--text-secondary);font-weight:600;font-family:inherit;cursor:pointer;">
+                    <div class="inf-modal-footer">
+                        <button type="button" onclick="InformesApp.closeUploadModal()" class="inf-btn-cancel">
                             Cancelar
                         </button>
                         <button type="submit" id="inf-btn-submit-upload" class="inf-btn-upload" style="padding:0.65rem 1.4rem;">

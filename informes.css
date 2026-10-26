@@ -24,7 +24,7 @@
 
 html.dark .inf-header-card {
     background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
-    border-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid #334155;
 }
 
 .inf-header-top {
@@ -125,7 +125,7 @@ html.dark .inf-stat-pill strong {
 
 html.dark .inf-control-card {
     background: rgba(30, 41, 59, 0.85);
-    border-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid #334155;
 }
 
 .inf-controls-grid {
@@ -175,19 +175,38 @@ html.dark .inf-label {
     pointer-events: none;
 }
 
+/* ── Inputs, Selects y Textareas del Módulo ─────────────────── */
+.inf-input,
+.inf-textarea,
 .inf-select {
     width: 100%;
-    height: 44px;
-    padding: 0 36px 0 38px;
-    border: 1.5px solid rgba(26, 35, 126, 0.15);
+    border: 1.5px solid rgba(26, 35, 126, 0.18);
     border-radius: 0.85rem;
     background: #ffffff;
     font-family: inherit;
     font-size: 0.92rem;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-main, #1e293b);
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.inf-input {
+    height: 44px;
+    padding: 0 14px;
+}
+
+.inf-textarea {
+    padding: 10px 14px;
+    resize: vertical;
+    line-height: 1.45;
+}
+
+.inf-select {
+    height: 44px;
+    padding: 0 36px 0 14px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
     appearance: none;
     -webkit-appearance: none;
     background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
@@ -196,16 +215,38 @@ html.dark .inf-label {
     background-size: 16px;
 }
 
-html.dark .inf-select {
-    background-color: #1e293b;
-    border-color: #334155;
-    color: #f1f5f9;
-}
-
+.inf-input:focus,
+.inf-textarea:focus,
 .inf-select:focus {
     outline: none;
     border-color: var(--primary, #1a237e);
     box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.12);
+}
+
+/* Modo Oscuro - Bordes nítidos y fondos contrastantes */
+html.dark .inf-input,
+html.dark .inf-textarea,
+html.dark .inf-select {
+    background-color: #1e293b;
+    border: 1.5px solid #475569;
+    color: #f8fafc;
+}
+
+html.dark .inf-input:focus,
+html.dark .inf-textarea:focus,
+html.dark .inf-select:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    background-color: #243046;
+}
+
+html.dark .inf-input::placeholder,
+html.dark .inf-textarea::placeholder {
+    color: #94a3b8;
+}
+
+html.dark input[type="date"].inf-input {
+    color-scheme: dark;
 }
 
 /* ── Custom Dropdown (siempre abre hacia abajo) ──────────────── */
@@ -219,7 +260,7 @@ html.dark .inf-select {
     width: 100%;
     height: 44px;
     padding: 0 36px 0 38px;
-    border: 1.5px solid rgba(26, 35, 126, 0.15);
+    border: 1.5px solid rgba(26, 35, 126, 0.18);
     border-radius: 0.85rem;
     background: #ffffff;
     font-family: inherit;
@@ -237,14 +278,15 @@ html.dark .inf-select {
 
 html.dark .inf-custom-select-btn {
     background: #1e293b;
-    border-color: #334155;
-    color: #f1f5f9;
+    border: 1.5px solid #475569;
+    color: #f8fafc;
 }
 
-.inf-custom-select-btn:focus {
+.inf-custom-select-btn:focus,
+html.dark .inf-custom-select-btn:focus {
     outline: none;
-    border-color: var(--primary, #1a237e);
-    box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.12);
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
 }
 
 .inf-custom-select-wrap .inf-select-icon {
@@ -277,8 +319,8 @@ html.dark .inf-custom-select-btn {
 
 html.dark .inf-custom-dropdown {
     background: #1e293b;
-    border-color: #334155;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    border: 1.5px solid #475569;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
 }
 
 .inf-custom-dropdown li {
@@ -368,8 +410,8 @@ html.dark .inf-btn-upload {
 }
 
 html.dark .inf-producer-banner {
-    background: rgba(30, 41, 59, 0.5);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(30, 41, 59, 0.7);
+    border: 1.5px dashed rgba(56, 189, 248, 0.45);
 }
 
 .inf-producer-info {
@@ -449,14 +491,14 @@ html.dark .inf-producer-count {
 }
 
 html.dark .inf-card {
-    background: rgba(30, 41, 59, 0.85);
-    border-color: rgba(255, 255, 255, 0.07);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+    background: rgba(30, 41, 59, 0.95);
+    border: 1.5px solid #334155;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
 html.dark .inf-card:hover {
-    border-color: rgba(56, 189, 248, 0.3);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    border-color: #38bdf8;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
 .inf-card-header {
@@ -662,13 +704,15 @@ html.dark .inf-btn-view:hover {
 }
 
 html.dark .inf-btn-icon-only {
-    border-color: rgba(255, 255, 255, 0.1);
-    color: #94a3b8;
+    border: 1px solid #475569;
+    background: rgba(30, 41, 59, 0.7);
+    color: #cbd5e1;
 }
 
 html.dark .inf-btn-icon-only:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #64748b;
+    color: #ffffff;
 }
 
 .inf-btn-del:hover {
@@ -693,7 +737,7 @@ html.dark .inf-btn-icon-only:hover {
 
 html.dark .inf-empty-state {
     background: rgba(30, 41, 59, 0.6);
-    border-color: rgba(255, 255, 255, 0.1);
+    border: 2px dashed #475569;
 }
 
 .inf-empty-icon {
@@ -760,14 +804,14 @@ html.dark .inf-empty-desc {
 }
 
 html.dark .inf-dropzone {
-    border-color: rgba(255, 255, 255, 0.18);
-    background: rgba(255, 255, 255, 0.02);
+    border: 2px dashed #475569;
+    background: rgba(30, 41, 59, 0.55);
 }
 
 html.dark .inf-dropzone:hover,
 html.dark .inf-dropzone.dragover {
     border-color: #38bdf8;
-    background: rgba(56, 189, 248, 0.08);
+    background: rgba(56, 189, 248, 0.12);
 }
 
 .inf-dropzone-icon {
@@ -871,3 +915,56 @@ html.dark .inf-skeleton-card {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
 }
+
+/* ── Modal Footer y Botón Cancelar ─────────────────────────── */
+.inf-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-top: 0.5rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+html.dark .inf-modal-footer {
+    border-top: 1px solid #334155;
+}
+
+.inf-btn-cancel {
+    padding: 0.65rem 1.25rem;
+    border-radius: 0.75rem;
+    border: 1.5px solid rgba(0, 0, 0, 0.15);
+    background: transparent;
+    color: var(--text-secondary, #64748b);
+    font-weight: 600;
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.inf-btn-cancel:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text-main, #1e293b);
+}
+
+html.dark .inf-btn-cancel {
+    border: 1.5px solid #475569;
+    color: #cbd5e1;
+    background: rgba(30, 41, 59, 0.6);
+}
+
+html.dark .inf-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #64748b;
+    color: #ffffff;
+}
+
+/* Modal de carga en modo oscuro con borde definido */
+html.dark #modal-upload-informe .modal-content {
+    background: #191c28;
+    border: 1.5px solid #334155;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
+}
+
