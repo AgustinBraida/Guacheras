@@ -766,9 +766,9 @@ html.dark .voice-offline-count {
     font-weight: 600;
 }
 
-/* ── Compatibilidad: ajuste del grid del nav cuando hay 5 ítems ── */
+/* ── Compatibilidad: ajuste del grid del nav para 6 ítems ── */
 nav.bottom-nav {
-    grid-template-columns: repeat(5, 1fr) !important;
+    grid-template-columns: repeat(6, 1fr) !important;
 }
 
 /* ── Responsive: pantallas muy pequeñas ───────────────────── */

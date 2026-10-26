@@ -32,8 +32,9 @@
     <!-- Chart.js for Dashboard -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
     <!-- Estilos -->
-    <link rel="stylesheet" href="styles.css?v=84">
+    <link rel="stylesheet" href="styles.css?v=85">
     <link rel="stylesheet" href="recorridas.css?v=14">
+    <link rel="stylesheet" href="informes.css?v=3">
     <!-- Módulo de Voz (Ocultado temporalmente) -->
     <!-- <link rel="stylesheet" href="voice.css?v=49"> -->
 
@@ -2374,7 +2375,164 @@
             </div>
         </section>
 
-        <nav class="bottom-nav">
+        <!-- VISTA: INFORMES Y RESULTADOS DE LABORATORIO -->
+        <section id="view-informes" class="view-section">
+            <div class="inf-container">
+
+                <!-- Encabezado del Módulo -->
+                <div class="inf-header-card">
+                    <div class="inf-header-top">
+                        <h2 class="inf-title">
+                            <span class="inf-title-icon"><i data-lucide="flask-conical"></i></span>
+                            Informes de Laboratorio
+                        </h2>
+                        <div class="inf-stats-row">
+                            <span class="inf-stat-pill">
+                                <i data-lucide="files" style="width:13px;height:13px;color:var(--primary);"></i>
+                                <strong id="inf-stat-total">0</strong> informes en la nube
+                            </span>
+                            <span class="inf-stat-pill">
+                                <i data-lucide="users" style="width:13px;height:13px;color:var(--primary);"></i>
+                                <strong id="inf-stat-prods">0</strong> productores con análisis
+                            </span>
+                        </div>
+                    </div>
+                    <p class="inf-subtitle">
+                        Almacenamiento seguro de análisis clínicos y resultados de laboratorio en PDF. Cada informe queda asociado a su productor, sincronizado en todos tus dispositivos y listo para enviar por WhatsApp.
+                    </p>
+                </div>
+
+                <!-- Barra de Control: Selector de Productor y Botón de Subida -->
+                <div class="inf-control-card">
+                    <div class="inf-controls-grid">
+                        <div class="inf-field-group">
+                            <label class="inf-label">Filtrar por Productor</label>
+                            <div class="inf-custom-select-wrap" id="inf-custom-select-wrap">
+                                <i data-lucide="user-check" class="inf-select-icon" style="pointer-events:none;"></i>
+                                <button type="button" id="inf-filter-btn" class="inf-custom-select-btn" onclick="InformesApp.toggleDropdown()" aria-haspopup="listbox" aria-expanded="false">
+                                    <span id="inf-filter-label">-- Todos los Productores --</span>
+                                    <i data-lucide="chevron-down" id="inf-filter-chevron" style="width:16px;height:16px;flex-shrink:0;transition:transform 0.2s;"></i>
+                                </button>
+                                <!-- Lista custom oculta, siempre abre hacia ABAJO -->
+                                <ul id="inf-filter-dropdown" class="inf-custom-dropdown" role="listbox" style="display:none;"></ul>
+                                <!-- select oculto para compatibilidad con el resto del código -->
+                                <select id="inf-filter-productor" style="display:none;" onchange="InformesApp.onProductorChange()">
+                                    <option value="">-- Todos los Productores --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;">
+                            <button type="button" class="inf-btn-action inf-btn-icon-only" onclick="InformesApp.fetchData()" title="Refrescar informes de la nube" style="height:44px;width:44px;">
+                                <i data-lucide="refresh-cw" style="width:18px;height:18px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Banner de Productor Seleccionado -->
+                <div id="inf-producer-banner" class="inf-producer-banner" style="display:none;">
+                    <!-- Se renderiza vía informes.js -->
+                </div>
+
+                <!-- Grilla de Informes Cargados -->
+                <div id="inf-reports-grid" class="inf-grid">
+                    <!-- Tarjetas de informes vía informes.js -->
+                </div>
+
+            </div>
+        </section>
+
+        <!-- MODAL: SUBIR INFORME DE LABORATORIO (PDF) -->
+        <div id="modal-upload-informe" class="modal-overlay">
+            <div class="modal-content" style="max-width:540px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div class="inf-pdf-icon-wrap" style="width:38px;height:38px;">
+                            <i data-lucide="file-up" style="width:20px;height:20px;"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-size:1.15rem;font-weight:800;color:var(--text-main);margin:0;">Subir Informe a la Nube</h3>
+                            <p style="font-size:0.75rem;color:var(--text-secondary);margin:0;">Archivo PDF visible en todos tus dispositivos</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="InformesApp.closeUploadModal()" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);padding:4px;" title="Cerrar">
+                        <i data-lucide="x" style="width:20px;height:20px;"></i>
+                    </button>
+                </div>
+
+                <form id="form-upload-informe" style="display:flex;flex-direction:column;gap:1rem;">
+                    <!-- Selector de Productor -->
+                    <div class="form-group">
+                        <label class="inf-label" for="inf-modal-productor">Productor Asociado *</label>
+                        <select id="inf-modal-productor" class="inf-select" style="padding-left:14px;" required>
+                            <option value="">-- Seleccionar productor... --</option>
+                        </select>
+                    </div>
+
+                    <!-- Título del Estudio -->
+                    <div class="form-group">
+                        <label class="inf-label" for="inf-modal-titulo">Título / Estudio *</label>
+                        <input type="text" id="inf-modal-titulo" placeholder="Ej: Análisis Coprológico Lote 1, Antibiograma..." required
+                            style="width:100%;height:42px;padding:0 14px;border:1.5px solid rgba(26,35,126,0.15);border-radius:0.85rem;font-size:0.9rem;font-family:inherit;background:transparent;color:var(--text-main);">
+                    </div>
+
+                    <!-- Tipo de Análisis y Fecha -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                        <div class="form-group">
+                            <label class="inf-label" for="inf-modal-tipo">Tipo de Estudio</label>
+                            <select id="inf-modal-tipo" class="inf-select" style="padding-left:14px;height:42px;font-size:0.85rem;">
+                                <option value="General">General / Otro</option>
+                                <option value="Coprología / Parásitos">Coprología / Parásitos</option>
+                                <option value="Serología / Sangre">Serología / Sangre</option>
+                                <option value="Calidad de Leche / Mastitis">Calidad de Leche / Mastitis</option>
+                                <option value="Bacteriología / Antibiograma">Bacteriología / Antibiograma</option>
+                                <option value="Necropsia / Patología">Necropsia / Patología</option>
+                                <option value="Agua / Nutrición">Agua / Nutrición</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="inf-label" for="inf-modal-fecha">Fecha del Análisis</label>
+                            <input type="date" id="inf-modal-fecha" required
+                                style="width:100%;height:42px;padding:0 12px;border:1.5px solid rgba(26,35,126,0.15);border-radius:0.85rem;font-size:0.85rem;font-family:inherit;background:transparent;color:var(--text-main);">
+                        </div>
+                    </div>
+
+                    <!-- Dropzone PDF -->
+                    <div class="form-group">
+                        <label class="inf-label">Archivo PDF del Laboratorio *</label>
+                        <input type="file" id="inf-modal-file-input" accept=".pdf,application/pdf" style="display:none;">
+                        <div id="inf-dropzone" class="inf-dropzone">
+                            <div class="inf-dropzone-icon">
+                                <i data-lucide="upload-cloud" style="width:26px;height:26px;"></i>
+                            </div>
+                            <div class="inf-dropzone-txt">Arrastrá tu archivo PDF acá o hacé clic para buscar</div>
+                            <div class="inf-dropzone-sub">Formato PDF hasta 25 MB</div>
+                        </div>
+                    </div>
+
+                    <!-- Observaciones / Dictamen Veterinario -->
+                    <div class="form-group">
+                        <label class="inf-label" for="inf-modal-notas">Observaciones / Dictamen Técnico (opcional)</label>
+                        <textarea id="inf-modal-notas" rows="3" placeholder="Diagnóstico, recuento, sugerencia de tratamiento para el productor..."
+                            style="width:100%;padding:10px 14px;border:1.5px solid rgba(26,35,126,0.15);border-radius:0.85rem;font-size:0.85rem;font-family:inherit;background:transparent;color:var(--text-main);resize:vertical;"></textarea>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:0.5rem;padding-top:0.75rem;border-top:1px solid rgba(0,0,0,0.06);">
+                        <button type="button" onclick="InformesApp.closeUploadModal()"
+                            style="padding:0.65rem 1.25rem;border-radius:0.75rem;border:1px solid rgba(0,0,0,0.12);background:transparent;color:var(--text-secondary);font-weight:600;font-family:inherit;cursor:pointer;">
+                            Cancelar
+                        </button>
+                        <button type="submit" id="inf-btn-submit-upload" class="inf-btn-upload" style="padding:0.65rem 1.4rem;">
+                            <i data-lucide="cloud-upload" style="width:18px;height:18px;"></i>
+                            <span>Subir a la Nube</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <nav class="bottom-nav" style="grid-template-columns: repeat(6, 1fr);">
             <button class="nav-item active" data-nav="inicio" onclick="switchView('inicio', this)">
                 <div class="nav-icon"><i data-lucide="layout-grid"></i></div>
                 <span>Panel</span>
@@ -2386,6 +2544,10 @@
             <button class="nav-item" data-nav="recorridas" onclick="switchView('recorridas', this)">
                 <div class="nav-icon"><i data-lucide="clipboard-check"></i></div>
                 <span>Recorridas</span>
+            </button>
+            <button class="nav-item" data-nav="informes" onclick="switchView('informes', this)">
+                <div class="nav-icon"><i data-lucide="flask-conical"></i></div>
+                <span>Informes</span>
             </button>
             <button class="nav-item" data-nav="reportes" onclick="switchView('reportes', this)">
                 <div class="nav-icon"><i data-lucide="bar-chart-3"></i></div>
@@ -2438,9 +2600,11 @@
     <!-- Dashboard Module -->
     <script src="dashboard.js?v=92" defer></script>
     <!-- App Script -->
-    <script src="app.js?v=93" defer></script>
+    <script src="app.js?v=94" defer></script>
     <!-- Recorridas Module -->
     <script src="recorridas.js?v=15" defer></script>
+    <!-- Informes de Laboratorio Module -->
+    <script src="informes.js?v=3" defer></script>
     <!-- Voice Module (Ocultado temporalmente) -->
     <!-- <script src="voice.js?v=62" defer></script> -->
 

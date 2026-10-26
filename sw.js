@@ -4,7 +4,7 @@
 // para forzar la actualización del caché en los dispositivos.
 // ============================================================
 
-const CACHE_VERSION = 'v113';
+const CACHE_VERSION = 'v115';
 const CACHE_NAME = 'vetfield-guacheras-' + CACHE_VERSION;
 
 // ── Recursos CRÍTICOS locales (deben estar todos disponibles) ──
@@ -14,8 +14,10 @@ const CORE_ASSETS = [
     './index',
     './styles.css',
     './recorridas.css',
+    './informes.css',
     './app.js',
     './recorridas.js',
+    './informes.js',
     './auth.js',
     './voice.css',
     './voice.js',
@@ -149,8 +151,8 @@ self.addEventListener('fetch', (event) => {
 
     const url = new URL(event.request.url);
 
-    // ── 1. API calls → siempre red directa ──
-    if (url.pathname.includes('/api/')) {
+    // ── 1. API calls y Uploads → siempre red directa ──
+    if (url.pathname.includes('/api/') || url.pathname.includes('/uploads/')) {
         return;
     }
 

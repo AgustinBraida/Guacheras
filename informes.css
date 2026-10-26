@@ -1,0 +1,873 @@
+/* ============================================================
+   VETFIELD PRO — informes.css
+   Estilos para el módulo de Informes y Resultados de Laboratorio
+   ============================================================ */
+
+.inf-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 1rem 1rem 5.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* ── Encabezado del Módulo ────────────────────────────────── */
+.inf-header-card {
+    background: linear-gradient(135deg, rgba(26, 35, 126, 0.06) 0%, rgba(13, 148, 136, 0.08) 100%);
+    border: 1px solid rgba(26, 35, 126, 0.12);
+    border-radius: 1.25rem;
+    padding: 1.25rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+html.dark .inf-header-card {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.inf-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.inf-title {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--primary, #1a237e);
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+html.dark .inf-title {
+    color: #e2e8f0;
+}
+
+.inf-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: rgba(26, 35, 126, 0.1);
+    color: var(--primary, #1a237e);
+    border-radius: 10px;
+}
+
+html.dark .inf-title-icon {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+}
+
+.inf-subtitle {
+    font-size: 0.86rem;
+    color: var(--text-secondary, #64748b);
+    line-height: 1.45;
+    margin-bottom: 0.85rem;
+    max-width: 720px;
+}
+
+html.dark .inf-subtitle {
+    color: #94a3b8;
+}
+
+/* ── Métricas rápidas en header ───────────────────────────── */
+.inf-stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.inf-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.75rem;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(26, 35, 126, 0.09);
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-main, #1e293b);
+}
+
+html.dark .inf-stat-pill {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+}
+
+.inf-stat-pill strong {
+    color: var(--primary, #1a237e);
+    font-weight: 800;
+}
+
+html.dark .inf-stat-pill strong {
+    color: #38bdf8;
+}
+
+/* ── Panel de Control y Filtros ───────────────────────────── */
+.inf-control-card {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.07));
+    border-radius: 1.25rem;
+    padding: 1.2rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+}
+
+html.dark .inf-control-card {
+    background: rgba(30, 41, 59, 0.85);
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+.inf-controls-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.85rem;
+    align-items: flex-end;
+}
+
+/* En móviles se mantiene en 1 fila: selector flexible + botón recarga */
+@media (max-width: 680px) {
+    .inf-controls-grid {
+        grid-template-columns: 1fr auto;
+    }
+}
+
+.inf-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.inf-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary, #64748b);
+}
+
+html.dark .inf-label {
+    color: #94a3b8;
+}
+
+.inf-select-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.inf-select-wrap i.inf-select-icon {
+    position: absolute;
+    left: 12px;
+    width: 18px;
+    height: 18px;
+    color: var(--text-secondary, #64748b);
+    pointer-events: none;
+}
+
+.inf-select {
+    width: 100%;
+    height: 44px;
+    padding: 0 36px 0 38px;
+    border: 1.5px solid rgba(26, 35, 126, 0.15);
+    border-radius: 0.85rem;
+    background: #ffffff;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-main, #1e293b);
+    cursor: pointer;
+    transition: all 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+}
+
+html.dark .inf-select {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+.inf-select:focus {
+    outline: none;
+    border-color: var(--primary, #1a237e);
+    box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.12);
+}
+
+/* ── Custom Dropdown (siempre abre hacia abajo) ──────────────── */
+.inf-custom-select-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.inf-custom-select-btn {
+    width: 100%;
+    height: 44px;
+    padding: 0 36px 0 38px;
+    border: 1.5px solid rgba(26, 35, 126, 0.15);
+    border-radius: 0.85rem;
+    background: #ffffff;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-main, #1e293b);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    text-align: left;
+}
+
+html.dark .inf-custom-select-btn {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+.inf-custom-select-btn:focus {
+    outline: none;
+    border-color: var(--primary, #1a237e);
+    box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.12);
+}
+
+.inf-custom-select-wrap .inf-select-icon {
+    position: absolute;
+    left: 12px;
+    width: 18px;
+    height: 18px;
+    color: var(--text-secondary, #64748b);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.inf-custom-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);  /* ← siempre ABAJO del botón */
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: #ffffff;
+    border: 1.5px solid rgba(26, 35, 126, 0.15);
+    border-radius: 0.85rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 0.35rem;
+    margin: 0;
+    list-style: none;
+    scroll-behavior: smooth;
+}
+
+html.dark .inf-custom-dropdown {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.inf-custom-dropdown li {
+    padding: 0.55rem 0.85rem;
+    border-radius: 0.6rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-main, #1e293b);
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+html.dark .inf-custom-dropdown li {
+    color: #f1f5f9;
+}
+
+.inf-custom-dropdown li:hover {
+    background: rgba(26, 35, 126, 0.08);
+    color: var(--primary, #1a237e);
+}
+
+html.dark .inf-custom-dropdown li:hover {
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+}
+
+.inf-custom-dropdown li.active {
+    background: rgba(26, 35, 126, 0.12);
+    color: var(--primary, #1a237e);
+    font-weight: 700;
+}
+
+html.dark .inf-custom-dropdown li.active {
+    background: rgba(56, 189, 248, 0.18);
+    color: #38bdf8;
+}
+
+.inf-btn-upload {
+    height: 44px;
+    padding: 0 1.25rem;
+    background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 0.85rem;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(26, 35, 126, 0.22);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.inf-btn-upload:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(26, 35, 126, 0.32);
+    background: linear-gradient(135deg, #283593 0%, #303f9f 100%);
+}
+
+.inf-btn-upload:active {
+    transform: translateY(0);
+}
+
+html.dark .inf-btn-upload {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+/* ── Banner de Productor Seleccionado ─────────────────────── */
+.inf-producer-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    background: rgba(26, 35, 126, 0.04);
+    border: 1px dashed rgba(26, 35, 126, 0.2);
+    border-radius: 1rem;
+    padding: 0.85rem 1.15rem;
+}
+
+html.dark .inf-producer-banner {
+    background: rgba(30, 41, 59, 0.5);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.inf-producer-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.inf-producer-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: var(--primary, #1a237e);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.85rem;
+}
+
+html.dark .inf-producer-avatar {
+    background: #0284c7;
+}
+
+.inf-producer-name {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--text-main, #1e293b);
+}
+
+html.dark .inf-producer-name {
+    color: #f1f5f9;
+}
+
+.inf-producer-count {
+    font-size: 0.78rem;
+    color: var(--text-secondary, #64748b);
+}
+
+html.dark .inf-producer-count {
+    color: #94a3b8;
+}
+
+/* ── Grid de Informes ─────────────────────────────────────── */
+.inf-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    gap: 1rem;
+}
+
+@media (max-width: 500px) {
+    .inf-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── Tarjeta de Informe (PDF Card) ────────────────────────── */
+.inf-card {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+    border-radius: 1.15rem;
+    padding: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.9rem;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
+    transition: all 0.22s ease;
+    position: relative;
+}
+
+.inf-card:hover {
+    border-color: rgba(26, 35, 126, 0.22);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+}
+
+html.dark .inf-card {
+    background: rgba(30, 41, 59, 0.85);
+    border-color: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+html.dark .inf-card:hover {
+    border-color: rgba(56, 189, 248, 0.3);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.inf-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+/* Badges de Tipo de Análisis */
+.inf-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.inf-tag-coprologia { background: rgba(217, 119, 6, 0.12); color: #b45309; border: 1px solid rgba(217, 119, 6, 0.25); }
+.inf-tag-sangre     { background: rgba(225, 29, 72, 0.12); color: #be123c; border: 1px solid rgba(225, 29, 72, 0.25); }
+.inf-tag-leche      { background: rgba(14, 165, 233, 0.12); color: #0369a1; border: 1px solid rgba(14, 165, 233, 0.25); }
+.inf-tag-bacteria   { background: rgba(147, 51, 234, 0.12); color: #7e22ce; border: 1px solid rgba(147, 51, 234, 0.25); }
+.inf-tag-necropsia  { background: rgba(71, 85, 105, 0.14); color: #334155; border: 1px solid rgba(71, 85, 105, 0.25); }
+.inf-tag-general    { background: rgba(13, 148, 136, 0.12); color: #0f766e; border: 1px solid rgba(13, 148, 136, 0.25); }
+
+html.dark .inf-tag-coprologia { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border-color: rgba(245, 158, 11, 0.35); }
+html.dark .inf-tag-sangre     { background: rgba(244, 63, 94, 0.18); color: #fb7185; border-color: rgba(244, 63, 94, 0.35); }
+html.dark .inf-tag-leche      { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); }
+html.dark .inf-tag-bacteria   { background: rgba(192, 132, 252, 0.18); color: #c084fc; border-color: rgba(192, 132, 252, 0.35); }
+html.dark .inf-tag-necropsia  { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.35); }
+html.dark .inf-tag-general    { background: rgba(45, 212, 191, 0.18); color: #2dd4bf; border-color: rgba(45, 212, 191, 0.35); }
+
+.inf-card-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.74rem;
+    color: var(--text-secondary, #64748b);
+    font-weight: 600;
+}
+
+html.dark .inf-card-date {
+    color: #94a3b8;
+}
+
+.inf-card-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.inf-pdf-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25);
+}
+
+.inf-card-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.inf-card-title {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--text-main, #1e293b);
+    margin: 0 0 0.25rem 0;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+html.dark .inf-card-title {
+    color: #f1f5f9;
+}
+
+.inf-card-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #64748b);
+}
+
+html.dark .inf-card-meta {
+    color: #94a3b8;
+}
+
+.inf-card-meta-prod {
+    font-weight: 700;
+    color: var(--primary, #1a237e);
+}
+
+html.dark .inf-card-meta-prod {
+    color: #38bdf8;
+}
+
+.inf-card-notes {
+    background: rgba(0, 0, 0, 0.025);
+    border-left: 3px solid var(--primary, #1a237e);
+    border-radius: 0 8px 8px 0;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.79rem;
+    color: var(--text-main, #334155);
+    line-height: 1.4;
+    font-style: italic;
+    word-break: break-word;
+}
+
+html.dark .inf-card-notes {
+    background: rgba(255, 255, 255, 0.04);
+    border-left-color: #38bdf8;
+    color: #cbd5e1;
+}
+
+/* ── Acciones de la Tarjeta (Ver, WhatsApp, Copiar, Borrar) ─ */
+.inf-card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto auto;
+    gap: 0.45rem;
+    align-items: center;
+    padding-top: 0.45rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+html.dark .inf-card-actions {
+    border-top-color: rgba(255, 255, 255, 0.07);
+}
+
+.inf-btn-action {
+    height: 38px;
+    padding: 0 0.75rem;
+    border-radius: 0.65rem;
+    border: none;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.18s ease;
+}
+
+.inf-btn-view {
+    background: rgba(26, 35, 126, 0.08);
+    color: var(--primary, #1a237e);
+}
+
+.inf-btn-view:hover {
+    background: rgba(26, 35, 126, 0.16);
+    transform: translateY(-1px);
+}
+
+html.dark .inf-btn-view {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+}
+
+html.dark .inf-btn-view:hover {
+    background: rgba(56, 189, 248, 0.25);
+}
+
+/* Botón WhatsApp de alto impacto */
+.inf-btn-wa {
+    background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.25);
+}
+
+.inf-btn-wa:hover {
+    background: linear-gradient(135deg, #2ae06d 0%, #149c8c 100%);
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.38);
+    transform: translateY(-1px);
+}
+
+.inf-btn-icon-only {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: var(--text-secondary, #64748b);
+    border-radius: 0.65rem;
+}
+
+.inf-btn-icon-only:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-main, #1e293b);
+}
+
+html.dark .inf-btn-icon-only {
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+}
+
+html.dark .inf-btn-icon-only:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #f1f5f9;
+}
+
+.inf-btn-del:hover {
+    background: rgba(239, 68, 68, 0.12) !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+    color: #dc2626 !important;
+}
+
+/* ── Estado Vacío (Empty State) ───────────────────────────── */
+.inf-empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    background: var(--card-bg, #ffffff);
+    border: 2px dashed rgba(26, 35, 126, 0.15);
+    border-radius: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+html.dark .inf-empty-state {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.inf-empty-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 1.25rem;
+    background: rgba(26, 35, 126, 0.07);
+    color: var(--primary, #1a237e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+html.dark .inf-empty-icon {
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+}
+
+.inf-empty-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main, #1e293b);
+    margin: 0 0 0.35rem 0;
+}
+
+html.dark .inf-empty-title {
+    color: #f1f5f9;
+}
+
+.inf-empty-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #64748b);
+    max-width: 440px;
+    margin: 0 0 1.25rem 0;
+    line-height: 1.45;
+}
+
+html.dark .inf-empty-desc {
+    color: #94a3b8;
+}
+
+/* ── Dropzone & Modal de Carga ─────────────────────────────── */
+.inf-dropzone {
+    border: 2px dashed rgba(26, 35, 126, 0.25);
+    border-radius: 1rem;
+    padding: 1.75rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    background: rgba(26, 35, 126, 0.02);
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    position: relative;
+}
+
+.inf-dropzone:hover,
+.inf-dropzone.dragover {
+    border-color: var(--primary, #1a237e);
+    background: rgba(26, 35, 126, 0.06);
+}
+
+html.dark .inf-dropzone {
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+html.dark .inf-dropzone:hover,
+html.dark .inf-dropzone.dragover {
+    border-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+}
+
+.inf-dropzone-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(26, 35, 126, 0.08);
+    color: var(--primary, #1a237e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+html.dark .inf-dropzone-icon {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+}
+
+.inf-dropzone-txt {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-main, #1e293b);
+}
+
+html.dark .inf-dropzone-txt {
+    color: #f1f5f9;
+}
+
+.inf-dropzone-sub {
+    font-size: 0.74rem;
+    color: var(--text-secondary, #64748b);
+}
+
+html.dark .inf-dropzone-sub {
+    color: #94a3b8;
+}
+
+/* Archivo seleccionado en dropzone */
+.inf-selected-file {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    background: rgba(16, 185, 129, 0.09);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 0.85rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+}
+
+html.dark .inf-selected-file {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+.inf-selected-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.inf-selected-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #065f46;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+html.dark .inf-selected-name {
+    color: #34d399;
+}
+
+.inf-selected-size {
+    font-size: 0.72rem;
+    color: #047857;
+    white-space: nowrap;
+}
+
+html.dark .inf-selected-size {
+    color: #a7f3d0;
+}
+
+/* Shimmer Loading */
+.inf-skeleton-card {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+    border-radius: 1.15rem;
+    padding: 1.25rem;
+    height: 180px;
+    animation: infPulse 1.5s infinite;
+}
+
+html.dark .inf-skeleton-card {
+    background: rgba(30, 41, 59, 0.6);
+}
+
+@keyframes infPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}

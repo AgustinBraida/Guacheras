@@ -166,3 +166,26 @@ CREATE TABLE IF NOT EXISTS `pending_plans` (
   UNIQUE KEY `uq_pending_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ─── TABLA: informes_laboratorio ─────────────────────────────
+-- Almacenamiento de informes y análisis de laboratorio (PDF) vinculados a cada productor.
+CREATE TABLE IF NOT EXISTS `informes_laboratorio` (
+  `id`              INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  `user_id`         VARCHAR(36)   NOT NULL,
+  `productor`       VARCHAR(100)  NOT NULL,
+  `titulo`          VARCHAR(200)  NOT NULL,
+  `tipo_analisis`   VARCHAR(100)  NOT NULL DEFAULT 'General',
+  `fecha`           DATE          NOT NULL,
+  `archivo_nombre`  VARCHAR(255)  NOT NULL,
+  `archivo_ruta`    VARCHAR(255)  NOT NULL,
+  `archivo_url`     VARCHAR(500)  NOT NULL,
+  `archivo_tamano`  INT UNSIGNED  NOT NULL DEFAULT 0,
+  `notas`           TEXT          DEFAULT NULL,
+  `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_inf_user_prod`  (`user_id`, `productor`),
+  KEY `idx_inf_user_fecha` (`user_id`, `fecha`),
+  CONSTRAINT `fk_informes_user`
+    FOREIGN KEY (`user_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+

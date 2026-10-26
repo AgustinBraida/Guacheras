@@ -1,0 +1,7 @@
+# Bloquear ejecucion de scripts en la carpeta de subidas de informes
+Options -ExecCGI
+AddHandler cgi-script .php .pl .py .sh
+<FilesMatch "\.(php|php5|php7|phtml|pl|py|sh|cgi|exe)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>

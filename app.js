@@ -412,6 +412,9 @@ function renderFieldDatalists() {
     if (typeof window.updateRecorridasSelects === 'function') {
         window.updateRecorridasSelects();
     }
+    if (typeof window.InformesApp !== 'undefined' && typeof window.InformesApp.renderProductorSelector === 'function') {
+        window.InformesApp.renderProductorSelector();
+    }
 }
 
 function renderEstablecimientoDatalist(selectedProductor) {
@@ -442,15 +445,17 @@ function switchView(viewId, el) {
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
         el.classList.add('active');
     } else {
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(i => i.classList.remove('active'));
-        if (viewId === 'entrada') navItems[1].classList.add('active');
-        if (viewId === 'recorridas' && navItems[2]) navItems[2].classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        const navTarget = document.querySelector(`.nav-item[data-nav="${viewId}"]`);
+        if (navTarget) navTarget.classList.add('active');
     }
 
     if (viewId === 'reportes') renderTable();
     if (viewId === 'recorridas' && typeof window.initRecorridasView === 'function') {
         window.initRecorridasView();
+    }
+    if (viewId === 'informes' && typeof window.initInformesView === 'function') {
+        window.initInformesView();
     }
     if (viewId === 'perfil') {
         const countEl = document.getElementById('profile-records-count');

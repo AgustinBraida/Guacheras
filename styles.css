@@ -330,7 +330,7 @@ body {
     background-color: var(--bg-body);
     color: var(--text-main);
     line-height: 1.5;
-    padding-bottom: 85px;
+    padding-bottom: 95px;
     /* Space for bottom nav */
     min-height: 100vh;
 }
@@ -937,8 +937,11 @@ nav.bottom-nav {
     background: var(--nav-bg);
     backdrop-filter: blur(10px);
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    padding: 8px 4px calc(env(safe-area-inset-bottom) + 8px);
+    grid-template-columns: repeat(6, 1fr) !important;
+    grid-auto-flow: column;
+    grid-template-rows: 1fr;
+    align-items: center;
+    padding: 10px 4px calc(env(safe-area-inset-bottom) + 10px);
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.03);
     z-index: 1000;
 }
@@ -948,15 +951,15 @@ nav.bottom-nav {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 4px;
     color: var(--text-secondary);
     text-decoration: none;
-    font-size: 0.68rem;
+    font-size: 0.82rem;
     font-weight: 600;
     background: none;
     border: none;
     cursor: pointer;
-    padding: 2px 2px;
+    padding: 4px 2px;
     width: 100%;
     min-width: 0;
     transition: color 0.15s ease;
@@ -974,14 +977,14 @@ nav.bottom-nav {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 12px;
+    border-radius: 14px;
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .nav-item .nav-icon svg,
 .nav-item .nav-icon i {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
 }
 
 .nav-item.active {
@@ -991,17 +994,22 @@ nav.bottom-nav {
 .nav-item.active .nav-icon {
     background: #f0f2ff;
     color: var(--primary);
-    padding: 5px 12px;
-    border-radius: 12px;
+    padding: 6px 14px;
+    border-radius: 14px;
 }
 
-@media (max-width: 380px) {
+@media (max-width: 400px) {
     .nav-item {
-        font-size: 0.62rem;
-        gap: 2px;
+        font-size: 0.72rem;
+        gap: 3px;
+    }
+    .nav-item .nav-icon svg,
+    .nav-item .nav-icon i {
+        width: 21px;
+        height: 21px;
     }
     .nav-item.active .nav-icon {
-        padding: 4px 8px;
+        padding: 5px 10px;
     }
 }
 
@@ -1148,9 +1156,9 @@ nav.bottom-nav {
    AUTH SYSTEM — Additions Only. Do not modify above this line.
    ============================================================ */
 
-/* Bottom nav: 5 columns for Panel, Entrada, Recorridas, Reportes, Perfil */
+/* Bottom nav: 6 columns for Panel, Entrada, Recorridas, Informes, Reportes, Perfil */
 nav.bottom-nav {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr) !important;
 }
 
 /* Auth Fullscreen Overlay */
@@ -3716,19 +3724,19 @@ html.dark .profile-lugar-row {
 
 /* ══════════════════════════════════════════════════════════════
    📱 FIX MÓVIL: Modales no quedan tapados por la barra de nav
-   El bottom-nav mide ~68px. Los modales de fondo necesitan ese
+   El bottom-nav mide ~80px. Los modales de fondo necesitan ese
    espacio extra. Los modales de info se centran en pantalla.
    ══════════════════════════════════════════════════════════════ */
 @media (max-width: 767px) {
 
     /* ── Todos los bottom-sheet modales: dan espacio al nav ── */
     .modal-overlay {
-        padding-bottom: calc(env(safe-area-inset-bottom) + 68px);
+        padding-bottom: calc(env(safe-area-inset-bottom) + 80px);
     }
 
     /* Asegura que el contenido no se recorte */
     .modal-content {
-        max-height: calc(92vh - 68px - env(safe-area-inset-bottom));
+        max-height: calc(92vh - 80px - env(safe-area-inset-bottom));
     }
 
     /* ── Modales pequeños/informativos: centrar en pantalla ── */
@@ -3762,12 +3770,12 @@ html.dark .profile-lugar-row {
     #detailModal,
     #exportModal,
     #importExcelModal {
-        padding-bottom: calc(env(safe-area-inset-bottom) + 68px) !important;
+        padding-bottom: calc(env(safe-area-inset-bottom) + 80px) !important;
     }
 
     #detailModal .modal-content,
     #exportModal .modal-content,
     #importExcelModal .modal-content {
-        max-height: calc(90vh - 68px - env(safe-area-inset-bottom)) !important;
+        max-height: calc(90vh - 80px - env(safe-area-inset-bottom)) !important;
     }
 }
