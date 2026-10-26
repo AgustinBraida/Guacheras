@@ -98,6 +98,9 @@ const AuthManager = {
             if (dashConfig.kpiThresholds && typeof dashConfig.kpiThresholds === 'object') {
                 localStorage.setItem('vetfield_kpi_thresholds', JSON.stringify(dashConfig.kpiThresholds));
             }
+            if (dashConfig.calostroView) {
+                localStorage.setItem('vetfield_calostro_view', dashConfig.calostroView);
+            }
             localStorage.setItem('vetfield_dashboard_config', JSON.stringify(dashConfig));
         }
 
@@ -172,6 +175,9 @@ const AuthManager = {
         }
         if (mergedConfig.kpiThresholds && typeof mergedConfig.kpiThresholds === 'object') {
             localStorage.setItem('vetfield_kpi_thresholds', JSON.stringify(mergedConfig.kpiThresholds));
+        }
+        if (mergedConfig.calostroView) {
+            localStorage.setItem('vetfield_calostro_view', mergedConfig.calostroView);
         }
         const sess = this.getSession();
         if (sess) {

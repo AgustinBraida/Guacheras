@@ -121,10 +121,17 @@ const MOCK_RECORDS = (function generateMockData() {
             }
         }
 
+        const litros_calostro_madre = tipo_madre === 'Vaca'
+            ? parseFloat((rng() * 6 + 3.5).toFixed(1))
+            : parseFloat((rng() * 3.8 + 2.0).toFixed(1));
+        const rp_madre = `M-${String((idx % 250) + 1).padStart(3, '0')}`;
+
         return {
             id: idx,
             productor: prod, establecimiento: est, fecha,
             rp_ternero: `T-${String(idx).padStart(4,'0')}`,
+            rp_madre,
+            litros_calostro_madre,
             ig_ternero, ig_calostro, sexo,
             ombligo: pickOmbligo(estado),
             tipo_madre, tipo_parto, tipo_calostro, metodo_calostrado, estado,
@@ -219,6 +226,8 @@ function _loadKpiThresholds(custom) {
         const defIg = _getDefaultIgThresholds(metodo);
         const highKey = metodo === 'brix' ? 'igHigh_brix' : 'igHigh_mgdl';
         const midKey  = metodo === 'brix' ? 'igMid_brix'  : 'igMid_mgdl';
+        const highMadreKey = metodo === 'brix' ? 'igMadreHigh_brix' : 'igMadreHigh_mgdl';
+        const midMadreKey  = metodo === 'brix' ? 'igMadreMid_brix'  : 'igMadreMid_mgdl';
         return {
             mortHigh: saved?.mortHigh ?? 5,
             mortMid:  saved?.mortMid  ?? 3,
@@ -228,9 +237,20 @@ function _loadKpiThresholds(custom) {
             igMid_brix:  saved?.igMid_brix  ?? (saved?.igMid  !== undefined && metodo === 'brix' ? saved.igMid  : 18),
             igHigh_mgdl: saved?.igHigh_mgdl ?? (saved?.igHigh !== undefined && metodo === 'mgdl' ? saved.igHigh : 15),
             igMid_mgdl:  saved?.igMid_mgdl  ?? (saved?.igMid  !== undefined && metodo === 'mgdl' ? saved.igMid  : 10),
+
+            igMadreHigh: saved?.[highMadreKey] ?? saved?.igMadreHigh ?? defIg.high,
+            igMadreMid:  saved?.[midMadreKey]  ?? saved?.igMadreMid  ?? defIg.mid,
+            igMadreHigh_brix: saved?.igMadreHigh_brix ?? (saved?.igMadreHigh !== undefined && metodo === 'brix' ? saved.igMadreHigh : 22),
+            igMadreMid_brix:  saved?.igMadreMid_brix  ?? (saved?.igMadreMid  !== undefined && metodo === 'brix' ? saved.igMadreMid  : 18),
+            igMadreHigh_mgdl: saved?.igMadreHigh_mgdl ?? (saved?.igMadreHigh !== undefined && metodo === 'mgdl' ? saved.igMadreHigh : 15),
+            igMadreMid_mgdl:  saved?.igMadreMid_mgdl  ?? (saved?.igMadreMid  !== undefined && metodo === 'mgdl' ? saved.igMadreMid  : 10),
         };
     } catch {
-        return { mortHigh: 5, mortMid: 3, igHigh: 22, igMid: 18, igHigh_brix: 22, igMid_brix: 18, igHigh_mgdl: 15, igMid_mgdl: 10 };
+        return {
+            mortHigh: 5, mortMid: 3,
+            igHigh: 22, igMid: 18, igHigh_brix: 22, igMid_brix: 18, igHigh_mgdl: 15, igMid_mgdl: 10,
+            igMadreHigh: 22, igMadreMid: 18, igMadreHigh_brix: 22, igMadreMid_brix: 18, igMadreHigh_mgdl: 15, igMadreMid_mgdl: 10
+        };
     }
 }
 
@@ -239,10 +259,12 @@ let _kpiThresholds = _loadKpiThresholds();
 // Inicializar inputs del panel con valores guardados
 function _initKpiPanelInputs() {
     const ids = [
-        ['kpi_mort_thr_high', _kpiThresholds.mortHigh],
-        ['kpi_mort_thr_mid',  _kpiThresholds.mortMid],
-        ['kpi_ig_thr_high',   _kpiThresholds.igHigh],
-        ['kpi_ig_thr_mid',    _kpiThresholds.igMid],
+        ['kpi_mort_thr_high',     _kpiThresholds.mortHigh],
+        ['kpi_mort_thr_mid',      _kpiThresholds.mortMid],
+        ['kpi_ig_thr_high',       _kpiThresholds.igHigh],
+        ['kpi_ig_thr_mid',        _kpiThresholds.igMid],
+        ['kpi_ig_madre_thr_high', _kpiThresholds.igMadreHigh],
+        ['kpi_ig_madre_thr_mid',  _kpiThresholds.igMadreMid],
     ];
     ids.forEach(([id, val]) => {
         const el = document.getElementById(id);
@@ -385,6 +407,21 @@ const _kpiInfoData = {
                  <li><span style="color:#dc2626;font-weight:700;">⚠️ Bajo</span> → por debajo del umbral medio</li>
                </ul>
                <p style="margin-top:10px;">La unidad (% Brix o mg/dL) depende de la preferencia configurada en el perfil.</p>`
+    },
+    ig_madre: {
+        icon: '🐄',
+        iconBg: 'rgba(46,125,50,0.08)',
+        category: 'Calostro Materno',
+        title: 'Promedio I.G. Madre',
+        formula: 'Suma de I.G. de calostro de madres ÷ Cantidad de madres con medición cargada',
+        desc: `<p>Mide la calidad y concentración promedio de <strong>Inmunoglobulinas en el calostro producido por las madres</strong> al momento del parto (medido en °Brix o mg/dL).</p>
+               <p style="margin-top:8px;"><strong>Umbrales de referencia:</strong></p>
+               <ul style="margin:6px 0 0 14px;padding:0;list-style:disc;">
+                 <li><span style="color:#16a34a;font-weight:700;">✅ Óptimo</span> → ≥ umbral alto (por defecto 22% Brix)</li>
+                 <li><span style="color:#d97706;font-weight:700;">⚡ Aceptable</span> → entre umbral medio y alto</li>
+                 <li><span style="color:#dc2626;font-weight:700;">⚠️ Bajo</span> → por debajo del umbral medio</li>
+               </ul>
+               <p style="margin-top:10px;">Los umbrales ⚙️ son configurables y se guardan en tu cuenta para sincronizarse en todos tus dispositivos.</p>`
     },
     recuperacion: {
         icon: '📈',
@@ -585,6 +622,22 @@ Contabiliza las pérdidas ocurridas antes de que el ternero comience formalmente
 </ul>
 <p style="margin-top:10px;"><strong>¿Qué significa?</strong><br>
 Distingue los problemas obstétricos y de sanidad reproductiva del tambo de la eficiencia propia de la guachera. Ayuda a investigar enfermedades infecciosas reproductivas y el protocolo de atención inmediata del recién nacido.</p>`
+    },
+
+    chart_litros_calostro: {
+        icon: '🍼',
+        iconBg: 'rgba(59, 130, 246, 0.1)',
+        category: 'Nutrición preparto',
+        title: 'Volumen vs Calidad de Calostro (Vacas vs Vaquillonas)',
+        formula: 'Litros de Calostro de la Madre vs Concentración I.G. (°Brix / mg/dL)',
+        desc: `<p><strong>¿A qué hace referencia?</strong><br>
+Evalúa la relación directa entre la cantidad de calostro producida por la madre y su calidad inmunológica, diferenciando el comportamiento de vacas multíparas frente a vaquillonas de primer parto.</p>
+<p style="margin-top:8px;"><strong>¿Qué indica para el manejo y dieta preparto?</strong></p>
+<ul style="margin:4px 0 0 14px;padding:0;list-style:disc;">
+  <li><strong>Efecto Dilución:</strong> En animales de muy alta producción de calostro suele observarse una dilución de anticuerpos (menor °Brix). Una adecuada nutrición en el período seco ayuda a sostener altos niveles de I.G. incluso con volúmenes elevados.</li>
+  <li><strong>Vacas vs Vaquillonas:</strong> Las vaquillonas frecuentemente producen menor volumen pero con concentraciones elevadas de inmunoglobulinas.</li>
+</ul>
+<p style="margin-top:10px;">Podés alternar con el selector superior entre la vista de <strong>Curvas</strong> (promedios por rangos de litros) y la vista de <strong>Puntos</strong> (cada madre mapeada individualmente).</p>`
     }
 };
 
@@ -663,6 +716,20 @@ function saveKpiRanges(type) {
         const midKey  = metodo === 'brix' ? 'igMid_brix'  : 'igMid_mgdl';
         _kpiThresholds[highKey] = high;
         _kpiThresholds[midKey]  = mid;
+    } else if (type === 'ig_madre') {
+        const high = parseFloat(document.getElementById('kpi_ig_madre_thr_high')?.value);
+        const mid  = parseFloat(document.getElementById('kpi_ig_madre_thr_mid')?.value);
+        if (isNaN(high) || isNaN(mid) || mid >= high) {
+            alert('El umbral “Aceptable” debe ser menor que el umbral “Óptimo”.');
+            return;
+        }
+        _kpiThresholds.igMadreHigh = high;
+        _kpiThresholds.igMadreMid  = mid;
+        const metodo = _getIgMetodo();
+        const highKey = metodo === 'brix' ? 'igMadreHigh_brix' : 'igMadreHigh_mgdl';
+        const midKey  = metodo === 'brix' ? 'igMadreMid_brix'  : 'igMadreMid_mgdl';
+        _kpiThresholds[highKey] = high;
+        _kpiThresholds[midKey]  = mid;
     }
     try { localStorage.setItem(_KPI_THRESHOLDS_KEY, JSON.stringify(_kpiThresholds)); } catch {}
 
@@ -692,9 +759,16 @@ function refreshDashboardIgMetodo(metodo) {
         const midKey  = isBrix ? 'igMid_brix'  : 'igMid_mgdl';
         _kpiThresholds.igHigh = saved[highKey] ?? defIg.high;
         _kpiThresholds.igMid  = saved[midKey]  ?? defIg.mid;
+
+        const highMadreKey = isBrix ? 'igMadreHigh_brix' : 'igMadreHigh_mgdl';
+        const midMadreKey  = isBrix ? 'igMadreMid_brix'  : 'igMadreMid_mgdl';
+        _kpiThresholds.igMadreHigh = saved[highMadreKey] ?? defIg.high;
+        _kpiThresholds.igMadreMid  = saved[midMadreKey]  ?? defIg.mid;
     } catch {
         _kpiThresholds.igHigh = defIg.high;
         _kpiThresholds.igMid  = defIg.mid;
+        _kpiThresholds.igMadreHigh = defIg.high;
+        _kpiThresholds.igMadreMid  = defIg.mid;
     }
     _initKpiPanelInputs();
 
@@ -920,6 +994,7 @@ function renderDashboard() {
     _renderTipoParto(data);
     _renderPerinatal(data);
     _renderBrixSalud(data);
+    _renderLitrosCalostro(data);
 }
 window.renderDashboard = renderDashboard;
 
@@ -939,6 +1014,9 @@ function _renderKPIs(data) {
 
     const igs = data.map(r => parseFloat(r.ig_ternero)).filter(v => !isNaN(v));
     const avgIg = igs.length > 0 ? igs.reduce((a, b) => a + b, 0) / igs.length : 0;
+
+    const igsMadre = data.map(r => parseFloat(r.ig_calostro)).filter(v => !isNaN(v));
+    const avgIgMadre = igsMadre.length > 0 ? igsMadre.reduce((a, b) => a + b, 0) / igsMadre.length : null;
 
     const enTerapia = data.filter(r => r.estado === 'Muerto en Terapia').length;
     const tasaRecuperacion = totalCrianza > 0
@@ -969,7 +1047,8 @@ function _renderKPIs(data) {
             );
         }
     }
-    if (el('kpi_ig')) el('kpi_ig').textContent = avgIg.toFixed(1);
+    if (el('kpi_ig')) el('kpi_ig').textContent = igs.length > 0 ? avgIg.toFixed(1) : '—';
+    if (el('kpi_ig_madre')) el('kpi_ig_madre').textContent = avgIgMadre !== null ? avgIgMadre.toFixed(1) : '—';
     if (el('kpi_recuperacion')) el('kpi_recuperacion').textContent = tasaRecuperacion.toFixed(1) + '%';
 
     // Sub-labels
@@ -988,17 +1067,43 @@ function _renderKPIs(data) {
                 ? '⚡ Aceptable'
                 : '⚠️ Bajo';
         const unit = _getIgMetodo() === 'brix' ? '% Brix' : 'mg/dL';
-        el('kpi_ig_sub').textContent = `${igLevel} · ${unit}`;
+        el('kpi_ig_sub').textContent = igs.length > 0 ? `${igLevel} · ${unit}` : `Sin datos · ${unit}`;
         // Aplicar color de estado a la card IG
         const igCard = el('kpi_ig_card');
         if (igCard) {
             igCard.classList.remove('kpi-state--success', 'kpi-state--warning', 'kpi-state--danger');
-            if (avgIg >= _kpiThresholds.igHigh)      igCard.classList.add('kpi-state--success');
-            else if (avgIg >= _kpiThresholds.igMid)  igCard.classList.add('kpi-state--warning');
-            else                                      igCard.classList.add('kpi-state--danger');
+            if (igs.length > 0) {
+                if (avgIg >= _kpiThresholds.igHigh)      igCard.classList.add('kpi-state--success');
+                else if (avgIg >= _kpiThresholds.igMid)  igCard.classList.add('kpi-state--warning');
+                else                                      igCard.classList.add('kpi-state--danger');
+            }
+        }
+    }
+    if (el('kpi_ig_madre_sub')) {
+        const unit = _getIgMetodo() === 'brix' ? '% Brix' : 'mg/dL';
+        const igMadreCard = el('kpi_ig_madre_card');
+        if (avgIgMadre === null) {
+            el('kpi_ig_madre_sub').textContent = `Sin datos · ${unit}`;
+            if (igMadreCard) {
+                igMadreCard.classList.remove('kpi-state--success', 'kpi-state--warning', 'kpi-state--danger');
+            }
+        } else {
+            const igMadreLevel = avgIgMadre >= _kpiThresholds.igMadreHigh
+                ? '✅ Óptimo'
+                : avgIgMadre >= _kpiThresholds.igMadreMid
+                    ? '⚡ Aceptable'
+                    : '⚠️ Bajo';
+            el('kpi_ig_madre_sub').textContent = `${igMadreLevel} · ${unit}`;
+            if (igMadreCard) {
+                igMadreCard.classList.remove('kpi-state--success', 'kpi-state--warning', 'kpi-state--danger');
+                if (avgIgMadre >= _kpiThresholds.igMadreHigh)      igMadreCard.classList.add('kpi-state--success');
+                else if (avgIgMadre >= _kpiThresholds.igMadreMid)  igMadreCard.classList.add('kpi-state--warning');
+                else                                               igMadreCard.classList.add('kpi-state--danger');
+            }
         }
     }
     if (el('kpi_recuperacion_sub')) el('kpi_recuperacion_sub').textContent = `${enTerapia} en terapia`;
+    if (window.lucide) window.lucide.createIcons();
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -2004,6 +2109,347 @@ function _renderBrixSalud(data) {
 }
 
 // ────────────────────────────────────────────────────────────────
+// Selector y renderizado de Volumen vs Calidad de Calostro
+// (Vacas vs Vaquillonas — Líneas vs Dispersión)
+// ────────────────────────────────────────────────────────────────
+function _getCalostroView() {
+    try {
+        if (typeof AuthManager !== 'undefined' && typeof AuthManager.getDashboardConfig === 'function') {
+            const dc = AuthManager.getDashboardConfig();
+            if (dc && dc.calostroView) return dc.calostroView;
+        }
+        const saved = localStorage.getItem('vetfield_calostro_view');
+        if (saved) return saved;
+    } catch {}
+    return 'lines'; // Por defecto curvas
+}
+
+function _updateCalostroViewButtons(view) {
+    const btnLines = document.getElementById('btn_calostro_view_lines');
+    const btnScatter = document.getElementById('btn_calostro_view_scatter');
+    if (btnLines && btnScatter) {
+        if (view === 'scatter') {
+            btnLines.classList.remove('active');
+            btnScatter.classList.add('active');
+        } else {
+            btnScatter.classList.remove('active');
+            btnLines.classList.add('active');
+        }
+    }
+}
+
+window.setCalostroView = function(view) {
+    localStorage.setItem('vetfield_calostro_view', view);
+    if (typeof AuthManager !== 'undefined' && typeof AuthManager.saveDashboardConfig === 'function') {
+        AuthManager.saveDashboardConfig({ calostroView: view });
+    }
+    _updateCalostroViewButtons(view);
+    const data = _getDashRecords();
+    _renderLitrosCalostro(data);
+};
+
+function _renderLitrosCalostro(data) {
+    const ctx = _getCtx('chart_litros_calostro');
+    if (!ctx) return;
+
+    const canvasEl = ctx.canvas || ctx;
+    const wrapper = canvasEl.parentElement;
+    const oldOverlay = wrapper?.querySelector('.dash-no-data-overlay');
+    if (oldOverlay) oldOverlay.remove();
+
+    const isBrix = _getIgMetodo() === 'brix';
+    const unit = isBrix ? '% Brix' : 'mg/dL';
+    const threshold = _kpiThresholds.igMadreHigh ?? (isBrix ? 22.0 : 15.0);
+
+    const valid = (data || []).filter(r => {
+        const lit = parseFloat(r.litros_calostro_madre);
+        const ig = parseFloat(r.ig_calostro);
+        return !isNaN(lit) && lit > 0 && !isNaN(ig) && ig > 0;
+    });
+
+    const isVaca = r => {
+        const t = (r.tipo_madre || '').toLowerCase().trim();
+        return t === 'vaca' || (t.includes('vaca') && !t.includes('vaquillona'));
+    };
+    const isVaquillona = r => {
+        const t = (r.tipo_madre || '').toLowerCase().trim();
+        return t.includes('vaquillona');
+    };
+
+    const vacas = valid.filter(isVaca);
+    const vaquillonas = valid.filter(isVaquillona);
+
+    // Calcular promedios para el badge comparativo de cabecera
+    const vacaAvgLit = vacas.length ? (vacas.reduce((a, b) => a + parseFloat(b.litros_calostro_madre), 0) / vacas.length).toFixed(1) : null;
+    const vacaAvgIg  = vacas.length ? (vacas.reduce((a, b) => a + parseFloat(b.ig_calostro), 0) / vacas.length).toFixed(1) : null;
+    const vaqAvgLit  = vaquillonas.length ? (vaquillonas.reduce((a, b) => a + parseFloat(b.litros_calostro_madre), 0) / vaquillonas.length).toFixed(1) : null;
+    const vaqAvgIg   = vaquillonas.length ? (vaquillonas.reduce((a, b) => a + parseFloat(b.ig_calostro), 0) / vaquillonas.length).toFixed(1) : null;
+
+    const vacaEl = document.getElementById('vaca_avg_summary');
+    if (vacaEl) vacaEl.textContent = (vacaAvgLit !== null && vacaAvgIg !== null) ? `${vacaAvgLit} L · ${vacaAvgIg} ${unit}` : 'Sin datos';
+    const vaqEl = document.getElementById('vaq_avg_summary');
+    if (vaqEl) vaqEl.textContent = (vaqAvgLit !== null && vaqAvgIg !== null) ? `${vaqAvgLit} L · ${vaqAvgIg} ${unit}` : 'Sin datos';
+
+    if (valid.length === 0) {
+        if (wrapper) {
+            wrapper.style.position = 'relative';
+            const overlay = document.createElement('div');
+            overlay.className = 'dash-no-data-overlay';
+            overlay.innerHTML = `
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+                            background:rgba(255,255,255,0.85);border-radius:12px;z-index:5;flex-direction:column;gap:8px;">
+                    <span style="font-size:2.2rem;">🍼</span>
+                    <span style="color:#64748b;font-size:0.95rem;font-weight:500;text-align:center;max-width:320px;">
+                        Sin datos de Litros vs Calidad de Calostro.<br>
+                        <span style="font-size:0.82rem;color:#94a3b8;">Cargá litros cosechados e I.G. de la madre para visualizar la comparativa.</span>
+                    </span>
+                </div>`;
+            wrapper.appendChild(overlay);
+        }
+        return;
+    }
+
+    const view = _getCalostroView();
+    _updateCalostroViewButtons(view);
+    const theme = _getChartTheme();
+
+    // Plugin para línea horizontal de umbral óptimo
+    const umbralPlugin = {
+        id: 'umbralOptimoCalostro',
+        afterDraw(chart) {
+            const { ctx: c, chartArea, scales } = chart;
+            if (!scales.y || !chartArea) return;
+            const yPx = scales.y.getPixelForValue(threshold);
+            if (yPx < chartArea.top || yPx > chartArea.bottom) return;
+            c.save();
+            c.beginPath();
+            c.strokeStyle = '#16a34a';
+            c.lineWidth = 1.6;
+            c.setLineDash([5, 4]);
+            c.moveTo(chartArea.left, yPx);
+            c.lineTo(chartArea.right, yPx);
+            c.stroke();
+            c.setLineDash([]);
+            c.fillStyle = theme.isDark ? '#4ade80' : '#16a34a';
+            c.font = '10px Inter, sans-serif';
+            c.textAlign = 'right';
+            c.fillText(`Óptimo ≥ ${threshold} ${unit}`, chartArea.right - 8, yPx - 4);
+            c.restore();
+        }
+    };
+
+    if (view === 'lines') {
+        // Vista CURVAS: agrupado por rangos de litros
+        const buckets = [
+            { label: '≤ 3 L',     min: 0,    max: 3.09 },
+            { label: '3.1 - 5 L', min: 3.1,  max: 5.09 },
+            { label: '5.1 - 7 L', min: 5.1,  max: 7.09 },
+            { label: '7.1 - 9 L', min: 7.1,  max: 9.09 },
+            { label: '> 9 L',     min: 9.1,  max: 999.0 }
+        ];
+
+        const vacaData = [];
+        const vacaCounts = [];
+        const vaqData = [];
+        const vaqCounts = [];
+
+        buckets.forEach(b => {
+            const inBucketVacas = vacas.filter(r => {
+                const l = parseFloat(r.litros_calostro_madre);
+                return l >= b.min && l <= b.max;
+            });
+            const inBucketVaq = vaquillonas.filter(r => {
+                const l = parseFloat(r.litros_calostro_madre);
+                return l >= b.min && l <= b.max;
+            });
+
+            if (inBucketVacas.length > 0) {
+                const avg = inBucketVacas.reduce((acc, r) => acc + parseFloat(r.ig_calostro), 0) / inBucketVacas.length;
+                vacaData.push(parseFloat(avg.toFixed(1)));
+                vacaCounts.push(inBucketVacas.length);
+            } else {
+                vacaData.push(null);
+                vacaCounts.push(0);
+            }
+
+            if (inBucketVaq.length > 0) {
+                const avg = inBucketVaq.reduce((acc, r) => acc + parseFloat(r.ig_calostro), 0) / inBucketVaq.length;
+                vaqData.push(parseFloat(avg.toFixed(1)));
+                vaqCounts.push(inBucketVaq.length);
+            } else {
+                vaqData.push(null);
+                vaqCounts.push(0);
+            }
+        });
+
+        _dashCharts.chart_litros_calostro = new Chart(ctx, {
+            type: 'line',
+            plugins: [umbralPlugin],
+            data: {
+                labels: buckets.map(b => b.label),
+                datasets: [
+                    {
+                        label: '🐄 Vacas',
+                        data: vacaData,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                        borderWidth: 2.5,
+                        tension: 0.35,
+                        fill: false,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#2563eb',
+                        spanGaps: true,
+                        counts: vacaCounts
+                    },
+                    {
+                        label: '🐮 Vaquillonas',
+                        data: vaqData,
+                        borderColor: '#7c3aed',
+                        backgroundColor: 'rgba(124, 58, 237, 0.08)',
+                        borderWidth: 2.5,
+                        tension: 0.35,
+                        fill: false,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#7c3aed',
+                        spanGaps: true,
+                        counts: vaqCounts
+                    }
+                ]
+            },
+            options: {
+                ...CHART_DEFAULTS,
+                plugins: {
+                    ...CHART_DEFAULTS.plugins,
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: { family: 'Inter', size: 12, weight: 600 },
+                            usePointStyle: true,
+                            padding: 14,
+                            color: theme.legendText
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(c) {
+                                const ds = c.dataset;
+                                const count = ds.counts ? ds.counts[c.dataIndex] : 0;
+                                return ` ${ds.label}: ${c.raw} ${unit} (promedio de ${count} ${count === 1 ? 'parto' : 'partos'})`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Rango de Litros Cosechados', color: theme.textAxisTitle, font: { family: 'Inter', size: 11, weight: 600 } },
+                        grid: { display: false },
+                        ticks: { color: theme.textSecondary }
+                    },
+                    y: {
+                        title: { display: true, text: `Calidad de Calostro (${unit})`, color: theme.textAxisTitle, font: { family: 'Inter', size: 11, weight: 600 } },
+                        grid: { color: theme.gridFaint },
+                        ticks: { color: theme.textSecondary },
+                        suggestedMin: 10,
+                        suggestedMax: 30
+                    }
+                }
+            }
+        });
+    } else {
+        // Vista PUNTOS (Scatter)
+        const vacasPoints = vacas.map(r => ({
+            x: parseFloat(r.litros_calostro_madre),
+            y: parseFloat(r.ig_calostro),
+            rp_madre: r.rp_madre || 'S/N',
+            rp_ternero: r.rp_ternero || r.rp || 'S/N'
+        }));
+
+        const vaqPoints = vaquillonas.map(r => ({
+            x: parseFloat(r.litros_calostro_madre),
+            y: parseFloat(r.ig_calostro),
+            rp_madre: r.rp_madre || 'S/N',
+            rp_ternero: r.rp_ternero || r.rp || 'S/N'
+        }));
+
+        _dashCharts.chart_litros_calostro = new Chart(ctx, {
+            type: 'scatter',
+            plugins: [umbralPlugin],
+            data: {
+                datasets: [
+                    {
+                        label: '🐄 Vacas',
+                        data: vacasPoints,
+                        backgroundColor: 'rgba(37, 99, 235, 0.70)',
+                        borderColor: '#2563eb',
+                        borderWidth: 1.5,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    },
+                    {
+                        label: '🐮 Vaquillonas',
+                        data: vaqPoints,
+                        backgroundColor: 'rgba(124, 58, 237, 0.70)',
+                        borderColor: '#7c3aed',
+                        borderWidth: 1.5,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }
+                ]
+            },
+            options: {
+                ...CHART_DEFAULTS,
+                plugins: {
+                    ...CHART_DEFAULTS.plugins,
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: { family: 'Inter', size: 12, weight: 600 },
+                            usePointStyle: true,
+                            padding: 14,
+                            color: theme.legendText
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(c) {
+                                const pt = c.raw;
+                                const dsLabel = c.dataset.label;
+                                return [
+                                    ` ${dsLabel} · RP Madre: ${pt.rp_madre}`,
+                                    ` Volumen: ${pt.x} Litros · Calidad: ${pt.y} ${unit}`,
+                                    ` Ternero: ${pt.rp_ternero}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Litros de Calostro Producidos', color: theme.textAxisTitle, font: { family: 'Inter', size: 11, weight: 600 } },
+                        grid: { color: theme.gridFaint },
+                        ticks: { color: theme.textSecondary },
+                        suggestedMin: 0,
+                        suggestedMax: 12
+                    },
+                    y: {
+                        title: { display: true, text: `Calidad de Calostro (${unit})`, color: theme.textAxisTitle, font: { family: 'Inter', size: 11, weight: 600 } },
+                        grid: { color: theme.gridFaint },
+                        ticks: { color: theme.textSecondary },
+                        suggestedMin: 10,
+                        suggestedMax: 30
+                    }
+                }
+            }
+        });
+    }
+}
+window._renderLitrosCalostro = _renderLitrosCalostro;
+
+// ────────────────────────────────────────────────────────────────
 // 4. Desempeño por Tipo de Madre — Stacked BarChart
 // ────────────────────────────────────────────────────────────────
 function _renderDesempenoMadre(data) {
@@ -2754,6 +3200,22 @@ function _setChartsForExport(forPdf = true) {
             if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = '#000000';
         }
 
+        if (_dashCharts.chart_brix_salud) {
+            const c = _dashCharts.chart_brix_salud;
+            if (c.options?.scales?.x?.title) c.options.scales.x.title.color = '#000000';
+            if (c.options?.scales?.y?.title) c.options.scales.y.title.color = '#000000';
+            if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = '#000000';
+            if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = '#000000';
+        }
+
+        if (_dashCharts.chart_litros_calostro) {
+            const c = _dashCharts.chart_litros_calostro;
+            if (c.options?.scales?.x?.title) c.options.scales.x.title.color = '#000000';
+            if (c.options?.scales?.y?.title) c.options.scales.y.title.color = '#000000';
+            if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = '#000000';
+            if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = '#000000';
+        }
+
         if (_dashCharts.chart_sexo) {
             const c = _dashCharts.chart_sexo;
             if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = '#000000';
@@ -2837,30 +3299,38 @@ window.exportDashboardPDF = function(btnEl) {
             const _kpiMortBadge  = document.getElementById('kpi_mortalidad_badge')?.textContent?.trim() || '';
             const _kpiIg         = document.getElementById('kpi_ig')?.textContent?.trim() || '-';
             const _kpiIgSub      = document.getElementById('kpi_ig_sub')?.textContent?.trim() || '';
+            const _kpiIgMadre    = document.getElementById('kpi_ig_madre')?.textContent?.trim() || '-';
+            const _kpiIgMadreSub = document.getElementById('kpi_ig_madre_sub')?.textContent?.trim() || '';
             const _kpiRecup      = document.getElementById('kpi_recuperacion')?.textContent?.trim() || '-';
             const _kpiRecupSub   = document.getElementById('kpi_recuperacion_sub')?.textContent?.trim() || '';
 
             // Detectar estados de color para mortalidad e IG
-            const _mortCard = document.getElementById('kpi_mortalidad_card');
-            const _igCard   = document.getElementById('kpi_ig_card');
+            const _mortCard      = document.getElementById('kpi_mortalidad_card');
+            const _igCard        = document.getElementById('kpi_ig_card');
+            const _igMadreCard   = document.getElementById('kpi_ig_madre_card');
             const _mortIsDanger  = _mortCard?.classList.contains('kpi-danger');
             const _mortIsWarning = _mortCard?.classList.contains('kpi-warning');
             const _igIsSuccess   = _igCard?.classList.contains('kpi-state--success');
             const _igIsWarning   = _igCard?.classList.contains('kpi-state--warning');
             const _igIsDanger    = _igCard?.classList.contains('kpi-state--danger');
+            const _igMadreIsSuccess = _igMadreCard?.classList.contains('kpi-state--success');
+            const _igMadreIsWarning = _igMadreCard?.classList.contains('kpi-state--warning');
+            const _igMadreIsDanger  = _igMadreCard?.classList.contains('kpi-state--danger');
 
             // Colores por estado
-            const _colorMort   = _mortIsDanger ? [220, 38, 38] : _mortIsWarning ? [234, 88, 12] : [22, 163, 74];
-            const _colorIg     = _igIsSuccess  ? [22, 163, 74] : _igIsWarning  ? [234, 88, 12] : _igIsDanger ? [220, 38, 38] : [99, 102, 241];
-            const _colorTotal  = [99, 102, 241];   // índigo (neutro)
-            const _colorRecup  = [99, 102, 241];   // índigo (neutro, como la UI)
+            const _colorMort     = _mortIsDanger ? [220, 38, 38] : _mortIsWarning ? [234, 88, 12] : [22, 163, 74];
+            const _colorIg       = _igIsSuccess  ? [22, 163, 74] : _igIsWarning  ? [234, 88, 12] : _igIsDanger ? [220, 38, 38] : [99, 102, 241];
+            const _colorIgMadre  = _igMadreIsSuccess ? [22, 163, 74] : _igMadreIsWarning ? [234, 88, 12] : _igMadreIsDanger ? [220, 38, 38] : [99, 102, 241];
+            const _colorTotal    = [99, 102, 241];   // índigo (neutro)
+            const _colorRecup    = [99, 102, 241];   // índigo (neutro, como la UI)
 
-            // Layout: 4 tarjetas en fila
+            // Layout: tarjetas en fila
             const _kpiCards = [
-                { label: 'TOTAL EVALUADOS',     value: _kpiTotal,  sub: _kpiTotalSub,  color: _colorTotal },
-                { label: 'TASA DE MORTALIDAD',  value: _kpiMort,   sub: _kpiMortBadge, color: _colorMort  },
-                { label: 'PROMEDIO I.G. TERNERO', value: _kpiIg,   sub: _kpiIgSub,     color: _colorIg    },
-                { label: 'TASA DE SUPERVIVENCIA',  value: _kpiRecup, sub: _kpiRecupSub, color: _colorRecup },
+                { label: 'TOTAL EVALUADOS',       value: _kpiTotal,     sub: _kpiTotalSub,     color: _colorTotal },
+                { label: 'TASA DE MORTALIDAD',    value: _kpiMort,      sub: _kpiMortBadge,    color: _colorMort  },
+                { label: 'PROMEDIO I.G. TERNERO', value: _kpiIg,        sub: _kpiIgSub,        color: _colorIg    },
+                { label: 'PROMEDIO I.G. MADRE',   value: _kpiIgMadre,   sub: _kpiIgMadreSub,   color: _colorIgMadre },
+                { label: 'TASA DE SUPERVIVENCIA', value: _kpiRecup,     sub: _kpiRecupSub,     color: _colorRecup },
             ];
 
             const _cardMargin = 4;
@@ -2918,7 +3388,14 @@ window.exportDashboardPDF = function(btnEl) {
                     const canvas = card.querySelector('canvas');
                     
                     if (canvas) {
-                        if (yPos > 240) {
+                        const chartInstance = window.Chart ? window.Chart.getChart(canvas) : null;
+                        const isDoughnut = chartInstance?.config?.type === 'doughnut' || canvas.id === 'chart_ombligos';
+                        const rawRatio = canvas.height / canvas.width;
+                        // Si es un donut de ancho completo (ratio bajo), su ratio final será 0.40 para igualar a los otros
+                        const effectiveRatio = (isDoughnut && rawRatio < 0.35) ? 0.40 : rawRatio;
+                        const estHeight = (pageWidth - 28) * effectiveRatio;
+
+                        if (yPos + estHeight + 12 > 280 || yPos > 240) {
                             doc.addPage();
                             yPos = 20;
                         }
@@ -2946,7 +3423,6 @@ window.exportDashboardPDF = function(btnEl) {
                         tCtx.scale(_dpr, _dpr);
 
                         // 3. Dibujar etiquetas de datos visibles para el PDF (en negro)
-                        const chartInstance = window.Chart ? window.Chart.getChart(canvas) : null;
                         if (chartInstance) {
                             const chartId = canvas.id;
 
@@ -2958,8 +3434,15 @@ window.exportDashboardPDF = function(btnEl) {
                                     const dataVal = dataset.data[index];
                                     if (dataVal === null || dataVal === undefined || dataVal === 0 || dataVal === '0.0') return;
 
-                                    // ── Scatter: sin etiquetas numéricas ──────────────────
-                                    if (chartId === 'chart_calostro') return;
+                                    // ── Gráficos de dispersión (Scatter) o puntos con coordenadas {x, y} ──
+                                    // No dibujar etiquetas numéricas sobre puntos para que queden completamente limpios y visibles,
+                                    // y evitar la sobreimpresión de "[object Object]" que tapa los puntos del gráfico.
+                                    const isScatter = chartInstance.config?.type === 'scatter' ||
+                                                      (typeof dataVal === 'object' && dataVal !== null) ||
+                                                      chartId === 'chart_calostro' ||
+                                                      chartId === 'chart_brix_salud' ||
+                                                      (chartId === 'chart_litros_calostro' && typeof dataVal === 'object');
+                                    if (isScatter) return;
 
                                     let text          = String(dataVal);
                                     let pos           = element.tooltipPosition ? element.tooltipPosition() : { x: element.x, y: element.y };
@@ -3003,8 +3486,8 @@ window.exportDashboardPDF = function(btnEl) {
                                         strokeColor   = '#ffffff';
                                         fontSize      = 11;
 
-                                    // ── Donut Ubicación ──────────────────────────────────
-                                    } else if (chartId === 'chart_ubicacion') {
+                                    // ── Donuts: Ubicación, Ombligos, Parto y Perinatal ─────
+                                    } else if (chartId === 'chart_ubicacion' || chartId === 'chart_ombligos' || chartId === 'chart_parto' || chartId === 'chart_perinatal') {
                                         const total   = chartInstance.data.datasets[0].data.reduce((a, b) => a + b, 0);
                                         const pct     = total > 0 ? ((dataVal / total) * 100).toFixed(0) : 0;
                                         text          = `${dataVal}\n(${pct}%)`;
@@ -3027,15 +3510,6 @@ window.exportDashboardPDF = function(btnEl) {
                                         }
                                         fontSize = 12;
 
-                                    // ── Donut Ombligos ───────────────────────────────────
-                                    } else if (chartId === 'chart_ombligos') {
-                                        const total = chartInstance.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                        const pct   = total > 0 ? ((dataVal / total) * 100).toFixed(0) : 0;
-                                        text        = `${dataVal}\n(${pct}%)`;
-                                        textColor   = '#000000';
-                                        strokeColor = '#ffffff';
-                                        fontSize    = 11;
-
                                     // ── Mortalidad por Sexo (bar grouped) ───────────────
                                     } else if (chartId === 'chart_sexo') {
                                         const elH = element.height ?? 0;
@@ -3051,6 +3525,16 @@ window.exportDashboardPDF = function(btnEl) {
                                         }
                                         text    = dataVal + '%';
                                         fontSize = 12;
+
+                                    // ── Volumen vs Calidad de Calostro (modo líneas / promedios) ─
+                                    } else if (chartId === 'chart_litros_calostro') {
+                                        const isBrix = typeof _getIgMetodo === 'function' ? _getIgMetodo() === 'brix' : true;
+                                        const unit = isBrix ? '%' : '';
+                                        text = `${dataVal}${unit}`;
+                                        customYOffset = (i === 0) ? -14 : 14;
+                                        textColor = (i === 0) ? '#2563eb' : '#7c3aed';
+                                        strokeColor = '#ffffff';
+                                        fontSize = 10;
                                     }
 
                                     // ── Renderizado ──────────────────────────────────────
@@ -3100,10 +3584,39 @@ window.exportDashboardPDF = function(btnEl) {
                             });
                         }
 
-                        const imgData = tempCanvas.toDataURL('image/png', 1.0);
+                        // ── Normalización de tamaño para gráficos redondos (Donuts) ──
+                        // En la UI, chart_ombligos está en un bloque de 100% de ancho (~1100px) con altura de 220px (ratio ~0.20),
+                        // mientras que los otros donuts (ubicación, parto, perinatal) están en bloques de 2 columnas (~550px, ratio ~0.40).
+                        // Al estirar a ancho de página en el PDF, chart_ombligos quedaba con altura de apenas ~35mm y un donut enano de ~29mm.
+                        // Recortamos el exceso de blanco lateral centrándonos en el donut para que su ratio sea 0.40 exacto,
+                        // resultando en una altura de ~73mm y un donut de ~60mm, idéntico a todos los demás gráficos redondos.
+                        let canvasToExport = tempCanvas;
+                        const currentRatio = tempCanvas.height / tempCanvas.width;
+
+                        if (isDoughnut && currentRatio < 0.35) {
+                            const targetRatio = 0.40; // Proporción estándar de 2 columnas (220/550)
+                            const targetW = tempCanvas.height / targetRatio;
+                            if (tempCanvas.width > targetW) {
+                                const cropCanvas = document.createElement('canvas');
+                                cropCanvas.width = Math.round(targetW);
+                                cropCanvas.height = tempCanvas.height;
+                                const cCtx = cropCanvas.getContext('2d');
+                                cCtx.fillStyle = '#ffffff';
+                                cCtx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
+                                const cropX = Math.round((tempCanvas.width - targetW) / 2);
+                                cCtx.drawImage(
+                                    tempCanvas,
+                                    cropX, 0, cropCanvas.width, cropCanvas.height,
+                                    0, 0, cropCanvas.width, cropCanvas.height
+                                );
+                                canvasToExport = cropCanvas;
+                            }
+                        }
+
+                        const imgData = canvasToExport.toDataURL('image/png', 1.0);
                         
                         const pdfWidth = pageWidth - 28;
-                        const canvasRatio = canvas.height / canvas.width;
+                        const canvasRatio = canvasToExport.height / canvasToExport.width;
                         const pdfHeight = pdfWidth * canvasRatio;
                         
                         doc.addImage(imgData, 'PNG', 14, yPos, pdfWidth, pdfHeight);
@@ -3254,6 +3767,18 @@ window.updateChartsTheme = function(isDark) {
 
     if (_dashCharts.chart_brix_salud) {
         const c = _dashCharts.chart_brix_salud;
+        if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = theme.textSecondary;
+        if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = theme.textSecondary;
+        if (c.options?.scales?.x?.grid) c.options.scales.x.grid.color = theme.gridFaint;
+        if (c.options?.scales?.y?.grid) c.options.scales.y.grid.color = theme.gridFaint;
+        if (c.options?.scales?.x?.title) c.options.scales.x.title.color = theme.textAxisTitle;
+        if (c.options?.scales?.y?.title) c.options.scales.y.title.color = theme.textAxisTitle;
+        if (c.options?.plugins?.legend?.labels) c.options.plugins.legend.labels.color = theme.legendText;
+        c.update();
+    }
+
+    if (_dashCharts.chart_litros_calostro) {
+        const c = _dashCharts.chart_litros_calostro;
         if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = theme.textSecondary;
         if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = theme.textSecondary;
         if (c.options?.scales?.x?.grid) c.options.scales.x.grid.color = theme.gridFaint;

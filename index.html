@@ -310,45 +310,54 @@
             background: linear-gradient(90deg, #16a34a, #4ade80) !important;
         }
 
-        /* IG Card — Óptimo (verde) */
-        #kpi_ig_card.kpi-state--success .kpi-icon-wrap {
+        /* IG Card & IG Madre Card — Óptimo (verde) */
+        #kpi_ig_card.kpi-state--success .kpi-icon-wrap,
+        #kpi_ig_madre_card.kpi-state--success .kpi-icon-wrap {
             background: #f0fdf4 !important;
             color: #16a34a !important;
         }
 
-        #kpi_ig_card.kpi-state--success .kpi-value {
+        #kpi_ig_card.kpi-state--success .kpi-value,
+        #kpi_ig_madre_card.kpi-state--success .kpi-value {
             color: #16a34a !important;
         }
 
-        #kpi_ig_card.kpi-state--success::before {
+        #kpi_ig_card.kpi-state--success::before,
+        #kpi_ig_madre_card.kpi-state--success::before {
             background: linear-gradient(90deg, #16a34a, #4ade80) !important;
         }
 
-        /* IG Card — Aceptable (naranja) */
-        #kpi_ig_card.kpi-state--warning .kpi-icon-wrap {
+        /* IG Card & IG Madre Card — Aceptable (naranja) */
+        #kpi_ig_card.kpi-state--warning .kpi-icon-wrap,
+        #kpi_ig_madre_card.kpi-state--warning .kpi-icon-wrap {
             background: #fffbeb !important;
             color: #d97706 !important;
         }
 
-        #kpi_ig_card.kpi-state--warning .kpi-value {
+        #kpi_ig_card.kpi-state--warning .kpi-value,
+        #kpi_ig_madre_card.kpi-state--warning .kpi-value {
             color: #d97706 !important;
         }
 
-        #kpi_ig_card.kpi-state--warning::before {
+        #kpi_ig_card.kpi-state--warning::before,
+        #kpi_ig_madre_card.kpi-state--warning::before {
             background: linear-gradient(90deg, #d97706, #f59e0b) !important;
         }
 
-        /* IG Card — Bajo (rojo) */
-        #kpi_ig_card.kpi-state--danger .kpi-icon-wrap {
+        /* IG Card & IG Madre Card — Bajo (rojo) */
+        #kpi_ig_card.kpi-state--danger .kpi-icon-wrap,
+        #kpi_ig_madre_card.kpi-state--danger .kpi-icon-wrap {
             background: #fef2f2 !important;
             color: #dc2626 !important;
         }
 
-        #kpi_ig_card.kpi-state--danger .kpi-value {
+        #kpi_ig_card.kpi-state--danger .kpi-value,
+        #kpi_ig_madre_card.kpi-state--danger .kpi-value {
             color: #dc2626 !important;
         }
 
-        #kpi_ig_card.kpi-state--danger::before {
+        #kpi_ig_card.kpi-state--danger::before,
+        #kpi_ig_madre_card.kpi-state--danger::before {
             background: linear-gradient(90deg, #dc2626, #ef4444) !important;
         }
 
@@ -361,15 +370,18 @@
             color: #fbbf24 !important;
         }
 
-        html.dark #kpi_ig_card.kpi-state--success .kpi-value {
+        html.dark #kpi_ig_card.kpi-state--success .kpi-value,
+        html.dark #kpi_ig_madre_card.kpi-state--success .kpi-value {
             color: #4ade80 !important;
         }
 
-        html.dark #kpi_ig_card.kpi-state--warning .kpi-value {
+        html.dark #kpi_ig_card.kpi-state--warning .kpi-value,
+        html.dark #kpi_ig_madre_card.kpi-state--warning .kpi-value {
             color: #fbbf24 !important;
         }
 
-        html.dark #kpi_ig_card.kpi-state--danger .kpi-value {
+        html.dark #kpi_ig_card.kpi-state--danger .kpi-value,
+        html.dark #kpi_ig_madre_card.kpi-state--danger .kpi-value {
             color: #f87171 !important;
         }
 
@@ -910,7 +922,7 @@
                         title="Configurar umbrales de alerta">⚙️</button>
                     <button class="kpi-info-btn" style="right:34px;" onclick="toggleKpiInfoModal('mort', this)" title="¿Cómo se calcula este dato?">ℹ</button>
                 </div>
-                <!-- KPI 3: Promedio I.G. -->
+                <!-- KPI 3: Promedio I.G. Ternero -->
                 <div class="kpi-card kpi-card--green stagger-3" id="kpi_ig_card">
                     <div class="kpi-icon-wrap kpi-icon--green"><i data-lucide="droplets"
                             style="width:22px;height:22px;"></i></div>
@@ -924,8 +936,22 @@
                         title="Configurar umbrales de calidad">⚙️</button>
                     <button class="kpi-info-btn" style="right:34px;" onclick="toggleKpiInfoModal('ig', this)" title="¿Cómo se calcula este dato?">ℹ</button>
                 </div>
-                <!-- KPI 4: Tasa de Recuperación -->
-                <div class="kpi-card kpi-card--purple stagger-4">
+                <!-- KPI 4: Promedio I.G. Madre -->
+                <div class="kpi-card kpi-card--green stagger-4" id="kpi_ig_madre_card">
+                    <div class="kpi-icon-wrap kpi-icon--green"><i data-lucide="shield-check"
+                            style="width:22px;height:22px;"></i></div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">Promedio I.G. Madre</div>
+                        <div class="kpi-value" id="kpi_ig_madre">—</div>
+                        <div class="kpi-sub" id="kpi_ig_madre_sub">% Brix promedio</div>
+                    </div>
+                    <!-- Botón configurar rangos -->
+                    <button class="kpi-config-btn" id="kpi_ig_madre_cfg_btn" onclick="toggleKpiPanel('kpi_ig_madre_panel', this)"
+                        title="Configurar umbrales de calidad">⚙️</button>
+                    <button class="kpi-info-btn" style="right:34px;" onclick="toggleKpiInfoModal('ig_madre', this)" title="¿Cómo se calcula este dato?">ℹ</button>
+                </div>
+                <!-- KPI 5: Tasa de Recuperación -->
+                <div class="kpi-card kpi-card--purple stagger-5">
                     <div class="kpi-icon-wrap kpi-icon--purple"><i data-lucide="arrow-up-right"
                             style="width:22px;height:22px;"></i></div>
                     <div class="kpi-content">
@@ -991,6 +1017,32 @@
                     <span class="kpi-range-desc">por debajo del anterior</span>
                 </div>
                 <button class="kpi-range-save-btn" onclick="saveKpiRanges('ig')">Aplicar</button>
+            </div>
+
+            <div class="kpi-range-panel" id="kpi_ig_madre_panel">
+                <div class="kpi-range-panel-title">🎚️ Umbrales de Calidad — I.G. Madre</div>
+                <div class="kpi-range-row">
+                    <span class="kpi-range-dot kpi-range-dot--success"></span>
+                    <span class="kpi-range-label">Óptimo</span>
+                    <span class="kpi-range-desc">mayor o igual a</span>
+                    <input class="kpi-range-input" type="number" id="kpi_ig_madre_thr_high" min="0" max="100" step="0.5"
+                        value="22">
+                    <span class="kpi-range-unit kpi-ig-unit">% Brix</span>
+                </div>
+                <div class="kpi-range-row">
+                    <span class="kpi-range-dot kpi-range-dot--warning"></span>
+                    <span class="kpi-range-label">Aceptable</span>
+                    <span class="kpi-range-desc">mayor o igual a</span>
+                    <input class="kpi-range-input" type="number" id="kpi_ig_madre_thr_mid" min="0" max="100" step="0.5"
+                        value="18">
+                    <span class="kpi-range-unit kpi-ig-unit">% Brix</span>
+                </div>
+                <div class="kpi-range-row">
+                    <span class="kpi-range-dot kpi-range-dot--danger"></span>
+                    <span class="kpi-range-label">Bajo</span>
+                    <span class="kpi-range-desc">por debajo del anterior</span>
+                </div>
+                <button class="kpi-range-save-btn" onclick="saveKpiRanges('ig_madre')">Aplicar</button>
             </div>
 
             <!-- ── CHARTS SORTABLE CONTAINER ── -->
@@ -1111,6 +1163,46 @@
                             <div class="db-chart-wrap" style="height:230px;">
                                 <canvas id="chart_madre"></canvas>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BLOQUE: Volumen vs Calidad de Calostro (Vacas vs Vaquillonas) -->
+                <div class="chart-block" data-chart-id="block_litros_calostro">
+                    <div class="db-chart-card card glass">
+                        <div class="db-chart-header" style="flex-wrap:wrap;gap:10px;">
+                            <div style="flex:1;min-width:240px;">
+                                <div class="db-chart-title" data-title-key="title_litros_calostro" contenteditable="false"
+                                    title="Doble clic para editar título">🍼 Volumen vs Calidad de Calostro — Vacas vs Vaquillonas</div>
+                                <div class="db-chart-sub">Dieta preparto · Correlación entre litros cosechados y concentración de I.G.</div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;">
+                                <!-- Resumen Versus -->
+                                <div id="litros_calostro_versus_summary" style="display:flex;gap:6px;font-size:0.8rem;font-weight:600;">
+                                    <span class="versus-badge versus-badge--vaca" style="background:rgba(59,130,246,0.12);color:#2563eb;padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;">
+                                        🐄 Vacas: <strong id="vaca_avg_summary">—</strong>
+                                    </span>
+                                    <span class="versus-badge versus-badge--vaquillona" style="background:rgba(139,92,246,0.12);color:#7c3aed;padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;">
+                                        🐮 Vaquillonas: <strong id="vaq_avg_summary">—</strong>
+                                    </span>
+                                </div>
+                                <!-- Selector Curvas / Puntos -->
+                                <div class="segmented-control" style="padding:2px;background:rgba(0,0,0,0.06);border-radius:8px;">
+                                    <button type="button" class="segmented-btn active" id="btn_calostro_view_lines" onclick="setCalostroView('lines')" style="font-size:0.78rem;padding:3px 8px;">
+                                        📈 Curvas
+                                    </button>
+                                    <button type="button" class="segmented-btn" id="btn_calostro_view_scatter" onclick="setCalostroView('scatter')" style="font-size:0.78rem;padding:3px 8px;">
+                                        🔘 Puntos
+                                    </button>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:4px;">
+                                    <button class="chart-info-btn" title="Información sobre este gráfico" onclick="openChartInfoModal('chart_litros_calostro')">ℹ</button>
+                                    <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i data-lucide="edit-3" class="icon-edit"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="db-chart-wrap" style="height:270px;">
+                            <canvas id="chart_litros_calostro"></canvas>
                         </div>
                     </div>
                 </div>

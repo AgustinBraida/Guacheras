@@ -1896,9 +1896,15 @@ html.dark .del-prod-warning {
 /* ── KPI Grid ── */
 .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 1rem;
     margin-bottom: 1.25rem;
+}
+
+@media (max-width: 1200px) and (min-width: 861px) {
+    .kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
 .kpi-card {
@@ -2466,6 +2472,28 @@ html.dark .sync-badge.online {
 html.dark .sync-badge.pending {
     background: #241a00;
     color: #fbbf24;
+}
+
+/* ── Versus badges (Volumen vs Calidad Calostro) ── */
+.versus-badge {
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+.versus-badge--vaca {
+    border-color: rgba(59, 130, 246, 0.2);
+}
+.versus-badge--vaquillona {
+    border-color: rgba(139, 92, 246, 0.2);
+}
+html.dark .versus-badge--vaca {
+    background: rgba(59, 130, 246, 0.22) !important;
+    color: #93c5fd !important;
+    border-color: rgba(59, 130, 246, 0.35);
+}
+html.dark .versus-badge--vaquillona {
+    background: rgba(139, 92, 246, 0.22) !important;
+    color: #d8b4fe !important;
+    border-color: rgba(139, 92, 246, 0.35);
 }
 
 /* ── Cards & Glass ── */
