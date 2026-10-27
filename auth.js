@@ -176,6 +176,9 @@ const AuthManager = {
         if (mergedConfig.kpiThresholds && typeof mergedConfig.kpiThresholds === 'object') {
             localStorage.setItem('vetfield_kpi_thresholds', JSON.stringify(mergedConfig.kpiThresholds));
         }
+        if (mergedConfig.pesoMetas && typeof mergedConfig.pesoMetas === 'object') {
+            localStorage.setItem('vetfield_peso_metas', JSON.stringify(mergedConfig.pesoMetas));
+        }
         if (mergedConfig.calostroView) {
             localStorage.setItem('vetfield_calostro_view', mergedConfig.calostroView);
         }
@@ -404,14 +407,15 @@ const AuthUI = {
                     this._syncProfile(sess);
                     this._syncAvatar(sess);
                     if (sess.dashboardConfig && typeof window.restoreDashboardOrderAndTitles === 'function') {
-                        window.restoreDashboardOrderAndTitles(sess.dashboardConfig.order, sess.dashboardConfig.titles, sess.dashboardConfig.kpiThresholds);
+                        window.restoreDashboardOrderAndTitles(sess.dashboardConfig.order, sess.dashboardConfig.titles, sess.dashboardConfig.kpiThresholds, sess.dashboardConfig.pesoMetas);
                     } else if (!sess.dashboardConfig) {
                         try {
                             const localOrder = JSON.parse(localStorage.getItem('vf_chart_block_order') || 'null');
                             const localTitles = JSON.parse(localStorage.getItem('vf_chart_titles') || '{}');
                             const localKpis = JSON.parse(localStorage.getItem('vetfield_kpi_thresholds') || 'null');
-                            if ((localOrder && Array.isArray(localOrder) && localOrder.length > 0) || (localTitles && Object.keys(localTitles).length > 0) || localKpis) {
-                                AuthManager.saveDashboardConfig({ order: localOrder, titles: localTitles, kpiThresholds: localKpis });
+                            const localMetas = JSON.parse(localStorage.getItem('vetfield_peso_metas') || 'null');
+                            if ((localOrder && Array.isArray(localOrder) && localOrder.length > 0) || (localTitles && Object.keys(localTitles).length > 0) || localKpis || localMetas) {
+                                AuthManager.saveDashboardConfig({ order: localOrder, titles: localTitles, kpiThresholds: localKpis, pesoMetas: localMetas });
                             }
                         } catch(e) {}
                     }
@@ -453,7 +457,7 @@ const AuthUI = {
         this._syncAvatar(sess);
         this._syncProfile(sess);
         if (sess && sess.dashboardConfig && typeof window.restoreDashboardOrderAndTitles === 'function') {
-            window.restoreDashboardOrderAndTitles(sess.dashboardConfig.order, sess.dashboardConfig.titles, sess.dashboardConfig.kpiThresholds);
+            window.restoreDashboardOrderAndTitles(sess.dashboardConfig.order, sess.dashboardConfig.titles, sess.dashboardConfig.kpiThresholds, sess.dashboardConfig.pesoMetas);
         }
         // Cargar imágenes desde el servidor y refrescar UI (para otros dispositivos)
         AuthManager.loadProfileImages().then(() => {

@@ -4034,7 +4034,63 @@ async function generarInformeDetallado() {
             partosMuertos
         };
 
-        const diagnostico = _infdetDiagnostico({ total, totalCrianza, vivos, muertos, tasaMort, avgIg, avgIgMadre, enfermos, tasaMorb, tasaOmbligo, machos, hembras, totalVacas: vacas.length, vivosVacas, totalVaquil: vaquillonas.length, vivosVaquil, causasMuerte, perdidasPerinatales, productorSel });
+        // ─── PESAJES Y GANANCIA DIARIA DE PESO (GDP) ───
+        const arr7 = [];
+        const arr30 = [];
+        const arr60 = [];
+        const calvesGdp = [];
+
+        regs.forEach(r => {
+            const p7 = parseFloat(r.peso_7dias);
+            const p30 = parseFloat(r.peso_30dias);
+            const p60 = parseFloat(r.peso_60dias);
+
+            const v7 = !isNaN(p7) && p7 > 0 ? p7 : null;
+            const v30 = !isNaN(p30) && p30 > 0 ? p30 : null;
+            const v60 = !isNaN(p60) && p60 > 0 ? p60 : null;
+
+            if (v7 !== null) arr7.push(v7);
+            if (v30 !== null) arr30.push(v30);
+            if (v60 !== null) arr60.push(v60);
+
+            let gdp = null;
+            if (v7 !== null && v60 !== null) {
+                gdp = (v60 - v7) / 53;
+            } else if (v30 !== null && v60 !== null) {
+                gdp = (v60 - v30) / 30;
+            } else if (v7 !== null && v30 !== null) {
+                gdp = (v30 - v7) / 23;
+            }
+
+            if (gdp !== null) {
+                calvesGdp.push({
+                    rp: r.rp_ternero || 'S/N',
+                    gdp: gdp
+                });
+            }
+        });
+
+        const avg7 = arr7.length > 0 ? (arr7.reduce((a, b) => a + b, 0) / arr7.length) : null;
+        const avg30 = arr30.length > 0 ? (arr30.reduce((a, b) => a + b, 0) / arr30.length) : null;
+        const avg60 = arr60.length > 0 ? (arr60.reduce((a, b) => a + b, 0) / arr60.length) : null;
+        const avgGdp = calvesGdp.length > 0 ? (calvesGdp.reduce((a, b) => a + b.gdp, 0) / calvesGdp.length) : null;
+
+        const countVerde = calvesGdp.filter(c => c.gdp > 0.650).length;
+        const countNaranja = calvesGdp.filter(c => c.gdp >= 0.400 && c.gdp <= 0.650).length;
+        const countRojo = calvesGdp.filter(c => c.gdp < 0.400).length;
+
+        const pesosData = {
+            hasData: arr7.length > 0 || arr30.length > 0 || arr60.length > 0,
+            arr7, arr30, arr60,
+            avg7, avg30, avg60,
+            avgGdp,
+            calvesGdpCount: calvesGdp.length,
+            countVerde,
+            countNaranja,
+            countRojo
+        };
+
+        const diagnostico = _infdetDiagnostico({ total, totalCrianza, vivos, muertos, tasaMort, avgIg, avgIgMadre, enfermos, tasaMorb, tasaOmbligo, machos, hembras, totalVacas: vacas.length, vivosVacas, totalVaquil: vaquillonas.length, vivosVaquil, causasMuerte, perdidasPerinatales, productorSel, pesosData });
 
         // Cargar logo de la marca (ternerito)
         const logo = await _infdetCargarLogo();
@@ -4253,7 +4309,7 @@ async function generarInformeDetallado() {
         // ── RECOMENDACIONES TÉCNICAS (Opcionales según preferencia del usuario) ──
         const incluirRecs = document.getElementById('infdet-incluir-recs') ? document.getElementById('infdet-incluir-recs').checked : true;
         if (incluirRecs) {
-            const recs = _infdetRecomendaciones({ tasaMort, avgIg, avgIgMadre, tasaMorb, tasaOmbligo, total, causasMuerte, perdidasPerinatales });
+            const recs = _infdetRecomendaciones({ tasaMort, avgIg, avgIgMadre, tasaMorb, tasaOmbligo, total, causasMuerte, perdidasPerinatales, pesosData });
             if (recs.length > 0 && y < PH - 38) {
                 y += 2.5;
                 doc.setFillColor(...AZUL_CLARO); doc.roundedRect(12, y, PW - 24, 7.5, 2, 2, 'F');
@@ -4368,7 +4424,7 @@ function _infdetGetSpecificDisease(r) {
     return null;
 }
 
-function _infdetDiagnostico({ total, totalCrianza, vivos, muertos, tasaMort, avgIg, avgIgMadre, enfermos, tasaMorb, tasaOmbligo, machos, hembras, totalVacas, vivosVacas, totalVaquil, vivosVaquil, causasMuerte, perdidasPerinatales, productorSel }) {
+function _infdetDiagnostico({ total, totalCrianza, vivos, muertos, tasaMort, avgIg, avgIgMadre, enfermos, tasaMorb, tasaOmbligo, machos, hembras, totalVacas, vivosVacas, totalVaquil, vivosVaquil, causasMuerte, perdidasPerinatales, productorSel, pesosData }) {
     if(total===0) {
         return [{
             titulo: 'Población del Período',
@@ -4506,10 +4562,50 @@ function _infdetDiagnostico({ total, totalCrianza, vivos, muertos, tasaMort, avg
         });
     }
 
+    // 7. Crecimiento y Ganancia Diaria de Peso (GDP)
+    if (pesosData) {
+        if (pesosData.hasData) {
+            let pPeso = '';
+            const proms = [];
+            if (pesosData.avg7 !== null) proms.push(`7d: ${pesosData.avg7.toFixed(1)} kg`);
+            if (pesosData.avg30 !== null) proms.push(`30d: ${pesosData.avg30.toFixed(1)} kg`);
+            if (pesosData.avg60 !== null) proms.push(`60d: ${pesosData.avg60.toFixed(1)} kg`);
+
+            if (proms.length > 0) {
+                pPeso += `En pesajes de control se relevaron promedios de ${proms.join(', ')}. `;
+            }
+
+            if (pesosData.avgGdp !== null) {
+                const gdpG = Math.round(pesosData.avgGdp * 1000);
+                const semaforo = pesosData.avgGdp > 0.650
+                    ? 'Luz Verde / Excelente (> 650 g/d)'
+                    : (pesosData.avgGdp >= 0.400
+                        ? 'Luz Naranja / Atención (400 a 650 g/d)'
+                        : 'Luz Roja / Alerta (< 400 g/d)');
+
+                pPeso += `La Ganancia Diaria de Peso (GDP) promedió +${pesosData.avgGdp.toFixed(3)} kg/día (${gdpG} g/d), situándose en ${semaforo}. `;
+                if (pesosData.calvesGdpCount > 1) {
+                    pPeso += `De ${pesosData.calvesGdpCount} terneros evaluados: ${pesosData.countVerde} en nivel excelente, ${pesosData.countNaranja} en atención y ${pesosData.countRojo} en alerta.`;
+                }
+            }
+            if (pPeso.trim()) {
+                items.push({
+                    titulo: 'Crecimiento y Ganancia de Peso',
+                    texto: pPeso.trim()
+                });
+            }
+        } else {
+            items.push({
+                titulo: 'Crecimiento y Ganancia de Peso',
+                texto: 'Sin pesajes de control registrados en el período. Se sugiere implementar pesajes a los 7, 30 y 60 días para monitorear la ganancia diaria de peso (GDP) y la meta de duplicar el peso al desleche.'
+            });
+        }
+    }
+
     return items;
 }
 
-function _infdetRecomendaciones({ tasaMort, avgIg, avgIgMadre, tasaMorb, tasaOmbligo, total, causasMuerte, perdidasPerinatales }) {
+function _infdetRecomendaciones({ tasaMort, avgIg, avgIgMadre, tasaMorb, tasaOmbligo, total, causasMuerte, perdidasPerinatales, pesosData }) {
     const r=[];
     if(total===0) return r;
     if(perdidasPerinatales && perdidasPerinatales.abortos >= 3) {
@@ -4529,8 +4625,26 @@ function _infdetRecomendaciones({ tasaMort, avgIg, avgIgMadre, tasaMorb, tasaOmb
     if(avgIg!==null && avgIg<22) r.push('Protocolo de calostrado en terneros: asegurar suministro de 4 L de calostro de calidad en las primeras 4 a 6 horas de vida.');
     if(avgIgMadre!==null && avgIgMadre<22) r.push('Calostro materno: medir calostro con refractómetro al ordeñe y priorizar calostros superiores a 22% Brix.');
     else if(avgIg!==null && avgIg<18) r.push('Considerar banco de calostro o calostro de calidad garantizada para optimizar la transferencia pasiva.');
+
+    // Sugerencias de mejoras sobre Ganancia Diaria de Peso (GDP) y Crecimiento
+    if(pesosData && pesosData.hasData) {
+        if(pesosData.avgGdp !== null) {
+            if(pesosData.avgGdp < 0.400) {
+                r.push('Ganancia de peso en alerta (< 400 g/día): la GDP es deficiente para duplicar el peso al desleche. Revisar volumen/concentración de leche o sustituto, temperatura de toma (38-39°C), acceso permanente a agua fresca y descartar secuelas entéricas o respiratorias.');
+            } else if(pesosData.avgGdp <= 0.650) {
+                r.push('Ganancia de peso en rango de atención (400 a 650 g/día): incentivar el consumo temprano de alimento iniciador de alta digestibilidad para acelerar el desarrollo ruminal y alcanzar la meta óptima (> 650 g/día) previo al desleche.');
+            } else {
+                r.push('Ganancia de peso excelente (> 650 g/día): ritmo de crecimiento óptimo. Mantener el protocolo de transición paulatina al desleche (10 a 14 días) para evitar pérdidas de ganancia post-desleche.');
+            }
+        }
+    } else {
+        r.push('Monitoreo de peso corporal: implementar pesajes a los 7, 30 y 60 días para evaluar objetivamente la ganancia diaria (GDP) y detectar a tiempo animales retrasados.');
+    }
+
     if(tasaMorb>10) r.push('Revisar diagnóstico de casos activos y continuar con el plan terapéutico individualizado.');
     if(tasaOmbligo!==null && tasaOmbligo>5) r.push('Reforzar antisepsia umbilical con tintura de yodo al nacimiento y seguimiento en la primera semana.');
-    if(tasaMort<=3 && (avgIg===null||avgIg>=22) && tasaMorb<=10) r.push('Mantener los protocolos actuales que están demostrando excelentes resultados.');
-    return r.slice(0, 4);
+    if(tasaMort<=3 && (avgIg===null||avgIg>=22) && tasaMorb<=10 && (!pesosData || pesosData.avgGdp === null || pesosData.avgGdp > 0.650)) {
+        r.push('Mantener los protocolos actuales que están demostrando excelentes resultados.');
+    }
+    return r.slice(0, 5);
 }

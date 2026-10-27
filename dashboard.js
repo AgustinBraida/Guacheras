@@ -9,13 +9,13 @@
 // ─── MOCK DATA — 440 registros determinísticos ──────────────────
 const MOCK_RECORDS = (function generateMockData() {
 
-    const PRODUCTORES      = ['AgroSura', 'El Ombú', 'Don Juan', 'Lácteo Pro'];
+    const PRODUCTORES = ['AgroSura', 'El Ombú', 'Don Juan', 'Lácteo Pro'];
     const ESTABLECIMIENTOS = ['Sección A', 'Sección B', 'Lote Sur', 'Guachería'];
 
     const CAUSAS = {
-        'Enfermedades e Infecciones':         ['Neumonía','Salmonelosis','Rotavirus','Colibacilosis','Onfalitis','Criptosporidiosis','Coronavirus'],
-        'Problemas Digestivos y Metabólicos': ['Diarrea','Torsión de abomaso','Úlcera de abomaso','Intoxicación'],
-        'Factores Externos y de Manejo':      ['Estrés calórico','Traumática','Falsa vía'],
+        'Enfermedades e Infecciones': ['Neumonía', 'Salmonelosis', 'Rotavirus', 'Colibacilosis', 'Onfalitis', 'Criptosporidiosis', 'Coronavirus'],
+        'Problemas Digestivos y Metabólicos': ['Diarrea', 'Torsión de abomaso', 'Úlcera de abomaso', 'Intoxicación'],
+        'Factores Externos y de Manejo': ['Estrés calórico', 'Traumática', 'Falsa vía'],
     };
     const CAT_KEYS = Object.keys(CAUSAS);
 
@@ -28,8 +28,8 @@ const MOCK_RECORDS = (function generateMockData() {
         return (_s >>> 0) / 0x100000000;
     }
 
-    const START    = new Date('2026-01-01T00:00:00Z').getTime();
-    const END      = new Date('2026-04-19T00:00:00Z').getTime();
+    const START = new Date('2026-01-01T00:00:00Z').getTime();
+    const END = new Date('2026-04-19T00:00:00Z').getTime();
     const RANGE_MS = END - START;
 
     function randomDate() {
@@ -39,9 +39,9 @@ const MOCK_RECORDS = (function generateMockData() {
         return new Date(a + Math.floor(rng() * (b - a))).toISOString().split('T')[0];
     }
 
-    const LOCS = ['Muerto en Establecimiento','Muerto en Guachería','Muerto en Terapia'];
+    const LOCS = ['Muerto en Establecimiento', 'Muerto en Guachería', 'Muerto en Terapia'];
 
-    function pickLoc()   { return LOCS[Math.floor(rng() * 3)]; }
+    function pickLoc() { return LOCS[Math.floor(rng() * 3)]; }
     function pickCausa() {
         // Pesos: Infecciones 55 %, Digestivos 20 %, Manejo 25 %
         const r = rng();
@@ -53,13 +53,13 @@ const MOCK_RECORDS = (function generateMockData() {
     function pickOmbligo(estado) {
         const r = rng();
         if (estado === 'Muerto en Guachería') return r < 0.62 ? 'Malo' : r < 0.88 ? 'Regular' : 'Bueno';
-        if (estado !== 'Vivo')               return r < 0.28 ? 'Malo' : r < 0.60 ? 'Regular' : 'Bueno';
+        if (estado !== 'Vivo') return r < 0.28 ? 'Malo' : r < 0.60 ? 'Regular' : 'Bueno';
         return r < 0.70 ? 'Bueno' : r < 0.92 ? 'Regular' : 'Malo';
     }
 
     function makeRecord(idx, prod, est, fecha, tipo_madre, ig_calostro, forceDeathCat, forceDeathEsp) {
         const ig_ternero = parseFloat((rng() * 28 + 3).toFixed(1));
-        const sexo       = rng() < 0.52 ? 'Macho' : 'Hembra';
+        const sexo = rng() < 0.52 ? 'Macho' : 'Hembra';
         const mortThresh = tipo_madre === 'Vaca' ? 0.09 : 0.108; // vaquillona +20 %
 
         let estado = 'Vivo', causa_categoria = '', causa_especifica = '';
@@ -67,18 +67,18 @@ const MOCK_RECORDS = (function generateMockData() {
         if (forceDeathCat) {
             // Muerte forzada (bloque Febrero Lote Sur)
             estado = pickLoc();
-            causa_categoria  = forceDeathCat;
+            causa_categoria = forceDeathCat;
             causa_especifica = forceDeathEsp;
         } else if (ig_calostro < 5.0 && rng() < 0.50) {
             // Calostro bajo → 50 % muere por Rotavirus u Onfalitis
             estado = pickLoc();
-            causa_categoria  = 'Enfermedades e Infecciones';
+            causa_categoria = 'Enfermedades e Infecciones';
             causa_especifica = rng() < 0.5 ? 'Rotavirus' : 'Onfalitis';
         } else if (rng() < mortThresh) {
             // Mortalidad base según tipo madre
             estado = pickLoc();
             const c = pickCausa();
-            causa_categoria  = c.causa_categoria;
+            causa_categoria = c.causa_categoria;
             causa_especifica = c.causa_especifica;
         }
 
@@ -129,7 +129,7 @@ const MOCK_RECORDS = (function generateMockData() {
         return {
             id: idx,
             productor: prod, establecimiento: est, fecha,
-            rp_ternero: `T-${String(idx).padStart(4,'0')}`,
+            rp_ternero: `T-${String(idx).padStart(4, '0')}`,
             rp_madre,
             litros_calostro_madre,
             ig_ternero, ig_calostro, sexo,
@@ -147,8 +147,8 @@ const MOCK_RECORDS = (function generateMockData() {
     // ── BLOQUE A: 361 registros generales (sin Lote Sur) ────────
     const ESTS_A = ['Sección A', 'Sección B', 'Guachería'];
     for (let i = 1; i <= 361; i++) {
-        const prod       = PRODUCTORES[Math.floor(rng() * 4)];
-        const est        = ESTS_A[Math.floor(rng() * 3)];
+        const prod = PRODUCTORES[Math.floor(rng() * 4)];
+        const est = ESTS_A[Math.floor(rng() * 3)];
         const tipo_madre = rng() < 0.62 ? 'Vaca' : 'Vaquillona';
         const ig_calostro = parseFloat((rng() * 38 + 1.5).toFixed(1));
         records.push(makeRecord(i, prod, est, randomDate(), tipo_madre, ig_calostro, null, null));
@@ -158,9 +158,9 @@ const MOCK_RECORDS = (function generateMockData() {
     const FEB_S = new Date('2026-02-01T00:00:00Z').getTime();
     const FEB_E = new Date('2026-02-28T00:00:00Z').getTime();
     for (let i = 1; i <= 15; i++) {
-        const tipo_madre  = rng() < 0.55 ? 'Vaca' : 'Vaquillona';
+        const tipo_madre = rng() < 0.55 ? 'Vaca' : 'Vaquillona';
         const ig_calostro = parseFloat((rng() * 5 + 1.5).toFixed(1));
-        const prod        = PRODUCTORES[Math.floor(rng() * 4)];
+        const prod = PRODUCTORES[Math.floor(rng() * 4)];
         records.push(makeRecord(
             361 + i, prod, 'Lote Sur',
             randomDateInRange(FEB_S, FEB_E),
@@ -171,8 +171,8 @@ const MOCK_RECORDS = (function generateMockData() {
 
     // ── BLOQUE C: 64 registros adicionales de Lote Sur (mix normal) ──
     for (let i = 1; i <= 64; i++) {
-        const prod        = PRODUCTORES[Math.floor(rng() * 4)];
-        const tipo_madre  = rng() < 0.60 ? 'Vaca' : 'Vaquillona';
+        const prod = PRODUCTORES[Math.floor(rng() * 4)];
+        const tipo_madre = rng() < 0.60 ? 'Vaca' : 'Vaquillona';
         const ig_calostro = parseFloat((rng() * 36 + 2).toFixed(1));
         records.push(makeRecord(376 + i, prod, 'Lote Sur', randomDate(), tipo_madre, ig_calostro, null, null));
     }
@@ -193,6 +193,9 @@ let _causasAllData = null;
 // Umbrales configurables por el veterinario (se persisten en localStorage)
 const _KPI_THRESHOLDS_KEY = 'vetfield_kpi_thresholds';
 
+// Metas de peso de referencia (configurables por el cliente, se sincronizan en nube)
+const _PESO_METAS_KEY = 'vetfield_peso_metas';
+
 function _getIgMetodo() {
     try {
         if (typeof AuthManager !== 'undefined' && typeof AuthManager.getIgMetodo === 'function') {
@@ -203,7 +206,7 @@ function _getIgMetodo() {
         }
         const sess = JSON.parse(localStorage.getItem('vetfield_session') || '{}');
         if (sess && sess.igMetodo) return sess.igMetodo;
-    } catch {}
+    } catch { }
     return 'brix';
 }
 
@@ -225,25 +228,25 @@ function _loadKpiThresholds(custom) {
         const metodo = _getIgMetodo();
         const defIg = _getDefaultIgThresholds(metodo);
         const highKey = metodo === 'brix' ? 'igHigh_brix' : 'igHigh_mgdl';
-        const midKey  = metodo === 'brix' ? 'igMid_brix'  : 'igMid_mgdl';
+        const midKey = metodo === 'brix' ? 'igMid_brix' : 'igMid_mgdl';
         const highMadreKey = metodo === 'brix' ? 'igMadreHigh_brix' : 'igMadreHigh_mgdl';
-        const midMadreKey  = metodo === 'brix' ? 'igMadreMid_brix'  : 'igMadreMid_mgdl';
+        const midMadreKey = metodo === 'brix' ? 'igMadreMid_brix' : 'igMadreMid_mgdl';
         return {
             mortHigh: saved?.mortHigh ?? 5,
-            mortMid:  saved?.mortMid  ?? 3,
-            igHigh:   saved?.[highKey] ?? saved?.igHigh ?? defIg.high,
-            igMid:    saved?.[midKey]  ?? saved?.igMid  ?? defIg.mid,
+            mortMid: saved?.mortMid ?? 3,
+            igHigh: saved?.[highKey] ?? saved?.igHigh ?? defIg.high,
+            igMid: saved?.[midKey] ?? saved?.igMid ?? defIg.mid,
             igHigh_brix: saved?.igHigh_brix ?? (saved?.igHigh !== undefined && metodo === 'brix' ? saved.igHigh : 22),
-            igMid_brix:  saved?.igMid_brix  ?? (saved?.igMid  !== undefined && metodo === 'brix' ? saved.igMid  : 18),
+            igMid_brix: saved?.igMid_brix ?? (saved?.igMid !== undefined && metodo === 'brix' ? saved.igMid : 18),
             igHigh_mgdl: saved?.igHigh_mgdl ?? (saved?.igHigh !== undefined && metodo === 'mgdl' ? saved.igHigh : 15),
-            igMid_mgdl:  saved?.igMid_mgdl  ?? (saved?.igMid  !== undefined && metodo === 'mgdl' ? saved.igMid  : 10),
+            igMid_mgdl: saved?.igMid_mgdl ?? (saved?.igMid !== undefined && metodo === 'mgdl' ? saved.igMid : 10),
 
             igMadreHigh: saved?.[highMadreKey] ?? saved?.igMadreHigh ?? defIg.high,
-            igMadreMid:  saved?.[midMadreKey]  ?? saved?.igMadreMid  ?? defIg.mid,
+            igMadreMid: saved?.[midMadreKey] ?? saved?.igMadreMid ?? defIg.mid,
             igMadreHigh_brix: saved?.igMadreHigh_brix ?? (saved?.igMadreHigh !== undefined && metodo === 'brix' ? saved.igMadreHigh : 22),
-            igMadreMid_brix:  saved?.igMadreMid_brix  ?? (saved?.igMadreMid  !== undefined && metodo === 'brix' ? saved.igMadreMid  : 18),
+            igMadreMid_brix: saved?.igMadreMid_brix ?? (saved?.igMadreMid !== undefined && metodo === 'brix' ? saved.igMadreMid : 18),
             igMadreHigh_mgdl: saved?.igMadreHigh_mgdl ?? (saved?.igMadreHigh !== undefined && metodo === 'mgdl' ? saved.igMadreHigh : 15),
-            igMadreMid_mgdl:  saved?.igMadreMid_mgdl  ?? (saved?.igMadreMid  !== undefined && metodo === 'mgdl' ? saved.igMadreMid  : 10),
+            igMadreMid_mgdl: saved?.igMadreMid_mgdl ?? (saved?.igMadreMid !== undefined && metodo === 'mgdl' ? saved.igMadreMid : 10),
         };
     } catch {
         return {
@@ -256,15 +259,43 @@ function _loadKpiThresholds(custom) {
 
 let _kpiThresholds = _loadKpiThresholds();
 
+// ─── Metas de Peso de Referencia ─────────────────────────────
+function _loadPesoMetas(custom) {
+    const DEFAULTS = { d7: 43, d30: 57, d60: 77 };
+    try {
+        let saved = custom || JSON.parse(localStorage.getItem(_PESO_METAS_KEY) || 'null');
+        if (!saved && typeof AuthManager !== 'undefined' && typeof AuthManager.getDashboardConfig === 'function') {
+            const dc = AuthManager.getDashboardConfig();
+            if (dc && dc.pesoMetas) saved = dc.pesoMetas;
+        }
+        if (saved && typeof saved === 'object') {
+            return {
+                d7:  parseFloat(saved.d7)  || DEFAULTS.d7,
+                d30: parseFloat(saved.d30) || DEFAULTS.d30,
+                d60: parseFloat(saved.d60) || DEFAULTS.d60,
+            };
+        }
+    } catch { }
+    return { ...DEFAULTS };
+}
+
+let _pesoMetas = _loadPesoMetas();
+
+function _initPesoMetasInputs() {
+    const map = [['peso_meta_7d', _pesoMetas.d7], ['peso_meta_30d', _pesoMetas.d30], ['peso_meta_60d', _pesoMetas.d60]];
+    map.forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.value = val; });
+}
+
+
 // Inicializar inputs del panel con valores guardados
 function _initKpiPanelInputs() {
     const ids = [
-        ['kpi_mort_thr_high',     _kpiThresholds.mortHigh],
-        ['kpi_mort_thr_mid',      _kpiThresholds.mortMid],
-        ['kpi_ig_thr_high',       _kpiThresholds.igHigh],
-        ['kpi_ig_thr_mid',        _kpiThresholds.igMid],
+        ['kpi_mort_thr_high', _kpiThresholds.mortHigh],
+        ['kpi_mort_thr_mid', _kpiThresholds.mortMid],
+        ['kpi_ig_thr_high', _kpiThresholds.igHigh],
+        ['kpi_ig_thr_mid', _kpiThresholds.igMid],
         ['kpi_ig_madre_thr_high', _kpiThresholds.igMadreHigh],
-        ['kpi_ig_madre_thr_mid',  _kpiThresholds.igMadreMid],
+        ['kpi_ig_madre_thr_mid', _kpiThresholds.igMadreMid],
     ];
     ids.forEach(([id, val]) => {
         const el = document.getElementById(id);
@@ -287,27 +318,34 @@ function toggleKpiPanel(panelId, btn) {
     const isOpen = panel.classList.contains('open');
     _closeAllKpiPanels();
     if (!isOpen) {
+        if (panelId === 'peso_metas_panel') {
+            _initPesoMetasInputs();
+        }
         const isMobile = window.innerWidth < 768;
 
         if (isMobile) {
             // En móvil: limpiar estilos inline para que el CSS media query centre el panel
-            panel.style.top   = '';
-            panel.style.left  = '';
+            panel.style.top = '';
+            panel.style.left = '';
             panel.style.width = '';
         } else {
-            // En escritorio: posicionar bajo la card del botón
-            const card = btn.closest('.kpi-card');
-            const cardRect = card ? card.getBoundingClientRect() : btn.getBoundingClientRect();
-            const panelWidth = Math.max(280, cardRect.width);
+            // En escritorio: posicionar bajo la card del botón o bajo el botón
+            const card = btn ? btn.closest('.kpi-card') : null;
+            const cardRect = card ? card.getBoundingClientRect() : (btn ? btn.getBoundingClientRect() : { top: 100, bottom: 120, left: 100, width: 280 });
+            const panelWidth = Math.max(280, card ? cardRect.width : 290);
             panel.style.width = panelWidth + 'px';
-            // Centrar horizontalmente sobre la card y limitar a los límites de la pantalla
+            // Centrar horizontalmente sobre la card / botón y limitar a los límites de la pantalla
             let left = cardRect.left + (cardRect.width - panelWidth) / 2;
             const viewportWidth = window.innerWidth;
             if (left < 10) left = 10;
             if (left + panelWidth > viewportWidth - 10) {
                 left = viewportWidth - panelWidth - 10;
             }
-            panel.style.top  = (cardRect.bottom + 6) + 'px';
+            let top = cardRect.bottom + 6;
+            if (top + 280 > window.innerHeight && cardRect.top > 290) {
+                top = cardRect.top - 280;
+            }
+            panel.style.top = top + 'px';
             panel.style.left = left + 'px';
         }
 
@@ -325,7 +363,7 @@ function toggleKpiPanel(panelId, btn) {
 window.toggleKpiPanel = toggleKpiPanel;
 
 // Listener global para cerrar panel al hacer clic fuera
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     if (window._kpiPanelJustOpened) return;
     if (e.target.closest('.kpi-range-panel') || e.target.closest('.kpi-config-btn')) return;
 
@@ -346,7 +384,7 @@ document.addEventListener('click', function(e) {
 // Cerrar panel cuando el usuario hace scroll (evita que quede flotando en lugar incorrecto).
 // En celulares/tablets (ancho < 768px), como el modal queda fijo y centrado en la pantalla,
 // no es necesario cerrarlo al hacer scroll, previniendo cierres accidentales al desplegar el teclado o hacer zoom.
-document.addEventListener('scroll', function() {
+document.addEventListener('scroll', function () {
     if (window.innerWidth < 768) return;
     const activeEl = document.activeElement;
     if (activeEl && activeEl.closest('.kpi-range-panel')) {
@@ -638,6 +676,24 @@ Evalúa la relación directa entre la cantidad de calostro producida por la madr
   <li><strong>Vacas vs Vaquillonas:</strong> Las vaquillonas frecuentemente producen menor volumen pero con concentraciones elevadas de inmunoglobulinas.</li>
 </ul>
 <p style="margin-top:10px;">Podés alternar con el selector superior entre la vista de <strong>Curvas</strong> (promedios por rangos de litros) y la vista de <strong>Puntos</strong> (cada madre mapeada individualmente).</p>`
+    },
+
+    chart_pesos: {
+        icon: '⚖️',
+        iconBg: 'rgba(16, 185, 129, 0.1)',
+        category: 'Crecimiento y Nutrición',
+        title: 'Ganancia y Evolución de Peso (GDP)',
+        formula: 'GDP (kg/día) = (Peso Final - Peso Inicial) ÷ Días transcurridos',
+        desc: `<p><strong>¿A qué hace referencia?</strong><br>
+Evalúa el ritmo de crecimiento de los terneros en las tres etapas clave de la crianza: primeros 7 días (ingreso), 30 días (transición láctea/sólida) y 60 días (desleche).</p>
+<p style="margin-top:8px;"><strong>Semáforo de Ganancia Diaria de Peso (GDP):</strong></p>
+<ul style="margin:4px 0 0 14px;padding:0;list-style:disc;">
+  <li><strong>🟢 LUZ VERDE (Excelente - &gt; 650 g/día):</strong> Crecimiento óptimo; asegura un excelente desarrollo del rumen, fortaleza inmunológica y potencial productivo futuro.</li>
+  <li><strong>🟠 LUZ NARANJA (Atención - 400 a 650 g/día):</strong> Crecimiento regular; requiere supervisar la rutina de alimentación, oferta de iniciador y calidad del agua.</li>
+  <li><strong>🔴 LUZ ROJA (Alerta - &lt; 400 g/día):</strong> Crecimiento deficiente; indica retraso marcado por ingesta insuficiente o secuelas infecciosas (diarrea o neumonía).</li>
+</ul>
+<p style="margin-top:10px;"><strong>Meta de peso:</strong> Duplicar el peso al desleche a los 60 días (configurable con el engranaje ⚙️).</p>
+<p style="margin-top:6px;">Podés alternar con los botones superiores entre la <strong>Curva de Crecimiento</strong> (promedio de la guachera vs curva objetivo) y el <strong>Ranking GDP</strong> (ganancia diaria individual por ternero).</p>`
     }
 };
 
@@ -650,19 +706,19 @@ function toggleKpiInfoModal(type, _btn) {
 
     // Poblar contenido
     const iconWrap = document.getElementById('kpiInfoIconWrap');
-    const iconEl   = document.getElementById('kpiInfoIcon');
-    const catEl    = document.getElementById('kpiInfoCategory');
-    const titleEl  = document.getElementById('kpiInfoTitle');
+    const iconEl = document.getElementById('kpiInfoIcon');
+    const catEl = document.getElementById('kpiInfoCategory');
+    const titleEl = document.getElementById('kpiInfoTitle');
     const formulaBox = document.getElementById('kpiInfoFormulaBox');
     const formulaLabel = document.getElementById('kpiInfoFormulaLabel');
     const formulaEl = document.getElementById('kpiInfoFormulaText');
-    const descEl   = document.getElementById('kpiInfoDescription');
+    const descEl = document.getElementById('kpiInfoDescription');
 
     if (iconWrap) iconWrap.style.background = info.iconBg || 'rgba(26,35,126,0.08)';
-    if (iconEl)   iconEl.textContent = info.icon || '📊';
-    if (catEl)    catEl.textContent  = info.category || 'Información';
-    if (titleEl)  titleEl.textContent = info.title || '';
-    
+    if (iconEl) iconEl.textContent = info.icon || '📊';
+    if (catEl) catEl.textContent = info.category || 'Información';
+    if (titleEl) titleEl.textContent = info.title || '';
+
     if (formulaLabel) {
         formulaLabel.textContent = info.formulaLabel || (info.formula && info.formula.includes('÷') ? '📐 Fórmula' : '📊 Métrica / Indicador');
     }
@@ -674,7 +730,7 @@ function toggleKpiInfoModal(type, _btn) {
             formulaBox.style.display = 'none';
         }
     }
-    if (descEl)   descEl.innerHTML = info.desc || '';
+    if (descEl) descEl.innerHTML = info.desc || '';
 
     // Refrescar icono de cierre lucide
     if (window.lucide) window.lucide.createIcons();
@@ -695,43 +751,43 @@ window.closeKpiInfoModal = closeKpiInfoModal;
 function saveKpiRanges(type) {
     if (type === 'mort') {
         const high = parseFloat(document.getElementById('kpi_mort_thr_high')?.value);
-        const mid  = parseFloat(document.getElementById('kpi_mort_thr_mid')?.value);
+        const mid = parseFloat(document.getElementById('kpi_mort_thr_mid')?.value);
         if (isNaN(high) || isNaN(mid) || mid >= high) {
             alert('El umbral “Moderado” debe ser menor que el umbral “Alto Riesgo”.');
             return;
         }
         _kpiThresholds.mortHigh = high;
-        _kpiThresholds.mortMid  = mid;
+        _kpiThresholds.mortMid = mid;
     } else if (type === 'ig') {
         const high = parseFloat(document.getElementById('kpi_ig_thr_high')?.value);
-        const mid  = parseFloat(document.getElementById('kpi_ig_thr_mid')?.value);
+        const mid = parseFloat(document.getElementById('kpi_ig_thr_mid')?.value);
         if (isNaN(high) || isNaN(mid) || mid >= high) {
             alert('El umbral “Aceptable” debe ser menor que el umbral “Óptimo”.');
             return;
         }
         _kpiThresholds.igHigh = high;
-        _kpiThresholds.igMid  = mid;
+        _kpiThresholds.igMid = mid;
         const metodo = _getIgMetodo();
         const highKey = metodo === 'brix' ? 'igHigh_brix' : 'igHigh_mgdl';
-        const midKey  = metodo === 'brix' ? 'igMid_brix'  : 'igMid_mgdl';
+        const midKey = metodo === 'brix' ? 'igMid_brix' : 'igMid_mgdl';
         _kpiThresholds[highKey] = high;
-        _kpiThresholds[midKey]  = mid;
+        _kpiThresholds[midKey] = mid;
     } else if (type === 'ig_madre') {
         const high = parseFloat(document.getElementById('kpi_ig_madre_thr_high')?.value);
-        const mid  = parseFloat(document.getElementById('kpi_ig_madre_thr_mid')?.value);
+        const mid = parseFloat(document.getElementById('kpi_ig_madre_thr_mid')?.value);
         if (isNaN(high) || isNaN(mid) || mid >= high) {
             alert('El umbral “Aceptable” debe ser menor que el umbral “Óptimo”.');
             return;
         }
         _kpiThresholds.igMadreHigh = high;
-        _kpiThresholds.igMadreMid  = mid;
+        _kpiThresholds.igMadreMid = mid;
         const metodo = _getIgMetodo();
         const highKey = metodo === 'brix' ? 'igMadreHigh_brix' : 'igMadreHigh_mgdl';
-        const midKey  = metodo === 'brix' ? 'igMadreMid_brix'  : 'igMadreMid_mgdl';
+        const midKey = metodo === 'brix' ? 'igMadreMid_brix' : 'igMadreMid_mgdl';
         _kpiThresholds[highKey] = high;
-        _kpiThresholds[midKey]  = mid;
+        _kpiThresholds[midKey] = mid;
     }
-    try { localStorage.setItem(_KPI_THRESHOLDS_KEY, JSON.stringify(_kpiThresholds)); } catch {}
+    try { localStorage.setItem(_KPI_THRESHOLDS_KEY, JSON.stringify(_kpiThresholds)); } catch { }
 
     // Sincronizar en la cuenta del usuario en la base de datos (nube)
     if (typeof AuthManager !== 'undefined' && typeof AuthManager.saveDashboardConfig === 'function') {
@@ -745,6 +801,37 @@ function saveKpiRanges(type) {
 }
 window.saveKpiRanges = saveKpiRanges;
 
+// Guardar metas de peso y sincronizar en nube
+function savePesoMetas() {
+    const d7  = parseFloat(document.getElementById('peso_meta_7d')?.value);
+    const d30 = parseFloat(document.getElementById('peso_meta_30d')?.value);
+    const d60 = parseFloat(document.getElementById('peso_meta_60d')?.value);
+
+    if (isNaN(d7) || isNaN(d30) || isNaN(d60)) {
+        alert('Por favor ingresa valores válidos para los tres períodos.');
+        return;
+    }
+    if (d7 >= d30 || d30 >= d60) {
+        alert('Los pesos deben ser crecientes: 7 días < 30 días < 60 días.');
+        return;
+    }
+
+    _pesoMetas = { d7, d30, d60 };
+    try { localStorage.setItem(_PESO_METAS_KEY, JSON.stringify(_pesoMetas)); } catch { }
+
+    // Sincronizar en nube
+    if (typeof AuthManager !== 'undefined' && typeof AuthManager.saveDashboardConfig === 'function') {
+        AuthManager.saveDashboardConfig({ pesoMetas: _pesoMetas });
+    }
+
+    _closeAllKpiPanels();
+
+    // Re-renderizar el gráfico con los nuevos valores
+    const data = _getDashRecords();
+    if (data && data.length > 0) _renderGananciaPesos(data);
+}
+window.savePesoMetas = savePesoMetas;
+
 // Recalcular y refrescar umbrales cuando el usuario cambia su preferencia de medición
 function refreshDashboardIgMetodo(metodo) {
     const isBrix = (metodo || _getIgMetodo()) === 'brix';
@@ -756,19 +843,19 @@ function refreshDashboardIgMetodo(metodo) {
             if (dc && dc.kpiThresholds) saved = dc.kpiThresholds;
         }
         const highKey = isBrix ? 'igHigh_brix' : 'igHigh_mgdl';
-        const midKey  = isBrix ? 'igMid_brix'  : 'igMid_mgdl';
+        const midKey = isBrix ? 'igMid_brix' : 'igMid_mgdl';
         _kpiThresholds.igHigh = saved[highKey] ?? defIg.high;
-        _kpiThresholds.igMid  = saved[midKey]  ?? defIg.mid;
+        _kpiThresholds.igMid = saved[midKey] ?? defIg.mid;
 
         const highMadreKey = isBrix ? 'igMadreHigh_brix' : 'igMadreHigh_mgdl';
-        const midMadreKey  = isBrix ? 'igMadreMid_brix'  : 'igMadreMid_mgdl';
+        const midMadreKey = isBrix ? 'igMadreMid_brix' : 'igMadreMid_mgdl';
         _kpiThresholds.igMadreHigh = saved[highMadreKey] ?? defIg.high;
-        _kpiThresholds.igMadreMid  = saved[midMadreKey]  ?? defIg.mid;
+        _kpiThresholds.igMadreMid = saved[midMadreKey] ?? defIg.mid;
     } catch {
         _kpiThresholds.igHigh = defIg.high;
-        _kpiThresholds.igMid  = defIg.mid;
+        _kpiThresholds.igMid = defIg.mid;
         _kpiThresholds.igMadreHigh = defIg.high;
-        _kpiThresholds.igMadreMid  = defIg.mid;
+        _kpiThresholds.igMadreMid = defIg.mid;
     }
     _initKpiPanelInputs();
 
@@ -799,6 +886,7 @@ function initDashboard() {
     _populateDashFilterDropdowns();
     _bindDashFilterEvents();
     _initKpiPanelInputs();
+    _initPesoMetasInputs();
     _setupBackdropClick();
 
     // Sincronizar título de gráfico según método activo
@@ -856,7 +944,7 @@ function _populateDashFilterDropdowns() {
     const base = (typeof records !== 'undefined') ? records : [];
 
     const prodSel = document.getElementById('dash_f_productor');
-    const estSel  = document.getElementById('dash_f_establecimiento');
+    const estSel = document.getElementById('dash_f_establecimiento');
     if (!prodSel || !estSel) return;
 
     const savedP = prodSel.value;
@@ -872,8 +960,8 @@ function _populateDashFilterDropdowns() {
 
 // Repobla el select de establecimiento del dashboard segun el productor activo
 function _repopulateEstablecimientoDropdown(selectedProductor, keepValue) {
-    const base    = (typeof records !== 'undefined') ? records : [];
-    const estSel  = document.getElementById('dash_f_establecimiento');
+    const base = (typeof records !== 'undefined') ? records : [];
+    const estSel = document.getElementById('dash_f_establecimiento');
     if (!estSel) return;
 
     let ests;
@@ -896,13 +984,13 @@ function _repopulateEstablecimientoDropdown(selectedProductor, keepValue) {
 }
 
 function _bindDashFilterEvents() {
-    ['dash_f_desde','dash_f_hasta','dash_f_productor','dash_f_establecimiento'].forEach(id => {
+    ['dash_f_desde', 'dash_f_hasta', 'dash_f_productor', 'dash_f_establecimiento'].forEach(id => {
         const el = document.getElementById(id);
         if (el && !el.dataset.dashBound) {
             el.addEventListener('change', () => {
-                _dashFilters.desde           = document.getElementById('dash_f_desde')?.value || '';
-                _dashFilters.hasta           = document.getElementById('dash_f_hasta')?.value || '';
-                _dashFilters.productor       = document.getElementById('dash_f_productor')?.value || '';
+                _dashFilters.desde = document.getElementById('dash_f_desde')?.value || '';
+                _dashFilters.hasta = document.getElementById('dash_f_hasta')?.value || '';
+                _dashFilters.productor = document.getElementById('dash_f_productor')?.value || '';
                 _dashFilters.establecimiento = document.getElementById('dash_f_establecimiento')?.value || '';
 
                 // Cuando cambia el productor, repoblar el dropdown de establecimiento
@@ -995,6 +1083,7 @@ function renderDashboard() {
     _renderPerinatal(data);
     _renderBrixSalud(data);
     _renderLitrosCalostro(data);
+    _renderGananciaPesos(data);
 }
 window.renderDashboard = renderDashboard;
 
@@ -1006,7 +1095,7 @@ function _renderKPIs(data) {
     const perinatales = data.filter(_isPerinatal).length;
     const muertosGuachera = data.filter(_isMuertoGuachera).length;
     const vivos = data.filter(r => r.estado === 'Vivo').length;
-    
+
     // Total que ingresó a guachera / crianza (vivos + los que murieron en guachera)
     const totalCrianza = vivos + muertosGuachera;
     // Tasa de mortalidad real en guachera (NO se infla con abortos ni nacidos muertos)
@@ -1042,8 +1131,8 @@ function _renderKPIs(data) {
                     : '✅ Normal';
             badge.className = 'kpi-badge ' + (
                 tasaMortalidad > _kpiThresholds.mortHigh ? 'badge-danger'
-                : tasaMortalidad > _kpiThresholds.mortMid ? 'badge-warning'
-                : 'badge-success'
+                    : tasaMortalidad > _kpiThresholds.mortMid ? 'badge-warning'
+                        : 'badge-success'
             );
         }
     }
@@ -1053,7 +1142,7 @@ function _renderKPIs(data) {
 
     // Sub-labels
     if (el('kpi_total_sub')) {
-        el('kpi_total_sub').textContent = perinatales > 0 
+        el('kpi_total_sub').textContent = perinatales > 0
             ? `${totalCrianza} en crianza · ${perinatales} perinatales`
             : `${vivos} vivos · ${muertosGuachera} muertos`;
     }
@@ -1073,9 +1162,9 @@ function _renderKPIs(data) {
         if (igCard) {
             igCard.classList.remove('kpi-state--success', 'kpi-state--warning', 'kpi-state--danger');
             if (igs.length > 0) {
-                if (avgIg >= _kpiThresholds.igHigh)      igCard.classList.add('kpi-state--success');
-                else if (avgIg >= _kpiThresholds.igMid)  igCard.classList.add('kpi-state--warning');
-                else                                      igCard.classList.add('kpi-state--danger');
+                if (avgIg >= _kpiThresholds.igHigh) igCard.classList.add('kpi-state--success');
+                else if (avgIg >= _kpiThresholds.igMid) igCard.classList.add('kpi-state--warning');
+                else igCard.classList.add('kpi-state--danger');
             }
         }
     }
@@ -1096,9 +1185,9 @@ function _renderKPIs(data) {
             el('kpi_ig_madre_sub').textContent = `${igMadreLevel} · ${unit}`;
             if (igMadreCard) {
                 igMadreCard.classList.remove('kpi-state--success', 'kpi-state--warning', 'kpi-state--danger');
-                if (avgIgMadre >= _kpiThresholds.igMadreHigh)      igMadreCard.classList.add('kpi-state--success');
-                else if (avgIgMadre >= _kpiThresholds.igMadreMid)  igMadreCard.classList.add('kpi-state--warning');
-                else                                               igMadreCard.classList.add('kpi-state--danger');
+                if (avgIgMadre >= _kpiThresholds.igMadreHigh) igMadreCard.classList.add('kpi-state--success');
+                else if (avgIgMadre >= _kpiThresholds.igMadreMid) igMadreCard.classList.add('kpi-state--warning');
+                else igMadreCard.classList.add('kpi-state--danger');
             }
         }
     }
@@ -1119,16 +1208,16 @@ function _getCtx(id) {
 }
 
 const PALETTE = {
-    primary:      '#1a237e',
+    primary: '#1a237e',
     primaryLight: '#3949ab',
-    secondary:    '#2e7d32',   // Verde supervivencia
-    danger:       '#dc2626',   // Rojo mortalidad
-    warning:      '#d97706',
-    info:         '#0284c7',
-    purple:       '#7c3aed',
-    pink:         '#db2777',
-    teal:         '#0f766e',
-    orange:       '#ea580c',
+    secondary: '#2e7d32',   // Verde supervivencia
+    danger: '#dc2626',   // Rojo mortalidad
+    warning: '#d97706',
+    info: '#0284c7',
+    purple: '#7c3aed',
+    pink: '#db2777',
+    teal: '#0f766e',
+    orange: '#ea580c',
 };
 
 // Opacidad 80% para todos los colores de fondo
@@ -1142,19 +1231,19 @@ function _getChartTheme() {
     const isDark = _isDarkMode();
     return {
         isDark,
-        textPrimary:     isDark ? '#ffffff' : '#1e293b',
-        textSecondary:   isDark ? '#94a3b8' : '#64748b',
-        textBold:        isDark ? '#f8fafc' : '#334155',
-        textAxisTitle:   isDark ? '#cbd5e1' : '#64748b',
-        legendText:      isDark ? '#f1f5f9' : '#475569',
-        gridSubtle:      isDark ? 'rgba(255, 255, 255, 0.08)' : '#E0E0E0',
-        gridFaint:       isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9',
-        evaluadosLine:   isDark ? '#60a5fa' : PALETTE.primary,
-        evaluadosPoint:  isDark ? '#93c5fd' : PALETTE.primary,
-        evaluadosText:   isDark ? '#ffffff' : PALETTE.primary,
-        evaluadosTicks:  isDark ? '#ffffff' : PALETTE.primary,
-        badgeBg:         isDark ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.82)',
-        sexoMachoBg:     isDark ? 'rgba(96, 165, 250, 0.8)' : PALETTE.primary + 'cc',
+        textPrimary: isDark ? '#ffffff' : '#1e293b',
+        textSecondary: isDark ? '#94a3b8' : '#64748b',
+        textBold: isDark ? '#f8fafc' : '#334155',
+        textAxisTitle: isDark ? '#cbd5e1' : '#64748b',
+        legendText: isDark ? '#f1f5f9' : '#475569',
+        gridSubtle: isDark ? 'rgba(255, 255, 255, 0.08)' : '#E0E0E0',
+        gridFaint: isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9',
+        evaluadosLine: isDark ? '#60a5fa' : PALETTE.primary,
+        evaluadosPoint: isDark ? '#93c5fd' : PALETTE.primary,
+        evaluadosText: isDark ? '#ffffff' : PALETTE.primary,
+        evaluadosTicks: isDark ? '#ffffff' : PALETTE.primary,
+        badgeBg: isDark ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.82)',
+        sexoMachoBg: isDark ? 'rgba(96, 165, 250, 0.8)' : PALETTE.primary + 'cc',
         sexoMachoBorder: isDark ? '#60a5fa' : PALETTE.primary,
     };
 }
@@ -1203,7 +1292,7 @@ function _initChartTooltipPositioner() {
     if (typeof Chart !== 'undefined' && Chart.Tooltip) {
         if (!Chart.Tooltip.positioners) Chart.Tooltip.positioners = {};
         if (!Chart.Tooltip.positioners.followPointer) {
-            Chart.Tooltip.positioners.followPointer = function(elements, eventPosition) {
+            Chart.Tooltip.positioners.followPointer = function (elements, eventPosition) {
                 if (!elements || !elements.length) return false;
                 if (eventPosition && typeof eventPosition.x === 'number' && typeof eventPosition.y === 'number') {
                     return { x: eventPosition.x, y: eventPosition.y };
@@ -1242,7 +1331,7 @@ const CHART_DEFAULTS = {
 
 // Grid Y sutil reutilizable
 const GRID_Y_SUBTLE = { color: '#E0E0E0', lineWidth: 1 };
-const GRID_NONE     = { display: false };
+const GRID_NONE = { display: false };
 
 // Helper functions for fuzzy unification y detalle de causas de muerte
 function cleanCausaString(str) {
@@ -1560,7 +1649,7 @@ function _renderCausasMuerte(data) {
             },
             scales: {
                 x: { grid: { color: _getChartTheme().gridSubtle, lineWidth: 1 }, ticks: { color: _getChartTheme().textSecondary, font: { family: 'Inter' } } },
-                y: { grid: GRID_NONE,     ticks: { color: _getChartTheme().textBold, font: { family: 'Inter', weight: '600' } } }
+                y: { grid: GRID_NONE, ticks: { color: _getChartTheme().textBold, font: { family: 'Inter', weight: '600' } } }
             },
         }
     });
@@ -1674,7 +1763,7 @@ function _showCausaDetailModal(groupIndex) {
             .forEach(r => {
                 const estadoIcon = r.estado === 'Muerto en Guachería' ? '🏠'
                     : r.estado === 'Muerto en Establecimiento' ? '🏢'
-                    : r.estado === 'Muerto en Terapia' ? '💉' : '☠️';
+                        : r.estado === 'Muerto en Terapia' ? '💉' : '☠️';
 
                 const rDisease = getSpecificDisease(r);
                 const diseaseBadge = rDisease
@@ -1814,7 +1903,7 @@ function _renderUbicacionMortalidad(data) {
                 },
                 tooltip: {
                     callbacks: {
-                        label: ctx => ` ${ctx.label}: ${ctx.raw} (${muertos.length > 0 ? ((ctx.raw/muertos.length)*100).toFixed(1) : 0}%)`
+                        label: ctx => ` ${ctx.label}: ${ctx.raw} (${muertos.length > 0 ? ((ctx.raw / muertos.length) * 100).toFixed(1) : 0}%)`
                     }
                 }
             }
@@ -1898,17 +1987,17 @@ function _renderCorrelacionCalostro(data) {
                 }
             },
             scales: {
-                x: { 
-                    title: { 
-                        display: true, 
-                        text: _getIgMetodo() === 'brix' 
-                            ? 'Grados Brix (% Brix)' 
-                            : 'I.G. Calostro Madre (mg/dL)', 
-                        color: _getChartTheme().textAxisTitle, 
-                        font: { family: 'Inter' } 
-                    }, 
-                    grid: { color: _getChartTheme().gridFaint }, 
-                    ticks: { color: _getChartTheme().textSecondary } 
+                x: {
+                    title: {
+                        display: true,
+                        text: _getIgMetodo() === 'brix'
+                            ? 'Grados Brix (% Brix)'
+                            : 'I.G. Calostro Madre (mg/dL)',
+                        color: _getChartTheme().textAxisTitle,
+                        font: { family: 'Inter' }
+                    },
+                    grid: { color: _getChartTheme().gridFaint },
+                    ticks: { color: _getChartTheme().textSecondary }
                 },
                 y: { title: { display: true, text: 'I.G. Ternero (%)', color: _getChartTheme().textAxisTitle, font: { family: 'Inter' } }, grid: { color: _getChartTheme().gridFaint }, ticks: { color: _getChartTheme().textSecondary } }
             }
@@ -1923,7 +2012,7 @@ function _renderCorrelacionCalostro(data) {
 // Datos actuales del gráfico (para que el filtro pueda re-renderizar sin re-fetch)
 let _brixSaludAllData = [];
 
-window._onBrixSaludFilter = function() {
+window._onBrixSaludFilter = function () {
     _renderBrixSalud(_brixSaludAllData);
 };
 
@@ -1963,9 +2052,9 @@ function _renderBrixSalud(data) {
 
     // ── Helper: valor X según fuente seleccionada ────────────────
     function _getBrixX(r) {
-        const madre   = parseFloat(r.ig_calostro);
+        const madre = parseFloat(r.ig_calostro);
         const ternero = parseFloat(r.ig_ternero);
-        if (fuente === 'madre')   return isNaN(madre)   ? null : madre;
+        if (fuente === 'madre') return isNaN(madre) ? null : madre;
         if (fuente === 'ternero') return isNaN(ternero) ? null : ternero;
         if (!isNaN(madre) && !isNaN(ternero)) return parseFloat(((madre + ternero) / 2).toFixed(2));
         return null;
@@ -1994,8 +2083,8 @@ function _renderBrixSalud(data) {
     const enfermos = sample
         .filter(r => r.estado === 'Vivo' &&
             (r.estado_salud === 'Está enfermo actualmente' ||
-             r.estado_salud === 'Tuvo una enfermedad anteriormente' ||
-             r.estado_salud === 'Nació con algún problema o malformación'))
+                r.estado_salud === 'Tuvo una enfermedad anteriormente' ||
+                r.estado_salud === 'Nació con algún problema o malformación'))
         .map(r => ({ x: _getBrixX(r), y: 1, label: r.detalle_salud || r.estado_salud }));
 
     // 3) Sanos
@@ -2120,7 +2209,7 @@ function _getCalostroView() {
         }
         const saved = localStorage.getItem('vetfield_calostro_view');
         if (saved) return saved;
-    } catch {}
+    } catch { }
     return 'lines'; // Por defecto curvas
 }
 
@@ -2138,7 +2227,7 @@ function _updateCalostroViewButtons(view) {
     }
 }
 
-window.setCalostroView = function(view) {
+window.setCalostroView = function (view) {
     localStorage.setItem('vetfield_calostro_view', view);
     if (typeof AuthManager !== 'undefined' && typeof AuthManager.saveDashboardConfig === 'function') {
         AuthManager.saveDashboardConfig({ calostroView: view });
@@ -2181,9 +2270,9 @@ function _renderLitrosCalostro(data) {
 
     // Calcular promedios para el badge comparativo de cabecera
     const vacaAvgLit = vacas.length ? (vacas.reduce((a, b) => a + parseFloat(b.litros_calostro_madre), 0) / vacas.length).toFixed(1) : null;
-    const vacaAvgIg  = vacas.length ? (vacas.reduce((a, b) => a + parseFloat(b.ig_calostro), 0) / vacas.length).toFixed(1) : null;
-    const vaqAvgLit  = vaquillonas.length ? (vaquillonas.reduce((a, b) => a + parseFloat(b.litros_calostro_madre), 0) / vaquillonas.length).toFixed(1) : null;
-    const vaqAvgIg   = vaquillonas.length ? (vaquillonas.reduce((a, b) => a + parseFloat(b.ig_calostro), 0) / vaquillonas.length).toFixed(1) : null;
+    const vacaAvgIg = vacas.length ? (vacas.reduce((a, b) => a + parseFloat(b.ig_calostro), 0) / vacas.length).toFixed(1) : null;
+    const vaqAvgLit = vaquillonas.length ? (vaquillonas.reduce((a, b) => a + parseFloat(b.litros_calostro_madre), 0) / vaquillonas.length).toFixed(1) : null;
+    const vaqAvgIg = vaquillonas.length ? (vaquillonas.reduce((a, b) => a + parseFloat(b.ig_calostro), 0) / vaquillonas.length).toFixed(1) : null;
 
     const vacaEl = document.getElementById('vaca_avg_summary');
     if (vacaEl) vacaEl.textContent = (vacaAvgLit !== null && vacaAvgIg !== null) ? `${vacaAvgLit} L · ${vacaAvgIg} ${unit}` : 'Sin datos';
@@ -2241,11 +2330,11 @@ function _renderLitrosCalostro(data) {
     if (view === 'lines') {
         // Vista CURVAS: agrupado por rangos de litros
         const buckets = [
-            { label: '≤ 3 L',     min: 0,    max: 3.09 },
-            { label: '3.1 - 5 L', min: 3.1,  max: 5.09 },
-            { label: '5.1 - 7 L', min: 5.1,  max: 7.09 },
-            { label: '7.1 - 9 L', min: 7.1,  max: 9.09 },
-            { label: '> 9 L',     min: 9.1,  max: 999.0 }
+            { label: '≤ 3 L', min: 0, max: 3.09 },
+            { label: '3.1 - 5 L', min: 3.1, max: 5.09 },
+            { label: '5.1 - 7 L', min: 5.1, max: 7.09 },
+            { label: '7.1 - 9 L', min: 7.1, max: 9.09 },
+            { label: '> 9 L', min: 9.1, max: 999.0 }
         ];
 
         const vacaData = [];
@@ -2334,7 +2423,7 @@ function _renderLitrosCalostro(data) {
                     },
                     tooltip: {
                         callbacks: {
-                            label: function(c) {
+                            label: function (c) {
                                 const ds = c.dataset;
                                 const count = ds.counts ? ds.counts[c.dataIndex] : 0;
                                 return ` ${ds.label}: ${c.raw} ${unit} (promedio de ${count} ${count === 1 ? 'parto' : 'partos'})`;
@@ -2415,7 +2504,7 @@ function _renderLitrosCalostro(data) {
                     },
                     tooltip: {
                         callbacks: {
-                            label: function(c) {
+                            label: function (c) {
                                 const pt = c.raw;
                                 const dsLabel = c.dataset.label;
                                 return [
@@ -2448,6 +2537,423 @@ function _renderLitrosCalostro(data) {
     }
 }
 window._renderLitrosCalostro = _renderLitrosCalostro;
+
+// ────────────────────────────────────────────────────────────────
+// GANANCIA Y EVOLUCIÓN DE PESOS (GDP)
+// ────────────────────────────────────────────────────────────────
+let _pesosCurrentView = 'curva'; // 'curva' | 'ranking'
+
+function setPesosView(view) {
+    _pesosCurrentView = view;
+    const btnCurva = document.getElementById('btn_pesos_view_curva');
+    const btnRank = document.getElementById('btn_pesos_view_ranking');
+    if (btnCurva) btnCurva.classList.toggle('active', view === 'curva');
+    if (btnRank) btnRank.classList.toggle('active', view === 'ranking');
+
+    const subEl = document.getElementById('pesos-chart-sub');
+    if (subEl) {
+        subEl.textContent = view === 'curva'
+            ? 'Curva promedio por edad (7, 30 y 60 días) vs objetivo recomendado'
+            : 'Ganancia Diaria de Peso (kg/día) individual por ternero';
+    }
+
+    const legendEl = document.getElementById('pesos_curva_legend');
+    if (legendEl) {
+        legendEl.style.display = view === 'curva' ? 'flex' : 'none';
+    }
+
+    _renderGananciaPesos(_getDashRecords());
+}
+window.setPesosView = setPesosView;
+
+function _renderGananciaPesos(data) {
+    const canvas = document.getElementById('chart_pesos');
+    const emptyEl = document.getElementById('chart_pesos_empty');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const theme = _getChartTheme();
+    const isDark = theme.isDark;
+
+    // Terneros que tienen seguimiento o algún peso cargado
+    const calvesWithWeights = (data || []).filter(r => {
+        const hasFollow = r.seguimiento_peso;
+        const p7 = parseFloat(r.peso_7dias);
+        const p30 = parseFloat(r.peso_30dias);
+        const p60 = parseFloat(r.peso_60dias);
+        return hasFollow || (!isNaN(p7) && p7 > 0) || (!isNaN(p30) && p30 > 0) || (!isNaN(p60) && p60 > 0);
+    });
+
+    const arr7 = [];
+    const arr30 = [];
+    const arr60 = [];
+    const rankingCalves = [];
+
+    calvesWithWeights.forEach(r => {
+        const p7 = parseFloat(r.peso_7dias);
+        const p30 = parseFloat(r.peso_30dias);
+        const p60 = parseFloat(r.peso_60dias);
+
+        const v7 = !isNaN(p7) && p7 > 0 ? p7 : null;
+        const v30 = !isNaN(p30) && p30 > 0 ? p30 : null;
+        const v60 = !isNaN(p60) && p60 > 0 ? p60 : null;
+
+        if (v7 !== null) arr7.push(v7);
+        if (v30 !== null) arr30.push(v30);
+        if (v60 !== null) arr60.push(v60);
+
+        // Calcular ganancia diaria si tiene al menos 2 pesajes
+        let gdp = null;
+        let gdpPeriodo = '';
+        if (v7 !== null && v60 !== null) {
+            gdp = (v60 - v7) / 53;
+            gdpPeriodo = '7 a 60 días';
+        } else if (v30 !== null && v60 !== null) {
+            gdp = (v60 - v30) / 30;
+            gdpPeriodo = '30 a 60 días';
+        } else if (v7 !== null && v30 !== null) {
+            gdp = (v30 - v7) / 23;
+            gdpPeriodo = '7 a 30 días';
+        }
+
+        if (gdp !== null) {
+            rankingCalves.push({
+                rp: r.rp_ternero || 'S/N',
+                gdp: gdp,
+                periodo: gdpPeriodo,
+                p7: v7,
+                p30: v30,
+                p60: v60,
+                establecimiento: r.establecimiento || ''
+            });
+        }
+    });
+
+    const avg7 = arr7.length > 0 ? (arr7.reduce((a, b) => a + b, 0) / arr7.length) : null;
+    const avg30 = arr30.length > 0 ? (arr30.reduce((a, b) => a + b, 0) / arr30.length) : null;
+    const avg60 = arr60.length > 0 ? (arr60.reduce((a, b) => a + b, 0) / arr60.length) : null;
+    const avgGdp = rankingCalves.length > 0 ? (rankingCalves.reduce((a, b) => a + b.gdp, 0) / rankingCalves.length) : null;
+
+    // Actualizar chips de resumen superior
+    const el7 = document.getElementById('pesos_chip_7d');
+    const el30 = document.getElementById('pesos_chip_30d');
+    const el60 = document.getElementById('pesos_chip_60d');
+    const elGdp = document.getElementById('pesos_chip_gdp');
+    const elGdpWrap = document.getElementById('pesos_chip_gdp_wrap') || (elGdp ? elGdp.closest('.pesos-chip') : null);
+
+    if (el7) el7.textContent = avg7 !== null ? `${avg7.toFixed(1)} kg` : '—';
+    if (el30) el30.textContent = avg30 !== null ? `${avg30.toFixed(1)} kg` : '—';
+    if (el60) el60.textContent = avg60 !== null ? `${avg60.toFixed(1)} kg` : '—';
+    if (elGdp) elGdp.textContent = avgGdp !== null ? `${avgGdp >= 0 ? '+' : ''}${avgGdp.toFixed(3)} kg/d` : '—';
+
+    if (elGdpWrap) {
+        elGdpWrap.classList.remove('pesos-chip--gdp-green', 'pesos-chip--gdp-orange', 'pesos-chip--gdp-red');
+        if (avgGdp !== null) {
+            if (avgGdp > 0.650) {
+                elGdpWrap.classList.add('pesos-chip--gdp-green');
+                elGdpWrap.title = 'Ganancia Diaria Promedio: 🟢 Excelente (> 650 g/día)';
+            } else if (avgGdp >= 0.400) {
+                elGdpWrap.classList.add('pesos-chip--gdp-orange');
+                elGdpWrap.title = 'Ganancia Diaria Promedio: 🟠 Atención (400 a 650 g/día)';
+            } else {
+                elGdpWrap.classList.add('pesos-chip--gdp-red');
+                elGdpWrap.title = 'Ganancia Diaria Promedio: 🔴 Alerta (< 400 g/día)';
+            }
+        } else {
+            elGdpWrap.title = 'Ganancia Diaria de Peso Promedio de la Guachera';
+        }
+    }
+
+    // Si no hay ningún dato cargado
+    const hasAnyData = arr7.length > 0 || arr30.length > 0 || arr60.length > 0;
+    const legendEl = document.getElementById('pesos_curva_legend');
+    if (!hasAnyData) {
+        canvas.style.display = 'none';
+        if (legendEl) legendEl.style.display = 'none';
+        if (emptyEl) emptyEl.style.display = 'flex';
+        if (_dashCharts.chart_pesos) {
+            _dashCharts.chart_pesos.destroy();
+            _dashCharts.chart_pesos = null;
+        }
+        return;
+    }
+
+    canvas.style.display = 'block';
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    if (_dashCharts.chart_pesos) {
+        _dashCharts.chart_pesos.destroy();
+        _dashCharts.chart_pesos = null;
+    }
+
+    if (_pesosCurrentView === 'curva') {
+        if (legendEl) {
+            legendEl.style.display = 'flex';
+            _renderPesosCurvaLegend();
+        }
+        const labels = ['7 días (Inicial)', '30 días (Transición)', '60 días (Desleche)'];
+        const curveData = [
+            avg7 !== null ? parseFloat(avg7.toFixed(1)) : null,
+            avg30 !== null ? parseFloat(avg30.toFixed(1)) : null,
+            avg60 !== null ? parseFloat(avg60.toFixed(1)) : null
+        ];
+        const counts = [arr7.length, arr30.length, arr60.length];
+        const metaData = [_pesoMetas.d7, _pesoMetas.d30, _pesoMetas.d60];
+
+        _dashCharts.chart_pesos = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Promedio Guachera (kg)',
+                        data: curveData,
+                        borderColor: '#10b981',
+                        backgroundColor: isDark ? 'rgba(16, 185, 129, 0.22)' : 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                        spanGaps: true,
+                        counts: counts
+                    },
+                    {
+                        label: 'Meta recomendada (duplicar peso)',
+                        data: metaData,
+                        borderColor: isDark ? 'rgba(148, 163, 184, 0.65)' : 'rgba(100, 116, 139, 0.65)',
+                        borderDash: [6, 6],
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: isDark ? '#94a3b8' : '#64748b',
+                        fill: false,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                ...CHART_DEFAULTS,
+                plugins: {
+                    ...CHART_DEFAULTS.plugins,
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (c) {
+                                const ds = c.dataset;
+                                const val = c.raw;
+                                if (val === null || val === undefined) return '';
+                                if (ds.counts) {
+                                    const n = ds.counts[c.dataIndex];
+                                    return ` ${ds.label}: ${val} kg (promedio de ${n} ${n === 1 ? 'ternero' : 'terneros'})`;
+                                }
+                                return ` ${ds.label}: ${val} kg`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: theme.gridFaint },
+                        ticks: { color: theme.textSecondary, font: { family: 'Inter', size: 11, weight: 500 } }
+                    },
+                    y: {
+                        title: { display: true, text: 'Peso Vivo (kg)', color: theme.textAxisTitle, font: { family: 'Inter', size: 11, weight: 600 } },
+                        grid: { color: theme.gridSubtle },
+                        ticks: {
+                            color: theme.textSecondary,
+                            callback: val => val + ' kg'
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: Math.max(90, (_pesoMetas.d60 || 77) + 10)
+                    }
+                }
+            }
+        });
+    } else {
+        if (legendEl) legendEl.style.display = 'none';
+        // Vista Ranking GDP por ternero
+        if (rankingCalves.length === 0) {
+            _dashCharts.chart_pesos = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Sin pesajes sucesivos'],
+                    datasets: [{
+                        label: 'GDP (kg/día)',
+                        data: [0],
+                        backgroundColor: 'rgba(100, 116, 139, 0.2)'
+                    }]
+                },
+                options: {
+                    ...CHART_DEFAULTS,
+                    plugins: {
+                        ...CHART_DEFAULTS.plugins,
+                        subtitle: {
+                            display: true,
+                            text: 'Se requieren al menos 2 pesajes en un mismo ternero para calcular la ganancia diaria.',
+                            color: theme.textSecondary,
+                            font: { family: 'Inter', size: 12 }
+                        }
+                    }
+                }
+            });
+            return;
+        }
+
+        // Ordenar de mayor a menor ganancia
+        rankingCalves.sort((a, b) => b.gdp - a.gdp);
+
+        // Limitar a los primeros 15 terneros si hay demasiados
+        const MAX_RANKING = 15;
+        const displayCalves = rankingCalves.slice(0, MAX_RANKING);
+        const totalConPesajes = rankingCalves.length;
+
+        const labels = displayCalves.map(c => `RP ${c.rp}`);
+        const dataValues = displayCalves.map(c => parseFloat(c.gdp.toFixed(3)));
+        const bgColors = displayCalves.map(c => {
+            if (c.gdp > 0.650) return isDark ? 'rgba(34, 197, 94, 0.85)' : '#22c55e'; // 🟢 Luz Verde (> 650 g/d)
+            if (c.gdp >= 0.400) return isDark ? 'rgba(249, 115, 22, 0.85)' : '#f97316'; // 🟠 Luz Naranja (400 - 650 g/d)
+            return isDark ? 'rgba(239, 68, 68, 0.85)' : '#ef4444'; // 🔴 Luz Roja (< 400 g/d)
+        });
+
+        _dashCharts.chart_pesos = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Ganancia Diaria (kg/día)',
+                        data: dataValues,
+                        backgroundColor: bgColors,
+                        borderRadius: 6,
+                        maxBarThickness: 32,
+                        calvesData: displayCalves
+                    }
+                ]
+            },
+            options: {
+                ...CHART_DEFAULTS,
+                plugins: {
+                    ...CHART_DEFAULTS.plugins,
+                    legend: {
+                        display: false
+                    },
+                    subtitle: {
+                        display: true,
+                        text: `Top ${Math.min(MAX_RANKING, totalConPesajes)} de ${totalConPesajes} ternero${totalConPesajes !== 1 ? 's' : ''} con pesajes · ordenado por mayor GDP`,
+                        color: theme.textSecondary,
+                        font: { family: 'Inter', size: 11, style: 'italic' },
+                        padding: { bottom: 6 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function (items) {
+                                const idx = items[0].dataIndex;
+                                const item = displayCalves[idx];
+                                return `Ternero RP ${item.rp}${item.establecimiento ? ' (' + item.establecimiento + ')' : ''}`;
+                            },
+                            label: function (c) {
+                                const item = displayCalves[c.dataIndex];
+                                const sign = item.gdp >= 0 ? '+' : '';
+                                const status = item.gdp > 0.650
+                                    ? '🟢 Luz Verde - Excelente (> 650 g/d)'
+                                    : (item.gdp >= 0.400
+                                        ? '🟠 Luz Naranja - Atención (400 a 650 g/d)'
+                                        : '🔴 Luz Roja - Alerta (< 400 g/d)');
+                                const lines = [
+                                    ` GDP: ${sign}${item.gdp.toFixed(3)} kg/día (${item.periodo})`,
+                                    ` Estado: ${status}`
+                                ];
+                                const pesosParts = [];
+                                if (item.p7 !== null) pesosParts.push(`7d: ${item.p7}kg`);
+                                if (item.p30 !== null) pesosParts.push(`30d: ${item.p30}kg`);
+                                if (item.p60 !== null) pesosParts.push(`60d: ${item.p60}kg`);
+                                if (pesosParts.length > 0) {
+                                    lines.push(` Historial: ${pesosParts.join(' | ')}`);
+                                }
+                                return lines;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            color: theme.textSecondary,
+                            font: { family: 'Inter', size: 10, weight: 600 },
+                            maxRotation: 45,
+                            minRotation: 0
+                        }
+                    },
+                    y: {
+                        title: { display: true, text: 'Ganancia Diaria (kg/día)', color: theme.textAxisTitle, font: { family: 'Inter', size: 11, weight: 600 } },
+                        grid: { color: theme.gridSubtle },
+                        ticks: {
+                            color: theme.textSecondary,
+                            callback: val => val.toFixed(2) + ' kg/d'
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 1.1
+                    }
+                }
+            }
+        });
+    }
+}
+window._renderGananciaPesos = _renderGananciaPesos;
+
+// ── Leyenda personalizada para la curva de pesos con botón de configuración ──
+function _renderPesosCurvaLegend() {
+    const el = document.getElementById('pesos_curva_legend');
+    if (!el) return;
+    const isDark = document.documentElement.classList.contains('dark');
+    const colorLine1 = '#10b981';
+    const colorDot2 = isDark ? '#94a3b8' : '#64748b';
+    const textMain = isDark ? '#e2e8f0' : '#1e293b';
+    const gearColor = isDark ? '#94a3b8' : '#64748b';
+    const gearBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+    const gearBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+
+    const is0Visible = _dashCharts.chart_pesos ? _dashCharts.chart_pesos.isDatasetVisible(0) : true;
+    const is1Visible = _dashCharts.chart_pesos ? _dashCharts.chart_pesos.isDatasetVisible(1) : true;
+
+    el.innerHTML = `
+        <div id="pesos_leg_item_0" onclick="togglePesosDataset(0)" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; user-select:none; opacity:${is0Visible ? '1' : '0.4'}; text-decoration:${is0Visible ? 'none' : 'line-through'}; transition:opacity 0.2s;" title="Clic para ocultar/mostrar Promedio Guachera">
+            <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${colorLine1}; flex-shrink:0;"></span>
+            <span style="font-weight:600; color:${textMain}; font-size:0.8rem;">Promedio Guachera (kg)</span>
+        </div>
+
+        <div style="display:inline-flex; align-items:center; gap:6px;">
+            <div id="pesos_leg_item_1" onclick="togglePesosDataset(1)" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; user-select:none; opacity:${is1Visible ? '1' : '0.4'}; text-decoration:${is1Visible ? 'none' : 'line-through'}; transition:opacity 0.2s;" title="Clic para ocultar/mostrar Meta recomendada">
+                <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${colorDot2}; flex-shrink:0;"></span>
+                <span style="font-weight:600; color:${textMain}; font-size:0.8rem;">Meta recomendada (duplicar peso)</span>
+            </div>
+            <button type="button" class="kpi-config-btn" id="btn_peso_metas_config" onclick="toggleKpiPanel('peso_metas_panel', this)" title="Configurar metas de peso recomendadas" style="position:static; display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; padding:0; margin-left:2px; font-size:13px; color:${gearColor}; background:${gearBg}; border:1px solid ${gearBorder}; border-radius:6px; cursor:pointer; vertical-align:middle; transition:all 0.15s ease;">
+                ⚙️
+            </button>
+        </div>
+    `;
+}
+window._renderPesosCurvaLegend = _renderPesosCurvaLegend;
+
+function togglePesosDataset(index) {
+    if (!_dashCharts.chart_pesos) return;
+    const isVisible = _dashCharts.chart_pesos.isDatasetVisible(index);
+    _dashCharts.chart_pesos.setDatasetVisibility(index, !isVisible);
+    _dashCharts.chart_pesos.update();
+    const item = document.getElementById(`pesos_leg_item_${index}`);
+    if (item) {
+        item.style.opacity = !isVisible ? '1' : '0.4';
+        item.style.textDecoration = !isVisible ? 'none' : 'line-through';
+    }
+}
+window.togglePesosDataset = togglePesosDataset;
 
 // ────────────────────────────────────────────────────────────────
 // 4. Desempeño por Tipo de Madre — Stacked BarChart
@@ -2497,7 +3003,7 @@ function _renderDesempenoMadre(data) {
                             const total = ctx.dataset.label === 'Vivos'
                                 ? (ctx.dataIndex === 0 ? vacas.length : vaquil.length)
                                 : (ctx.dataIndex === 0 ? vacas.length : vaquil.length);
-                            return ` ${ctx.dataset.label}: ${ctx.raw} (${total > 0 ? ((ctx.raw/total)*100).toFixed(1) : 0}%)`;
+                            return ` ${ctx.dataset.label}: ${ctx.raw} (${total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0}%)`;
                         }
                     }
                 }
@@ -2517,9 +3023,9 @@ function _renderSaludOmbligos(data) {
     const ctx = _getCtx('chart_ombligos');
     if (!ctx) return;
 
-    const bueno  = data.filter(r => r.ombligo === 'Bueno').length;
+    const bueno = data.filter(r => r.ombligo === 'Bueno').length;
     const regular = data.filter(r => r.ombligo === 'Regular').length;
-    const malo   = data.filter(r => r.ombligo === 'Malo').length;
+    const malo = data.filter(r => r.ombligo === 'Malo').length;
 
     _dashCharts.chart_ombligos = new Chart(ctx, {
         type: 'doughnut',
@@ -2540,7 +3046,7 @@ function _renderSaludOmbligos(data) {
                 ...CHART_DEFAULTS.plugins,
                 tooltip: {
                     callbacks: {
-                        label: ctx => ` ${ctx.label}: ${ctx.raw} (${data.length > 0 ? ((ctx.raw/data.length)*100).toFixed(1) : 0}%)`
+                        label: ctx => ` ${ctx.label}: ${ctx.raw} (${data.length > 0 ? ((ctx.raw / data.length) * 100).toFixed(1) : 0}%)`
                     }
                 }
             }
@@ -2736,7 +3242,7 @@ function _buildTendenciaChart(data, mode) {
                         maxTicksLimit: mode === 'dia' ? 31 : 14
                     }
                 },
-                y:  {
+                y: {
                     type: 'linear', position: 'left',
                     grid: { color: _getChartTheme().gridSubtle, lineWidth: 1 },
                     ticks: { color: PALETTE.danger, callback: v => v + '%', font: { family: 'Inter' } }
@@ -2868,13 +3374,13 @@ function _renderTipoParto(data) {
     const ctx = _getCtx('chart_parto');
     if (!ctx) return;
 
-    const normal  = data.filter(r => (r.tipo_parto || 'Normal') === 'Normal').length;
+    const normal = data.filter(r => (r.tipo_parto || 'Normal') === 'Normal').length;
     const asistido = data.filter(r => r.tipo_parto === 'Asistido').length;
     const muertoAlParto = data.filter(r => r.tipo_parto === 'Muerto al parto').length;
 
     const labels = muertoAlParto > 0 ? ['Normal', 'Asistido', 'Muerto al parto'] : ['Normal', 'Asistido'];
     const chartData = muertoAlParto > 0 ? [normal, asistido, muertoAlParto] : [normal, asistido];
-    const bgColors = muertoAlParto > 0 
+    const bgColors = muertoAlParto > 0
         ? [PALETTE.secondary + 'cc', PALETTE.warning + 'cc', PALETTE.danger + 'cc']
         : [PALETTE.secondary + 'cc', PALETTE.warning + 'cc'];
     const borderColors = muertoAlParto > 0
@@ -2900,7 +3406,7 @@ function _renderTipoParto(data) {
                 ...CHART_DEFAULTS.plugins,
                 tooltip: {
                     callbacks: {
-                        label: ctx => ` ${ctx.label}: ${ctx.raw} (${data.length > 0 ? ((ctx.raw/data.length)*100).toFixed(1) : 0}%)`
+                        label: ctx => ` ${ctx.label}: ${ctx.raw} (${data.length > 0 ? ((ctx.raw / data.length) * 100).toFixed(1) : 0}%)`
                     }
                 }
             }
@@ -2998,18 +3504,19 @@ function _renderPerinatal(data) {
 // ═══════════════════════════════════════════════════════════════
 
 (function initChartSortable() {
-    var LS_ORDER  = 'vf_chart_block_order';
+    var LS_ORDER = 'vf_chart_block_order';
     var LS_TITLES = 'vf_chart_titles';
     var _syncTimer = null;
 
     function syncToCloud() {
         clearTimeout(_syncTimer);
-        _syncTimer = setTimeout(function() {
+        _syncTimer = setTimeout(function () {
             var order = JSON.parse(localStorage.getItem(LS_ORDER) || 'null');
             var titles = JSON.parse(localStorage.getItem(LS_TITLES) || '{}');
             var kpis = JSON.parse(localStorage.getItem(_KPI_THRESHOLDS_KEY) || 'null');
+            var metas = JSON.parse(localStorage.getItem(_PESO_METAS_KEY) || 'null');
             if (typeof AuthManager !== 'undefined' && typeof AuthManager.saveDashboardConfig === 'function') {
-                AuthManager.saveDashboardConfig({ order: order, titles: titles, kpiThresholds: kpis });
+                AuthManager.saveDashboardConfig({ order: order, titles: titles, kpiThresholds: kpis, pesoMetas: metas });
             }
         }, 500);
     }
@@ -3019,7 +3526,7 @@ function _renderPerinatal(data) {
         if (!saved || !Array.isArray(saved)) return;
         var container = document.getElementById('charts-sortable');
         if (!container) return;
-        saved.forEach(function(id) {
+        saved.forEach(function (id) {
             var el = container.querySelector('[data-chart-id="' + id + '"]');
             if (el) container.appendChild(el);
         });
@@ -3027,13 +3534,13 @@ function _renderPerinatal(data) {
 
     function restoreTitles(customTitles) {
         var saved = customTitles || JSON.parse(localStorage.getItem(LS_TITLES) || '{}');
-        Object.keys(saved).forEach(function(key) {
+        Object.keys(saved).forEach(function (key) {
             var el = document.querySelector('[data-title-key="' + key + '"]');
             if (el && saved[key]) el.textContent = saved[key];
         });
     }
 
-    window.restoreDashboardOrderAndTitles = function(customOrder, customTitles, customKpiThresholds) {
+    window.restoreDashboardOrderAndTitles = function (customOrder, customTitles, customKpiThresholds, customPesoMetas) {
         if (customOrder && Array.isArray(customOrder) && customOrder.length > 0) {
             localStorage.setItem(LS_ORDER, JSON.stringify(customOrder));
         }
@@ -3042,6 +3549,11 @@ function _renderPerinatal(data) {
         }
         if (customKpiThresholds && typeof customKpiThresholds === 'object' && Object.keys(customKpiThresholds).length > 0) {
             localStorage.setItem(_KPI_THRESHOLDS_KEY, JSON.stringify(customKpiThresholds));
+        }
+        if (customPesoMetas && typeof customPesoMetas === 'object') {
+            localStorage.setItem(_PESO_METAS_KEY, JSON.stringify(customPesoMetas));
+            _pesoMetas = _loadPesoMetas(customPesoMetas);
+            _initPesoMetasInputs();
         }
         restoreOrder(customOrder);
         restoreTitles(customTitles);
@@ -3056,7 +3568,7 @@ function _renderPerinatal(data) {
     function saveOrder() {
         var container = document.getElementById('charts-sortable');
         if (!container) return;
-        var ids = Array.from(container.querySelectorAll('.chart-block')).map(function(b) {
+        var ids = Array.from(container.querySelectorAll('.chart-block')).map(function (b) {
             return b.dataset.chartId;
         });
         localStorage.setItem(LS_ORDER, JSON.stringify(ids));
@@ -3071,16 +3583,16 @@ function _renderPerinatal(data) {
     }
 
     function initEditOnTitle(titleEl) {
-        titleEl.addEventListener('mousedown', function(e) { e.stopPropagation(); });
-        titleEl.addEventListener('touchstart', function(e) { e.stopPropagation(); });
+        titleEl.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+        titleEl.addEventListener('touchstart', function (e) { e.stopPropagation(); });
 
-        titleEl.addEventListener('blur', function() {
+        titleEl.addEventListener('blur', function () {
             titleEl.setAttribute('contenteditable', 'false');
             var val = titleEl.textContent.trim();
             if (val) saveTitle(titleEl.dataset.titleKey, val);
         });
 
-        titleEl.addEventListener('keydown', function(e) {
+        titleEl.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); }
             if (e.key === 'Escape') {
                 var saved = JSON.parse(localStorage.getItem(LS_TITLES) || '{}');
@@ -3092,8 +3604,8 @@ function _renderPerinatal(data) {
         });
     }
 
-    window.dashEditTitle = function(btn) {
-        var header  = btn.closest('.db-chart-header');
+    window.dashEditTitle = function (btn) {
+        var header = btn.closest('.db-chart-header');
         var titleEl = header && header.querySelector('.db-chart-title');
         if (!titleEl) return;
         titleEl.setAttribute('contenteditable', 'true');
@@ -3109,7 +3621,7 @@ function _renderPerinatal(data) {
     function init() {
         restoreOrder();
         restoreTitles();
-        
+
         var container = document.getElementById('charts-sortable');
         if (container && window.Sortable) {
             new Sortable(container, {
@@ -3119,25 +3631,25 @@ function _renderPerinatal(data) {
                 filter: '.btn-causa-detail-header, .chart-info-btn, .chart-edit-title-btn, button, input, select, textarea, [contenteditable]',
                 preventOnFilter: false,
                 ghostClass: 'is-dragging',
-                onEnd: function() {
+                onEnd: function () {
                     saveOrder();
                 }
             });
         }
-        
+
         document.querySelectorAll('[data-title-key]').forEach(initEditOnTitle);
     }
 
     function tryInit() {
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', function () {
                 setTimeout(init, 300);
             });
         } else {
             setTimeout(init, 300);
         }
     }
-    
+
     tryInit();
 })();
 
@@ -3161,7 +3673,7 @@ function _setChartsForExport(forPdf = true) {
                     if (!s) return;
                     if (s.ticks) s.ticks.color = '#000000';
                     if (s.title) s.title.color = '#000000';
-                    if (s.grid)  s.grid.color  = '#e2e8f0';
+                    if (s.grid) s.grid.color = '#e2e8f0';
                 });
             }
         });
@@ -3216,6 +3728,14 @@ function _setChartsForExport(forPdf = true) {
             if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = '#000000';
         }
 
+        if (_dashCharts.chart_pesos) {
+            const c = _dashCharts.chart_pesos;
+            if (c.options?.scales?.x?.title) c.options.scales.x.title.color = '#000000';
+            if (c.options?.scales?.y?.title) c.options.scales.y.title.color = '#000000';
+            if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = '#000000';
+            if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = '#000000';
+        }
+
         if (_dashCharts.chart_sexo) {
             const c = _dashCharts.chart_sexo;
             if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = '#000000';
@@ -3237,7 +3757,7 @@ function _setChartsForExport(forPdf = true) {
     }
 }
 
-window.exportDashboardPDF = function(btnEl) {
+window.exportDashboardPDF = function (btnEl) {
     // La descarga de gráficos como PDF es exclusiva del Plan Premium (o cuentas legacy).
     const _sess = typeof AuthManager !== 'undefined' ? AuthManager.getSession() : null;
     const _plan = _sess ? _sess.plan : undefined;
@@ -3256,7 +3776,7 @@ window.exportDashboardPDF = function(btnEl) {
         btnEl.innerHTML = '<i data-lucide="loader" class="spin" style="width: 18px; height: 18px; animation: spin 2s linear infinite;"></i> Generando...';
         btnEl.disabled = true;
     }
-    
+
     // Pequeño timeout para permitir que la UI actualice el botón
     setTimeout(() => {
         try {
@@ -3265,79 +3785,79 @@ window.exportDashboardPDF = function(btnEl) {
 
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
-            
+
             // Título
             doc.setFontSize(18);
             doc.setTextColor(0);
             doc.text("Reporte Analítico - VETFIELD PRO", 14, 20);
-            
+
             // Fecha y Filtros
             doc.setFontSize(10);
             doc.setTextColor(50);
             doc.text(`Fecha de generación: ${new Date().toLocaleDateString()}`, 14, 28);
-            
+
             let filtrosStr = [];
             if (_dashFilters.desde) filtrosStr.push(`Desde: ${_dashFilters.desde}`);
             if (_dashFilters.hasta) filtrosStr.push(`Hasta: ${_dashFilters.hasta}`);
             if (_dashFilters.productor) filtrosStr.push(`Productor: ${_dashFilters.productor}`);
             if (_dashFilters.establecimiento) filtrosStr.push(`Establecimiento: ${_dashFilters.establecimiento}`);
-            
+
             if (filtrosStr.length > 0) {
                 doc.setFontSize(9);
                 doc.setTextColor(40);
                 doc.text(`Filtros: ${filtrosStr.join(' | ')}`, 14, 34);
             }
-            
+
             let yPos = 42;
             const pageWidth = doc.internal.pageSize.getWidth();
 
             // ─── TARJETAS KPI ────────────────────────────────────────────
             // Leer valores desde el DOM
-            const _kpiTotal      = document.getElementById('kpi_total')?.textContent?.trim() || '-';
-            const _kpiTotalSub   = document.getElementById('kpi_total_sub')?.textContent?.trim() || '';
-            const _kpiMort       = document.getElementById('kpi_mortalidad')?.textContent?.trim() || '-';
-            const _kpiMortBadge  = document.getElementById('kpi_mortalidad_badge')?.textContent?.trim() || '';
-            const _kpiIg         = document.getElementById('kpi_ig')?.textContent?.trim() || '-';
-            const _kpiIgSub      = document.getElementById('kpi_ig_sub')?.textContent?.trim() || '';
-            const _kpiIgMadre    = document.getElementById('kpi_ig_madre')?.textContent?.trim() || '-';
+            const _kpiTotal = document.getElementById('kpi_total')?.textContent?.trim() || '-';
+            const _kpiTotalSub = document.getElementById('kpi_total_sub')?.textContent?.trim() || '';
+            const _kpiMort = document.getElementById('kpi_mortalidad')?.textContent?.trim() || '-';
+            const _kpiMortBadge = document.getElementById('kpi_mortalidad_badge')?.textContent?.trim() || '';
+            const _kpiIg = document.getElementById('kpi_ig')?.textContent?.trim() || '-';
+            const _kpiIgSub = document.getElementById('kpi_ig_sub')?.textContent?.trim() || '';
+            const _kpiIgMadre = document.getElementById('kpi_ig_madre')?.textContent?.trim() || '-';
             const _kpiIgMadreSub = document.getElementById('kpi_ig_madre_sub')?.textContent?.trim() || '';
-            const _kpiRecup      = document.getElementById('kpi_recuperacion')?.textContent?.trim() || '-';
-            const _kpiRecupSub   = document.getElementById('kpi_recuperacion_sub')?.textContent?.trim() || '';
+            const _kpiRecup = document.getElementById('kpi_recuperacion')?.textContent?.trim() || '-';
+            const _kpiRecupSub = document.getElementById('kpi_recuperacion_sub')?.textContent?.trim() || '';
 
             // Detectar estados de color para mortalidad e IG
-            const _mortCard      = document.getElementById('kpi_mortalidad_card');
-            const _igCard        = document.getElementById('kpi_ig_card');
-            const _igMadreCard   = document.getElementById('kpi_ig_madre_card');
-            const _mortIsDanger  = _mortCard?.classList.contains('kpi-danger');
+            const _mortCard = document.getElementById('kpi_mortalidad_card');
+            const _igCard = document.getElementById('kpi_ig_card');
+            const _igMadreCard = document.getElementById('kpi_ig_madre_card');
+            const _mortIsDanger = _mortCard?.classList.contains('kpi-danger');
             const _mortIsWarning = _mortCard?.classList.contains('kpi-warning');
-            const _igIsSuccess   = _igCard?.classList.contains('kpi-state--success');
-            const _igIsWarning   = _igCard?.classList.contains('kpi-state--warning');
-            const _igIsDanger    = _igCard?.classList.contains('kpi-state--danger');
+            const _igIsSuccess = _igCard?.classList.contains('kpi-state--success');
+            const _igIsWarning = _igCard?.classList.contains('kpi-state--warning');
+            const _igIsDanger = _igCard?.classList.contains('kpi-state--danger');
             const _igMadreIsSuccess = _igMadreCard?.classList.contains('kpi-state--success');
             const _igMadreIsWarning = _igMadreCard?.classList.contains('kpi-state--warning');
-            const _igMadreIsDanger  = _igMadreCard?.classList.contains('kpi-state--danger');
+            const _igMadreIsDanger = _igMadreCard?.classList.contains('kpi-state--danger');
 
             // Colores por estado
-            const _colorMort     = _mortIsDanger ? [220, 38, 38] : _mortIsWarning ? [234, 88, 12] : [22, 163, 74];
-            const _colorIg       = _igIsSuccess  ? [22, 163, 74] : _igIsWarning  ? [234, 88, 12] : _igIsDanger ? [220, 38, 38] : [99, 102, 241];
-            const _colorIgMadre  = _igMadreIsSuccess ? [22, 163, 74] : _igMadreIsWarning ? [234, 88, 12] : _igMadreIsDanger ? [220, 38, 38] : [99, 102, 241];
-            const _colorTotal    = [99, 102, 241];   // índigo (neutro)
-            const _colorRecup    = [99, 102, 241];   // índigo (neutro, como la UI)
+            const _colorMort = _mortIsDanger ? [220, 38, 38] : _mortIsWarning ? [234, 88, 12] : [22, 163, 74];
+            const _colorIg = _igIsSuccess ? [22, 163, 74] : _igIsWarning ? [234, 88, 12] : _igIsDanger ? [220, 38, 38] : [99, 102, 241];
+            const _colorIgMadre = _igMadreIsSuccess ? [22, 163, 74] : _igMadreIsWarning ? [234, 88, 12] : _igMadreIsDanger ? [220, 38, 38] : [99, 102, 241];
+            const _colorTotal = [99, 102, 241];   // índigo (neutro)
+            const _colorRecup = [99, 102, 241];   // índigo (neutro, como la UI)
 
             // Layout: tarjetas en fila
             const _kpiCards = [
-                { label: 'TOTAL EVALUADOS',       value: _kpiTotal,     sub: _kpiTotalSub,     color: _colorTotal },
-                { label: 'TASA DE MORTALIDAD',    value: _kpiMort,      sub: _kpiMortBadge,    color: _colorMort  },
-                { label: 'PROMEDIO I.G. TERNERO', value: _kpiIg,        sub: _kpiIgSub,        color: _colorIg    },
-                { label: 'PROMEDIO I.G. MADRE',   value: _kpiIgMadre,   sub: _kpiIgMadreSub,   color: _colorIgMadre },
-                { label: 'TASA DE SUPERVIVENCIA', value: _kpiRecup,     sub: _kpiRecupSub,     color: _colorRecup },
+                { label: 'TOTAL EVALUADOS', value: _kpiTotal, sub: _kpiTotalSub, color: _colorTotal },
+                { label: 'TASA DE MORTALIDAD', value: _kpiMort, sub: _kpiMortBadge, color: _colorMort },
+                { label: 'PROMEDIO I.G. TERNERO', value: _kpiIg, sub: _kpiIgSub, color: _colorIg },
+                { label: 'PROMEDIO I.G. MADRE', value: _kpiIgMadre, sub: _kpiIgMadreSub, color: _colorIgMadre },
+                { label: 'TASA DE SUPERVIVENCIA', value: _kpiRecup, sub: _kpiRecupSub, color: _colorRecup },
             ];
 
             const _cardMargin = 4;
-            const _cardCount  = _kpiCards.length;
-            const _cardW      = (pageWidth - 14 - (_cardCount - 1) * _cardMargin - 14) / _cardCount;
-            const _cardH      = 28;
-            let _cardX        = 14;
+            const _cardCount = _kpiCards.length;
+            const _cardW = (pageWidth - 14 - (_cardCount - 1) * _cardMargin - 14) / _cardCount;
+            const _cardH = 28;
+            let _cardX = 14;
 
             _kpiCards.forEach(kpi => {
                 const [r, g, b] = kpi.color;
@@ -3376,7 +3896,7 @@ window.exportDashboardPDF = function(btnEl) {
 
             // Recorrer los bloques en el orden actual
             const blocks = document.querySelectorAll('.chart-block');
-            
+
             blocks.forEach(block => {
                 const charts = block.querySelectorAll('.db-chart-card');
                 charts.forEach(card => {
@@ -3384,9 +3904,9 @@ window.exportDashboardPDF = function(btnEl) {
                     let title = titleEl ? titleEl.textContent.trim() : 'Gráfico';
                     // Limpiar emojis para evitar caracteres corruptos en jsPDF (ej: Ø=ÜÈ)
                     title = title.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').trim();
-                    
+
                     const canvas = card.querySelector('canvas');
-                    
+
                     if (canvas) {
                         const chartInstance = window.Chart ? window.Chart.getChart(canvas) : null;
                         const isDoughnut = chartInstance?.config?.type === 'doughnut' || canvas.id === 'chart_ombligos';
@@ -3399,12 +3919,12 @@ window.exportDashboardPDF = function(btnEl) {
                             doc.addPage();
                             yPos = 20;
                         }
-                        
+
                         doc.setFontSize(12);
                         doc.setTextColor(0);
                         doc.text(title, 14, yPos);
                         yPos += 6;
-                        
+
                         // Crear canvas temporal para no afectar el canvas visible en la UI
                         const tempCanvas = document.createElement('canvas');
                         tempCanvas.width = canvas.width;
@@ -3438,22 +3958,22 @@ window.exportDashboardPDF = function(btnEl) {
                                     // No dibujar etiquetas numéricas sobre puntos para que queden completamente limpios y visibles,
                                     // y evitar la sobreimpresión de "[object Object]" que tapa los puntos del gráfico.
                                     const isScatter = chartInstance.config?.type === 'scatter' ||
-                                                      (typeof dataVal === 'object' && dataVal !== null) ||
-                                                      chartId === 'chart_calostro' ||
-                                                      chartId === 'chart_brix_salud' ||
-                                                      (chartId === 'chart_litros_calostro' && typeof dataVal === 'object');
+                                        (typeof dataVal === 'object' && dataVal !== null) ||
+                                        chartId === 'chart_calostro' ||
+                                        chartId === 'chart_brix_salud' ||
+                                        (chartId === 'chart_litros_calostro' && typeof dataVal === 'object');
                                     if (isScatter) return;
 
-                                    let text          = String(dataVal);
-                                    let pos           = element.tooltipPosition ? element.tooltipPosition() : { x: element.x, y: element.y };
-                                    let align         = 'center';
-                                    let drawBg        = false;
+                                    let text = String(dataVal);
+                                    let pos = element.tooltipPosition ? element.tooltipPosition() : { x: element.x, y: element.y };
+                                    let align = 'center';
+                                    let drawBg = false;
                                     let bgBorderColor = '#94a3b8';
                                     let customYOffset = 0;
                                     let customXOffset = 0;
-                                    let textColor     = '#000000'; // Todo texto y número en negro por defecto
-                                    let strokeColor   = '#ffffff'; // Contorno blanco para contraste sobre barras/gajos
-                                    let fontSize      = 12;
+                                    let textColor = '#000000'; // Todo texto y número en negro por defecto
+                                    let strokeColor = '#ffffff'; // Contorno blanco para contraste sobre barras/gajos
+                                    let fontSize = 12;
 
                                     // ── Tendencia Temporal (line) ─────────────────────────
                                     if (chartId === 'chart_tendencia') {
@@ -3462,71 +3982,71 @@ window.exportDashboardPDF = function(btnEl) {
                                             const total = chartInstance.data.datasets[1]?.data[index] ?? 0;
                                             text = String(Math.round((parseFloat(dataVal) / 100) * (total || 1)));
                                             customYOffset = -18;
-                                            textColor     = PALETTE.danger; // Rojo de la línea de mortalidad (#dc2626)
+                                            textColor = PALETTE.danger; // Rojo de la línea de mortalidad (#dc2626)
                                             bgBorderColor = PALETTE.danger; // Borde distintivo a juego
-                                            strokeColor   = null;
-                                            drawBg        = true;
+                                            strokeColor = null;
+                                            drawBg = true;
                                         } else {
                                             // Total evaluados → debajo del nodo con el color de su línea
                                             customYOffset = 18;
-                                            textColor     = PALETTE.primary; // Azul de la línea de total evaluados (#1a237e)
+                                            textColor = PALETTE.primary; // Azul de la línea de total evaluados (#1a237e)
                                             bgBorderColor = PALETTE.primary; // Borde distintivo a juego
-                                            strokeColor   = null;
-                                            drawBg        = true;
+                                            strokeColor = null;
+                                            drawBg = true;
                                         }
                                         fontSize = 11;
 
-                                    // ── Causas de Muerte (bar horizontal) ────────────────
+                                        // ── Causas de Muerte (bar horizontal) ────────────────
                                     } else if (chartId === 'chart_causas') {
                                         const barEnd = element.x ?? pos.x;
                                         pos = { x: barEnd, y: pos.y };
-                                        align         = 'right';
+                                        align = 'right';
                                         customXOffset = -8;
-                                        textColor     = '#000000';
-                                        strokeColor   = '#ffffff';
-                                        fontSize      = 11;
+                                        textColor = '#000000';
+                                        strokeColor = '#ffffff';
+                                        fontSize = 11;
 
-                                    // ── Donuts: Ubicación, Ombligos, Parto y Perinatal ─────
+                                        // ── Donuts: Ubicación, Ombligos, Parto y Perinatal ─────
                                     } else if (chartId === 'chart_ubicacion' || chartId === 'chart_ombligos' || chartId === 'chart_parto' || chartId === 'chart_perinatal') {
-                                        const total   = chartInstance.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                        const pct     = total > 0 ? ((dataVal / total) * 100).toFixed(0) : 0;
-                                        text          = `${dataVal}\n(${pct}%)`;
-                                        textColor     = '#000000';
-                                        strokeColor   = '#ffffff';
-                                        fontSize      = 11;
+                                        const total = chartInstance.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        const pct = total > 0 ? ((dataVal / total) * 100).toFixed(0) : 0;
+                                        text = `${dataVal}\n(${pct}%)`;
+                                        textColor = '#000000';
+                                        strokeColor = '#ffffff';
+                                        fontSize = 11;
 
-                                    // ── Desempeño por Tipo de Madre (bar stacked) ────────
+                                        // ── Desempeño por Tipo de Madre (bar stacked) ────────
                                     } else if (chartId === 'chart_madre') {
                                         const elH = element.height ?? 0;
                                         if (elH <= 24) {
-                                            align         = 'left';
+                                            align = 'left';
                                             customXOffset = (element.width ?? 30) / 2 + 6;
-                                            textColor     = '#000000';
-                                            strokeColor   = null;
-                                            drawBg        = true;
+                                            textColor = '#000000';
+                                            strokeColor = null;
+                                            drawBg = true;
                                         } else {
-                                            textColor   = '#000000';
+                                            textColor = '#000000';
                                             strokeColor = '#ffffff';
                                         }
                                         fontSize = 12;
 
-                                    // ── Mortalidad por Sexo (bar grouped) ───────────────
+                                        // ── Mortalidad por Sexo (bar grouped) ───────────────
                                     } else if (chartId === 'chart_sexo') {
                                         const elH = element.height ?? 0;
                                         if (elH <= 24) {
-                                            align         = 'left';
+                                            align = 'left';
                                             customXOffset = (element.width ?? 30) / 2 + 6;
-                                            textColor     = '#000000';
-                                            strokeColor   = null;
-                                            drawBg        = true;
+                                            textColor = '#000000';
+                                            strokeColor = null;
+                                            drawBg = true;
                                         } else {
-                                            textColor   = '#000000';
+                                            textColor = '#000000';
                                             strokeColor = '#ffffff';
                                         }
-                                        text    = dataVal + '%';
+                                        text = dataVal + '%';
                                         fontSize = 12;
 
-                                    // ── Volumen vs Calidad de Calostro (modo líneas / promedios) ─
+                                        // ── Volumen vs Calidad de Calostro (modo líneas / promedios) ─
                                     } else if (chartId === 'chart_litros_calostro') {
                                         const isBrix = typeof _getIgMetodo === 'function' ? _getIgMetodo() === 'brix' : true;
                                         const unit = isBrix ? '%' : '';
@@ -3539,24 +4059,24 @@ window.exportDashboardPDF = function(btnEl) {
 
                                     // ── Renderizado ──────────────────────────────────────
                                     tCtx.save();
-                                    tCtx.font        = `bold ${fontSize}px Inter, sans-serif`;
-                                    tCtx.textAlign   = align;
+                                    tCtx.font = `bold ${fontSize}px Inter, sans-serif`;
+                                    tCtx.textAlign = align;
                                     tCtx.textBaseline = 'middle';
 
-                                    const lines  = text.split('\n');
-                                    const lineH  = fontSize + 3;
+                                    const lines = text.split('\n');
+                                    const lineH = fontSize + 3;
                                     const finalX = pos.x + customXOffset;
                                     const finalY = pos.y + customYOffset;
 
                                     if (drawBg) {
                                         const maxW = Math.max(...lines.map(l => tCtx.measureText(l).width));
-                                        const bgH  = lineH * lines.length + 6;
-                                        let bgX    = finalX;
+                                        const bgH = lineH * lines.length + 6;
+                                        let bgX = finalX;
                                         if (align === 'center') bgX -= maxW / 2;
                                         else if (align === 'right') bgX -= maxW;
-                                        tCtx.fillStyle   = 'rgba(255, 255, 255, 0.95)';
+                                        tCtx.fillStyle = 'rgba(255, 255, 255, 0.95)';
                                         tCtx.strokeStyle = bgBorderColor || '#94a3b8';
-                                        tCtx.lineWidth   = 1;
+                                        tCtx.lineWidth = 1;
                                         if (tCtx.roundRect) {
                                             tCtx.beginPath();
                                             tCtx.roundRect(bgX - 4, finalY - bgH / 2, maxW + 8, bgH, 4);
@@ -3572,7 +4092,7 @@ window.exportDashboardPDF = function(btnEl) {
                                         const ly = finalY + (li - (lines.length - 1) / 2) * lineH;
                                         if (strokeColor) {
                                             tCtx.strokeStyle = strokeColor;
-                                            tCtx.lineWidth   = 3;
+                                            tCtx.lineWidth = 3;
                                             tCtx.strokeText(line, finalX, ly);
                                         }
                                         tCtx.fillStyle = textColor;
@@ -3614,11 +4134,11 @@ window.exportDashboardPDF = function(btnEl) {
                         }
 
                         const imgData = canvasToExport.toDataURL('image/png', 1.0);
-                        
+
                         const pdfWidth = pageWidth - 28;
                         const canvasRatio = canvasToExport.height / canvasToExport.width;
                         const pdfHeight = pdfWidth * canvasRatio;
-                        
+
                         doc.addImage(imgData, 'PNG', 14, yPos, pdfWidth, pdfHeight);
 
                         // Línea separadora sutil entre gráficos
@@ -3629,7 +4149,7 @@ window.exportDashboardPDF = function(btnEl) {
 
                         yPos += pdfHeight + 20; // padding generoso para que el reporte respire
                     }
-                    
+
                     // Tabla de ranking
                     const table = card.querySelector('table');
                     if (table) {
@@ -3641,7 +4161,7 @@ window.exportDashboardPDF = function(btnEl) {
                         doc.setTextColor(0);
                         doc.text(title, 14, yPos);
                         yPos += 6;
-                        
+
                         // Ocultar columna de barra de progreso para el PDF
                         doc.autoTable({
                             html: table,
@@ -3649,7 +4169,7 @@ window.exportDashboardPDF = function(btnEl) {
                             theme: 'grid',
                             styles: { font: 'helvetica', fontSize: 9, textColor: [0, 0, 0] },
                             headStyles: { fillColor: [26, 35, 126] },
-                            didParseCell: function(data) {
+                            didParseCell: function (data) {
                                 if (data.column.index === 3) {
                                     data.cell.styles.cellWidth = 0;
                                     data.cell.styles.fontSize = 0;
@@ -3660,7 +4180,7 @@ window.exportDashboardPDF = function(btnEl) {
                                         data.cell.text = ['Muertes'];
                                     } else if (data.section === 'body') {
                                         let total = 0;
-                                        
+
                                         if (data.row && data.row.cells && data.row.cells[2]) {
                                             total = parseInt(data.row.cells[2].text.join(''), 10);
                                         } else if (data.row && data.row.raw) {
@@ -3671,10 +4191,10 @@ window.exportDashboardPDF = function(btnEl) {
                                                 total = parseInt(val.textContent || val.content || val, 10);
                                             }
                                         }
-                                        
+
                                         const pctText = Array.isArray(data.cell.text) ? data.cell.text.join('') : String(data.cell.text);
                                         const pct = parseFloat(pctText);
-                                        
+
                                         if (!isNaN(total) && !isNaN(pct)) {
                                             data.cell.text = [String(Math.round((pct / 100) * total))];
                                         }
@@ -3686,18 +4206,18 @@ window.exportDashboardPDF = function(btnEl) {
                     }
                 });
             });
-            
+
             // Restaurar tema original de los gráficos
             _setChartsForExport(false);
 
             doc.save('Vetfield_Reporte_Analitico.pdf');
-        } catch(e) {
+        } catch (e) {
             console.error('Error exporting PDF:', e);
             alert('Hubo un error al generar el PDF.');
         } finally {
             _setChartsForExport(false);
         }
-        
+
         if (btnEl) {
             btnEl.innerHTML = '<i data-lucide="download" style="width: 18px; height: 18px;"></i> Descargar PDF';
             btnEl.disabled = false;
@@ -3709,7 +4229,7 @@ window.exportDashboardPDF = function(btnEl) {
 // ────────────────────────────────────────────────────────────────
 // Sincronización de tema (Modo Oscuro / Claro) en todos los gráficos
 // ────────────────────────────────────────────────────────────────
-window.updateChartsTheme = function(isDark) {
+window.updateChartsTheme = function (isDark) {
     const theme = _getChartTheme();
 
     if (_dashCharts.chart_tendencia) {
@@ -3812,5 +4332,18 @@ window.updateChartsTheme = function(isDark) {
         const c = _dashCharts.chart_ombligos;
         if (c.options?.plugins?.legend?.labels) c.options.plugins.legend.labels.color = theme.legendText;
         c.update();
+    }
+
+    if (_dashCharts.chart_pesos) {
+        const c = _dashCharts.chart_pesos;
+        if (c.options?.scales?.x?.ticks) c.options.scales.x.ticks.color = theme.textSecondary;
+        if (c.options?.scales?.y?.ticks) c.options.scales.y.ticks.color = theme.textSecondary;
+        if (c.options?.scales?.x?.grid) c.options.scales.x.grid.color = theme.gridFaint;
+        if (c.options?.scales?.y?.grid) c.options.scales.y.grid.color = theme.gridSubtle;
+        if (c.options?.scales?.x?.title) c.options.scales.x.title.color = theme.textAxisTitle;
+        if (c.options?.scales?.y?.title) c.options.scales.y.title.color = theme.textAxisTitle;
+        if (c.options?.plugins?.legend?.labels) c.options.plugins.legend.labels.color = theme.legendText;
+        c.update();
+        if (_pesosCurrentView === 'curva') _renderPesosCurvaLegend();
     }
 };

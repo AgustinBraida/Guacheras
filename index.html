@@ -1052,7 +1052,33 @@
                 <button class="kpi-range-save-btn" onclick="saveKpiRanges('ig_madre')">Aplicar</button>
             </div>
 
-            <!-- ── CHARTS SORTABLE CONTAINER ── -->
+            <!-- ── Panel de Metas de Peso (flotante) ── -->
+            <div class="kpi-range-panel" id="peso_metas_panel">
+                <div class="kpi-range-panel-title">⚖️ Metas de Peso de Referencia</div>
+                <div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:10px;line-height:1.4;">Pesos esperados según la raza y manejo de tu establecimiento.</div>
+                <div class="kpi-range-row">
+                    <span class="kpi-range-label" style="min-width:60px;">7 días</span>
+                    <span class="kpi-range-desc">meta</span>
+                    <input class="kpi-range-input" type="number" id="peso_meta_7d" min="20" max="80" step="0.5" value="43">
+                    <span class="kpi-range-unit">kg</span>
+                </div>
+                <div class="kpi-range-row">
+                    <span class="kpi-range-label" style="min-width:60px;">30 días</span>
+                    <span class="kpi-range-desc">meta</span>
+                    <input class="kpi-range-input" type="number" id="peso_meta_30d" min="30" max="120" step="0.5" value="57">
+                    <span class="kpi-range-unit">kg</span>
+                </div>
+                <div class="kpi-range-row">
+                    <span class="kpi-range-label" style="min-width:60px;">60 días</span>
+                    <span class="kpi-range-desc">meta</span>
+                    <input class="kpi-range-input" type="number" id="peso_meta_60d" min="40" max="160" step="0.5" value="77">
+                    <span class="kpi-range-unit">kg</span>
+                </div>
+                <div style="font-size:0.74rem;color:var(--text-secondary);margin-top:6px;">Referencia estándar: Holstein/Guernsey GDP ~600 g/día</div>
+                <button class="kpi-range-save-btn" onclick="savePesoMetas()">Aplicar</button>
+            </div>
+
+
             <div id="charts-sortable">
 
                 <!-- BLOQUE: Tendencia + Ubicación -->
@@ -1242,6 +1268,60 @@
                         </div>
                         <div class="db-chart-wrap" style="height:270px;">
                             <canvas id="chart_brix_salud"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BLOQUE: Ganancia y Evolución de Pesos -->
+                <div class="chart-block" data-chart-id="block_pesos">
+                    <div class="db-chart-card card glass">
+                        <div class="db-chart-header" style="flex-wrap:wrap;gap:10px;">
+                            <div style="flex:1;min-width:240px;">
+                                <div class="db-chart-title" data-title-key="title_pesos" contenteditable="false"
+                                    title="Doble clic para editar título">⚖️ Ganancia y Evolución de Peso (GDP)</div>
+                                <div class="db-chart-sub" id="pesos-chart-sub">Curva promedio por edad (7, 30 y 60 días) & Ganancia Diaria de Peso</div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;">
+                                <!-- Resumen de Chips -->
+                                <div id="pesos_kpis_summary" class="pesos-summary-chips">
+                                    <span class="pesos-chip" title="Promedio de peso a los primeros 7 días">
+                                        7d: <strong id="pesos_chip_7d">—</strong>
+                                    </span>
+                                    <span class="pesos-chip" title="Promedio de peso a los 30 días">
+                                        30d: <strong id="pesos_chip_30d">—</strong>
+                                    </span>
+                                    <span class="pesos-chip" title="Promedio de peso a los 60 días (desleche)">
+                                        60d: <strong id="pesos_chip_60d">—</strong>
+                                    </span>
+                                    <span class="pesos-chip pesos-chip--gdp" id="pesos_chip_gdp_wrap" title="Ganancia Diaria de Peso Promedio de la Guachera">
+                                        GDP Prom: <strong id="pesos_chip_gdp">—</strong>
+                                    </span>
+                                </div>
+                                <!-- Selector Curva / Ranking -->
+                                <div class="segmented-control" style="padding:2px;background:rgba(0,0,0,0.06);border-radius:8px;">
+                                    <button type="button" class="segmented-btn active" id="btn_pesos_view_curva" onclick="setPesosView('curva')" style="font-size:0.78rem;padding:3px 8px;">
+                                        📈 Curva
+                                    </button>
+                                    <button type="button" class="segmented-btn" id="btn_pesos_view_ranking" onclick="setPesosView('ranking')" style="font-size:0.78rem;padding:3px 8px;">
+                                        📊 Ranking GDP
+                                    </button>
+                                </div>
+                                <!-- Engranaje metas: se mueve al lado de la leyenda, este botón ya no se usa -->
+                                <div style="display:flex;align-items:center;gap:4px;">
+                                    <button class="chart-info-btn" title="Información sobre este gráfico" onclick="openChartInfoModal('chart_pesos')">ℹ</button>
+                                    <button class="chart-edit-title-btn" title="Editar título" onclick="dashEditTitle(this)"><i data-lucide="edit-3" class="icon-edit"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Leyenda personalizada para el gráfico de curva -->
+                        <div id="pesos_curva_legend" style="display:none; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap; padding:4px 12px 6px; font-size:0.8rem;"></div>
+                        <div class="db-chart-wrap" style="height:250px; position:relative;">
+                            <canvas id="chart_pesos"></canvas>
+                            <div id="chart_pesos_empty" style="display:none; position:absolute; inset:0; align-items:center; justify-content:center; flex-direction:column; gap:8px; text-align:center; padding:20px;">
+                                <span style="font-size:1.8rem;">⚖️</span>
+                                <span style="font-weight:600; color:var(--text-main);">Sin pesajes registrados</span>
+                                <span style="font-size:0.85rem; color:var(--text-secondary); max-width:380px;">Active "Registrar seguimiento de peso" en los terneros para visualizar la curva de crecimiento y el ranking de ganancia diaria.</span>
+                            </div>
                         </div>
                     </div>
                 </div>
