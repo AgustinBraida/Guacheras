@@ -95,6 +95,35 @@ function ensure_registros_schema(PDO $db): void {
             $db->exec("ALTER TABLE `registros` ADD COLUMN `causa_especifica` VARCHAR(100) DEFAULT NULL AFTER `causa_categoria`");
         }
     } catch (\Throwable $e) {}
+
+    try {
+        // 4. Asegurar columnas de seguimiento de peso
+        $chk4 = $db->query("SHOW COLUMNS FROM `registros` LIKE 'seguimiento_peso'");
+        if (!$chk4 || $chk4->rowCount() === 0) {
+            $db->exec("ALTER TABLE `registros` ADD COLUMN `seguimiento_peso` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = seguimiento de peso activado' AFTER `causa_especifica`");
+        }
+    } catch (\Throwable $e) {}
+
+    try {
+        $chk5 = $db->query("SHOW COLUMNS FROM `registros` LIKE 'peso_7dias'");
+        if (!$chk5 || $chk5->rowCount() === 0) {
+            $db->exec("ALTER TABLE `registros` ADD COLUMN `peso_7dias` DECIMAL(6,2) DEFAULT NULL COMMENT 'Peso kg primeros 7 dias' AFTER `seguimiento_peso`");
+        }
+    } catch (\Throwable $e) {}
+
+    try {
+        $chk6 = $db->query("SHOW COLUMNS FROM `registros` LIKE 'peso_30dias'");
+        if (!$chk6 || $chk6->rowCount() === 0) {
+            $db->exec("ALTER TABLE `registros` ADD COLUMN `peso_30dias` DECIMAL(6,2) DEFAULT NULL COMMENT 'Peso kg a los 30 dias' AFTER `peso_7dias`");
+        }
+    } catch (\Throwable $e) {}
+
+    try {
+        $chk7 = $db->query("SHOW COLUMNS FROM `registros` LIKE 'peso_60dias'");
+        if (!$chk7 || $chk7->rowCount() === 0) {
+            $db->exec("ALTER TABLE `registros` ADD COLUMN `peso_60dias` DECIMAL(6,2) DEFAULT NULL COMMENT 'Peso kg a los 60 dias' AFTER `peso_30dias`");
+        }
+    } catch (\Throwable $e) {}
 }
 
 // ============================================================
@@ -137,7 +166,11 @@ function action_update(string $uid, array $in): void {
              detalle_salud = :detalle_salud,
              causa = :causa,
              causa_categoria = :causa_cat,
-             causa_especifica = :causa_esp
+             causa_especifica = :causa_esp,
+             seguimiento_peso = :seguimiento_peso,
+             peso_7dias = :peso_7dias,
+             peso_30dias = :peso_30dias,
+             peso_60dias = :peso_60dias
          WHERE id = :id AND user_id = :uid"
     );
 
@@ -184,6 +217,10 @@ function action_update(string $uid, array $in): void {
         ':causa'           => $causa,
         ':causa_cat'       => $causa_cat,
         ':causa_esp'       => $causa_esp,
+        ':seguimiento_peso' => !empty($in['seguimiento_peso']) ? 1 : 0,
+        ':peso_7dias'      => is_numeric($in['peso_7dias']   ?? null) ? (float)$in['peso_7dias']   : null,
+        ':peso_30dias'     => is_numeric($in['peso_30dias']  ?? null) ? (float)$in['peso_30dias']  : null,
+        ':peso_60dias'     => is_numeric($in['peso_60dias']  ?? null) ? (float)$in['peso_60dias']  : null,
     ];
 
     try {
@@ -396,11 +433,13 @@ function action_save(string $uid, array $in): void {
         "INSERT INTO registros
             (user_id, establecimiento, fecha, productor, rp_ternero, ig_ternero,
              sexo, ombligo, tipo_madre, tipo_parto, rp_madre, litros_calostro_madre, tipo_calostro, metodo_calostrado, ig_calostro, estado, 
-             estado_salud, detalle_salud, causa, causa_categoria, causa_especifica)
+             estado_salud, detalle_salud, causa, causa_categoria, causa_especifica,
+             seguimiento_peso, peso_7dias, peso_30dias, peso_60dias)
          VALUES
             (:uid, :establecimiento, :fecha, :productor, :rp_ternero, :ig_ternero,
              :sexo, :ombligo, :tipo_madre, :tipo_parto, :rp_madre, :litros_calostro_madre, :tipo_calostro, :metodo_calostrado, :ig_calostro, :estado,
-             :estado_salud, :detalle_salud, :causa, :causa_cat, :causa_esp)"
+             :estado_salud, :detalle_salud, :causa, :causa_cat, :causa_esp,
+             :seguimiento_peso, :peso_7dias, :peso_30dias, :peso_60dias)"
     );
 
     $save_params = [
@@ -425,6 +464,10 @@ function action_save(string $uid, array $in): void {
         ':causa'       => $causa,
         ':causa_cat'   => $causa_cat,
         ':causa_esp'   => $causa_esp,
+        ':seguimiento_peso' => !empty($in['seguimiento_peso']) ? 1 : 0,
+        ':peso_7dias'  => is_numeric($in['peso_7dias']   ?? null) ? (float)$in['peso_7dias']   : null,
+        ':peso_30dias' => is_numeric($in['peso_30dias']  ?? null) ? (float)$in['peso_30dias']  : null,
+        ':peso_60dias' => is_numeric($in['peso_60dias']  ?? null) ? (float)$in['peso_60dias']  : null,
     ];
 
     try {
@@ -713,6 +756,10 @@ function action_backup_import(string $uid, array $in): void {
             $causa             = trim($r['causa'] ?? '') ?: null;
             $causa_cat         = trim($r['causa_categoria'] ?? '') ?: null;
             $causa_esp         = trim($r['causa_especifica'] ?? '') ?: null;
+            $seguimiento_peso  = !empty($r['seguimiento_peso']) ? 1 : 0;
+            $peso_7dias        = is_numeric($r['peso_7dias']  ?? null) ? (float)$r['peso_7dias']  : null;
+            $peso_30dias       = is_numeric($r['peso_30dias'] ?? null) ? (float)$r['peso_30dias'] : null;
+            $peso_60dias       = is_numeric($r['peso_60dias'] ?? null) ? (float)$r['peso_60dias'] : null;
             
             if ($estado === 'Vivo') {
                 $causa = null;
@@ -748,7 +795,11 @@ function action_backup_import(string $uid, array $in): void {
                          detalle_salud = :detalle_salud,
                          causa = :causa,
                          causa_categoria = :causa_cat,
-                         causa_especifica = :causa_esp
+                         causa_especifica = :causa_esp,
+                         seguimiento_peso = :seguimiento_peso,
+                         peso_7dias = :peso_7dias,
+                         peso_30dias = :peso_30dias,
+                         peso_60dias = :peso_60dias
                      WHERE id = :id AND user_id = :uid"
                 );
                 $stmt_upd->execute([
@@ -772,7 +823,11 @@ function action_backup_import(string $uid, array $in): void {
                     ':detalle_salud' => $detalle_salud,
                     ':causa' => $causa,
                     ':causa_cat' => $causa_cat,
-                    ':causa_esp' => $causa_esp
+                    ':causa_esp' => $causa_esp,
+                    ':seguimiento_peso' => $seguimiento_peso,
+                    ':peso_7dias'  => $peso_7dias,
+                    ':peso_30dias' => $peso_30dias,
+                    ':peso_60dias' => $peso_60dias,
                 ]);
                 $actualizados++;
             } else {
@@ -780,11 +835,13 @@ function action_backup_import(string $uid, array $in): void {
                     "INSERT INTO registros
                         (user_id, establecimiento, fecha, productor, rp_ternero, ig_ternero,
                          sexo, ombligo, tipo_madre, tipo_parto, rp_madre, litros_calostro_madre, tipo_calostro, metodo_calostrado, ig_calostro, estado, 
-                         estado_salud, detalle_salud, causa, causa_categoria, causa_especifica)
+                         estado_salud, detalle_salud, causa, causa_categoria, causa_especifica,
+                         seguimiento_peso, peso_7dias, peso_30dias, peso_60dias)
                     VALUES
                         (:uid, :establecimiento, :fecha, :productor, :rp_ternero, :ig_ternero,
                          :sexo, :ombligo, :tipo_madre, :tipo_parto, :rp_madre, :litros_calostro_madre, :tipo_calostro, :metodo_calostrado, :ig_calostro, :estado,
-                         :estado_salud, :detalle_salud, :causa, :causa_cat, :causa_esp)"
+                         :estado_salud, :detalle_salud, :causa, :causa_cat, :causa_esp,
+                         :seguimiento_peso, :peso_7dias, :peso_30dias, :peso_60dias)"
                 );
                 $stmt_ins->execute([
                     ':uid' => $uid,
@@ -807,7 +864,11 @@ function action_backup_import(string $uid, array $in): void {
                     ':detalle_salud' => $detalle_salud,
                     ':causa' => $causa,
                     ':causa_cat' => $causa_cat,
-                    ':causa_esp' => $causa_esp
+                    ':causa_esp' => $causa_esp,
+                    ':seguimiento_peso' => $seguimiento_peso,
+                    ':peso_7dias'  => $peso_7dias,
+                    ':peso_30dias' => $peso_30dias,
+                    ':peso_60dias' => $peso_60dias,
                 ]);
                 $importados++;
             }

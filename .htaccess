@@ -4,7 +4,7 @@
 
 Options -Indexes -MultiViews
 
-# ── Evitar que el Service Worker se quede cacheado en CDN o Navegador ──
+# ── Evitar caché en Service Worker, JS y HTML ──────────────────
 <Files "sw.js">
     <IfModule mod_headers.c>
         Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
@@ -12,6 +12,15 @@ Options -Indexes -MultiViews
         Header set Expires "0"
     </IfModule>
 </Files>
+
+# Forzar recarga de archivos JS e HTML (sin caché en servidor)
+<FilesMatch "\.(js|html)$">
+    <IfModule mod_headers.c>
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </IfModule>
+</FilesMatch>
 
 # ── Forzar HTTPS ─────────────────────────────────────────────
 RewriteEngine On

@@ -1,5 +1,5 @@
 // =============================================================
-// VETFIELD PRO — app.js v78
+// VETFIELD PRO — app.js v101
 // Los datos ahora vienen de api/records.php (MySQL).
 // Mantiene soporte offline-first: guarda en localStorage
 // cuando no hay conexión y sincroniza automáticamente al volver.
@@ -992,6 +992,10 @@ function bindEntryForm() {
             causa:           (isVivo || isPerinatal) ? '' : (catVal && espVal ? `${catVal} - ${espVal}` : (catVal || espVal || '')),
             causa_categoria: (isVivo || isPerinatal) ? '' : catVal,
             causa_especifica:(isVivo || isPerinatal) ? '' : espVal,
+            seguimiento_peso: document.getElementById('f_seguimiento_peso')?.checked ? 1 : 0,
+            peso_7dias:      document.getElementById('f_peso_7dias')?.value || null,
+            peso_30dias:     document.getElementById('f_peso_30dias')?.value || null,
+            peso_60dias:     document.getElementById('f_peso_60dias')?.value || null,
             synced:          false,
             _local_id:       Date.now(),
         };
@@ -1062,6 +1066,32 @@ function bindEntryForm() {
         renderFieldDatalists();
         form.reset();
         form.querySelectorAll('[data-dirty]').forEach(el => delete el.dataset.dirty);
+        // Resetear sección de pesos
+        const _pesoSec = document.getElementById('f_peso_section');
+        if (_pesoSec) _pesoSec.style.display = 'none';
+        const _chkPeso = document.getElementById('f_seguimiento_peso');
+        if (_chkPeso) {
+            _chkPeso.checked = false;
+            const _card = _chkPeso.closest('.peso-toggle-card');
+            if (_card) _card.classList.remove('active');
+        }
+        ['f_peso_30dias','f_peso_60dias'].forEach((id, idx) => {
+            const el = document.getElementById(id);
+            const lockId = idx === 0 ? 'f_lock_30' : 'f_lock_60';
+            const btn = document.getElementById(lockId);
+            if (el) {
+                el.disabled = true;
+                el.value = '';
+                el.placeholder = 'Bloqueado';
+                el.classList.add('peso-field-locked');
+                el.classList.remove('peso-field-unlocked');
+            }
+            if (btn) {
+                btn.className = 'peso-lock-btn locked';
+                btn.innerHTML = `<i data-lucide="lock" style="width:15px;height:15px;"></i> <span>Desbloquear</span>`;
+                btn.title = 'Desbloquear campo para editar';
+            }
+        });
         // Resetear segmented control de tipo de parto a Normal
         const partoParent = document.getElementById('f_tipo_parto');
         if (partoParent) {
@@ -1118,6 +1148,48 @@ function _saveOffline(record, establecimientoVal, productorVal) {
     }
 }
 
+// ─── Helpers: Seguimiento de Pesos ──────────────────────────
+function togglePesoSection(chk) {
+    const sec = document.getElementById('f_peso_section');
+    if (sec) sec.style.display = chk.checked ? '' : 'none';
+    const card = chk.closest('.peso-toggle-card');
+    if (card) card.classList.toggle('active', chk.checked);
+    if (window.lucide) window.lucide.createIcons();
+}
+
+function toggleEditPesoSection(chk) {
+    const sec = document.getElementById('edit_peso_section');
+    if (sec) sec.style.display = chk.checked ? '' : 'none';
+    const card = chk.closest('.peso-toggle-card');
+    if (card) card.classList.toggle('active', chk.checked);
+    if (window.lucide) window.lucide.createIcons();
+}
+
+function togglePesoLock(inputId, btnId) {
+    const inp = document.getElementById(inputId);
+    const btn = document.getElementById(btnId);
+    if (!inp) return;
+    const willUnlock = inp.disabled;
+    inp.disabled = !willUnlock;
+    inp.classList.toggle('peso-field-locked', !willUnlock);
+    inp.classList.toggle('peso-field-unlocked', willUnlock);
+
+    if (willUnlock) {
+        inp.placeholder = 'kg';
+        inp.focus();
+    } else {
+        inp.value = '';
+        inp.placeholder = 'Bloqueado';
+    }
+
+    if (btn) {
+        btn.classList.toggle('locked', !willUnlock);
+        btn.classList.toggle('unlocked', willUnlock);
+        btn.innerHTML = `<i data-lucide="${willUnlock ? 'unlock' : 'lock'}" style="width:15px;height:15px;"></i> <span>${willUnlock ? 'Bloquear' : 'Desbloquear'}</span>`;
+        btn.title = willUnlock ? 'Volver a bloquear campo' : 'Desbloquear campo para editar';
+        if (window.lucide) window.lucide.createIcons();
+    }
+}
 // ─── Modal de detalles (editable) ────────────────────────────
 let _currentEditId = null; // ID del registro que se está editando
 
@@ -1218,6 +1290,69 @@ function openDetail(recordId) {
                         <option value="Regular" ${r.ombligo === 'Regular' ? 'selected' : ''}>Regular</option>
                         <option value="Malo" ${r.ombligo === 'Malo' ? 'selected' : ''}>Malo</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- Seguimiento de Pesos -->
+            <div style="margin-top:12px;margin-bottom:6px;">
+                <label class="peso-toggle-card ${r.seguimiento_peso ? 'active' : ''}">
+                    <div class="peso-toggle-info">
+                        <div class="peso-toggle-icon">
+                            <i data-lucide="scale" style="width:19px;height:19px;"></i>
+                        </div>
+                        <div class="peso-toggle-texts">
+                            <span class="peso-toggle-title">Registrar seguimiento de peso</span>
+                            <span class="peso-toggle-sub">Habilitar pesaje a los 7, 30 y 60 días</span>
+                        </div>
+                    </div>
+                    <div class="peso-switch">
+                        <input type="checkbox" id="edit_seguimiento_peso"
+                            onchange="toggleEditPesoSection(this)"
+                            ${r.seguimiento_peso ? 'checked' : ''}>
+                        <span class="peso-switch-slider"></span>
+                    </div>
+                </label>
+            </div>
+            <div id="edit_peso_section" style="${r.seguimiento_peso ? '' : 'display:none;'}">
+                <div class="peso-fields-container">
+                    <div class="form-group">
+                        <div class="peso-input-header">
+                            <label for="edit_peso_7dias" class="peso-lock-label">&#x2696;&#xFE0F; Peso primeros 7 días (kg)</label>
+                        </div>
+                        <input id="edit_peso_7dias" type="number" step="0.1" value="${r.peso_7dias ?? ''}" placeholder="kg">
+                    </div>
+                    <div class="form-group">
+                        <div class="peso-input-header">
+                            <label for="edit_peso_30dias" class="peso-lock-label">&#x2696;&#xFE0F; Peso a los 30 días (kg)</label>
+                            <button type="button" id="edit_lock_30"
+                                onclick="togglePesoLock('edit_peso_30dias','edit_lock_30')"
+                                title="${r.peso_30dias ? 'Bloquear campo' : 'Desbloquear para editar'}"
+                                class="peso-lock-btn ${r.peso_30dias ? 'unlocked' : 'locked'}">
+                                <i data-lucide="${r.peso_30dias ? 'unlock' : 'lock'}" style="width:15px;height:15px;"></i>
+                                <span>${r.peso_30dias ? 'Bloquear' : 'Desbloquear'}</span>
+                            </button>
+                        </div>
+                        <input id="edit_peso_30dias" type="number" step="0.1" value="${r.peso_30dias ?? ''}"
+                            placeholder="${r.peso_30dias ? 'kg' : 'Bloqueado'}"
+                            class="${r.peso_30dias ? 'peso-field-unlocked' : 'peso-field-locked'}"
+                            ${r.peso_30dias ? '' : 'disabled'}>
+                    </div>
+                    <div class="form-group">
+                        <div class="peso-input-header">
+                            <label for="edit_peso_60dias" class="peso-lock-label">&#x2696;&#xFE0F; Peso a los 60 días (kg)</label>
+                            <button type="button" id="edit_lock_60"
+                                onclick="togglePesoLock('edit_peso_60dias','edit_lock_60')"
+                                title="${r.peso_60dias ? 'Bloquear campo' : 'Desbloquear para editar'}"
+                                class="peso-lock-btn ${r.peso_60dias ? 'unlocked' : 'locked'}">
+                                <i data-lucide="${r.peso_60dias ? 'unlock' : 'lock'}" style="width:15px;height:15px;"></i>
+                                <span>${r.peso_60dias ? 'Bloquear' : 'Desbloquear'}</span>
+                            </button>
+                        </div>
+                        <input id="edit_peso_60dias" type="number" step="0.1" value="${r.peso_60dias ?? ''}"
+                            placeholder="${r.peso_60dias ? 'kg' : 'Bloqueado'}"
+                            class="${r.peso_60dias ? 'peso-field-unlocked' : 'peso-field-locked'}"
+                            ${r.peso_60dias ? '' : 'disabled'}>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1325,6 +1460,7 @@ function openDetail(recordId) {
     `;
 
     document.getElementById('detailModal').classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
 }
 
 function escHtml(str) {
@@ -1450,6 +1586,10 @@ async function saveDetail() {
         tipo_calostro:   document.getElementById('edit_tipo_calostro')?.value || 'De la madre',
         metodo_calostrado: document.getElementById('edit_metodo_calostrado')?.value || 'Con mamadera',
         ig_calostro:     document.getElementById('edit_ig_calostro').value,
+        seguimiento_peso: document.getElementById('edit_seguimiento_peso')?.checked ? 1 : 0,
+        peso_7dias:      document.getElementById('edit_peso_7dias')?.value || null,
+        peso_30dias:     document.getElementById('edit_peso_30dias')?.value || null,
+        peso_60dias:     document.getElementById('edit_peso_60dias')?.value || null,
     };
 
     if (!updated.productor) {
@@ -2117,7 +2257,11 @@ async function generateXlsxReport(res) {
                 "Detalle Enfermedad (Vivo)": (r.estado === 'Vivo') ? (r.detalle_salud || "-") : "-",
                 "Causa Muerte": r.causa || "-",
                 "Categoría Causa": r.causa_categoria || "-",
-                "Especificación Causa": r.causa_especifica || "-"
+                "Especificación Causa": r.causa_especifica || "-",
+                "Seguimiento de Peso": r.seguimiento_peso ? "Sí" : "No",
+                "Peso 7 días (kg)": r.peso_7dias !== null && r.peso_7dias !== undefined && r.peso_7dias !== "" ? Number(r.peso_7dias) : "-",
+                "Peso 30 días (kg)": r.peso_30dias !== null && r.peso_30dias !== undefined && r.peso_30dias !== "" ? Number(r.peso_30dias) : "-",
+                "Peso 60 días (kg)": r.peso_60dias !== null && r.peso_60dias !== undefined && r.peso_60dias !== "" ? Number(r.peso_60dias) : "-"
             };
         });
         
@@ -2201,6 +2345,12 @@ Problema o Enfermedad:  ${(r.estado === 'Vivo') ? (r.detalle_salud || "-") : "-"
 Causa de Muerte:        ${r.causa || "-"}
 Categoría Causa:   ${r.causa_categoria || "-"}
 Específica Causa:  ${r.causa_especifica || "-"}
+
+SEGUIMIENTO DE PESO:
+Seguimiento activo:    ${r.seguimiento_peso ? "Sí" : "No"}
+Peso primeros 7 días:  ${r.peso_7dias !== null && r.peso_7dias !== undefined ? r.peso_7dias + " kg" : "-"}
+Peso a los 30 días:    ${r.peso_30dias !== null && r.peso_30dias !== undefined ? r.peso_30dias + " kg" : "-"}
+Peso a los 60 días:    ${r.peso_60dias !== null && r.peso_60dias !== undefined ? r.peso_60dias + " kg" : "-"}
 ==================================================
 `;
             folder.file(`Expediente_RP_${rpName}.txt`, content);
@@ -3709,3 +3859,678 @@ window.getProductoresList = () => productores;
 window.getEstablecimientosList = () => establecimientos;
 window.getEstablecimientosPorProductorMap = () => establecimientos_por_productor;
 
+
+// ================================================================
+// INFORME EJECUTIVO DETALLADO — One-Pager A4 para el Productor
+// ================================================================
+
+function abrirModalInformeDetallado() {
+    const modal = document.getElementById('modal-informe-detallado');
+    if (!modal) return;
+    const sel = document.getElementById('infdet-productor');
+    if (sel) {
+        sel.innerHTML = '<option value="">-- Seleccionar productor... --</option>';
+        const lista = (typeof productores !== 'undefined' ? productores : []);
+        lista.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p; opt.textContent = p;
+            sel.appendChild(opt);
+        });
+    }
+    infdetSetQuickDate('mes');
+    const chkRecs = document.getElementById('infdet-incluir-recs');
+    if (chkRecs) chkRecs.checked = true;
+    modal.classList.add('active');
+    setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 80);
+}
+window.abrirModalInformeDetallado = abrirModalInformeDetallado;
+
+function cerrarModalInformeDetallado(event) {
+    if (event && event.target !== event.currentTarget) return;
+    const modal = document.getElementById('modal-informe-detallado');
+    if (modal) modal.classList.remove('active');
+}
+window.cerrarModalInformeDetallado = cerrarModalInformeDetallado;
+
+function infdetSetQuickDate(rango) {
+    const hoy = new Date();
+    const hasta = hoy.toISOString().slice(0, 10);
+    let desde;
+    if (rango === 'mes') { const d = new Date(hoy); d.setMonth(d.getMonth() - 1); desde = d.toISOString().slice(0, 10); }
+    else if (rango === 'trimestre') { const d = new Date(hoy); d.setMonth(d.getMonth() - 3); desde = d.toISOString().slice(0, 10); }
+    else { const d = new Date(hoy); d.setFullYear(d.getFullYear() - 1); desde = d.toISOString().slice(0, 10); }
+    const elDesde = document.getElementById('infdet-desde');
+    const elHasta = document.getElementById('infdet-hasta');
+    if (elDesde) elDesde.value = desde;
+    if (elHasta) elHasta.value = hasta;
+}
+window.infdetSetQuickDate = infdetSetQuickDate;
+
+let _infdetLogoCache = null;
+
+async function _infdetCargarLogo() {
+    if (_infdetLogoCache) return _infdetLogoCache;
+    const cargarSrc = (src) => new Promise(resolve => {
+        try {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            const timer = setTimeout(() => resolve(null), 2500);
+            img.onload = () => {
+                clearTimeout(timer);
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth || img.width;
+                    canvas.height = img.naturalHeight || img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    resolve({ dataUrl: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height });
+                } catch (_) {
+                    resolve(null);
+                }
+            };
+            img.onerror = () => {
+                clearTimeout(timer);
+                resolve(null);
+            };
+            img.src = src;
+        } catch (_) {
+            resolve(null);
+        }
+    });
+
+    // Preferir el ternerito blanco para contraste sobre el fondo azul oscuro, fallback al ternerito estandar
+    let res = await cargarSrc('Logoterneroblanco.png');
+    if (!res) res = await cargarSrc('logoternero.png');
+    if (res) _infdetLogoCache = res;
+    return res;
+}
+
+async function generarInformeDetallado() {
+    if (!window.jspdf || !window.jspdf.jsPDF) { showToast('Cargando librería PDF... intenta de nuevo.'); return; }
+    const productorSel = document.getElementById('infdet-productor')?.value.trim();
+    const desde = document.getElementById('infdet-desde')?.value;
+    const hasta  = document.getElementById('infdet-hasta')?.value;
+    if (!productorSel) { showToast('Selecciona un productor primero.'); return; }
+    if (!desde || !hasta) { showToast('Elegí el rango de fechas.'); return; }
+    if (desde > hasta) { showToast('La fecha desde debe ser menor a la fecha hasta.'); return; }
+
+    const btnGen = document.getElementById('infdet-btn-generar');
+    if (btnGen) {
+        btnGen.disabled = true;
+        btnGen.style.opacity = '0.7';
+    }
+
+    try {
+        const regs = (typeof records !== 'undefined' ? records : []).filter(r =>
+            r.productor === productorSel && r.fecha >= desde && r.fecha <= hasta
+        );
+        const total = regs.length;
+        const _isPerinatalReg = r => r.estado === 'Aborto' || r.estado === 'Nacido muerto' || r.estado === 'Muerto al periparto' || (r.tipo_parto === 'Muerto al parto' && r.estado !== 'Vivo');
+        const _isMuertoGuacheraReg = r => r.estado !== 'Vivo' && !_isPerinatalReg(r);
+        const vivos = regs.filter(r => r.estado === 'Vivo').length;
+        const muertos = regs.filter(_isMuertoGuacheraReg).length;
+        const perinatales = regs.filter(_isPerinatalReg).length;
+        const totalCrianza = vivos + muertos;
+        const tasaMort = totalCrianza > 0 ? ((muertos / totalCrianza) * 100) : 0;
+        
+        // Medición de I.G. del Ternero (transferencia pasiva en suero/calostrado)
+        const igsArr = regs.map(r => parseFloat(r.ig_ternero)).filter(v => !isNaN(v));
+        const avgIg = igsArr.length > 0 ? (igsArr.reduce((a,b) => a+b, 0) / igsArr.length) : null;
+        
+        // Medición de I.G. de la Madre (calidad de calostro al parto)
+        const igsMadreArr = regs.map(r => parseFloat(r.ig_calostro)).filter(v => !isNaN(v));
+        const avgIgMadre = igsMadreArr.length > 0 ? (igsMadreArr.reduce((a,b) => a+b, 0) / igsMadreArr.length) : null;
+
+        const enfermos = regs.filter(r => r.estado === 'Vivo' && r.estado_salud === 'Está enfermo actualmente').length;
+        const tasaMorb = vivos > 0 ? ((enfermos / vivos) * 100) : 0;
+        const ombligos = regs.filter(r => r.ombligo);
+        const omblMalos = ombligos.filter(r => r.ombligo === 'Malo' || r.ombligo === 'Regular').length;
+        const tasaOmbligo = ombligos.length > 0 ? ((omblMalos / ombligos.length) * 100) : null;
+        const machos = regs.filter(r => r.sexo === 'Macho').length;
+        const hembras = regs.filter(r => r.sexo === 'Hembra').length;
+
+        // Desempeño por Tipo de Madre (Vacas vs Vaquillonas)
+        const vacas = regs.filter(r => (r.tipo_madre || '').toLowerCase().trim() === 'vaca');
+        const vaquillonas = regs.filter(r => (r.tipo_madre || '').toLowerCase().trim().startsWith('vaquil'));
+        const vivosVacas = vacas.filter(r => r.estado === 'Vivo').length;
+        const muertosVacas = vacas.filter(r => r.estado !== 'Vivo').length;
+        const vivosVaquil = vaquillonas.filter(r => r.estado === 'Vivo').length;
+        const muertosVaquil = vaquillonas.filter(r => r.estado !== 'Vivo').length;
+
+        // Causas de muerte (frecuencia por diagnóstico) en terneros de crianza
+        const muertosCrianzaRegs = regs.filter(_isMuertoGuacheraReg);
+        const causasCount = {};
+        const subcausasCount = {};
+        muertosCrianzaRegs.forEach(r => {
+            const cat = _infdetGetCategory(r);
+            causasCount[cat] = (causasCount[cat] || 0) + 1;
+            const esp = _infdetGetSpecificDisease(r);
+            if (esp && esp !== cat) {
+                subcausasCount[esp] = (subcausasCount[esp] || 0) + 1;
+            }
+        });
+        const causasMuerte = {
+            totalMuertos: muertosCrianzaRegs.length,
+            causasCount,
+            subcausasCount
+        };
+
+        // Pérdidas gestacionales y perinatales (abortos, nacidos muertos, periparto) y tipo de parto
+        const abortos = regs.filter(r => r.estado === 'Aborto').length;
+        const nacidosMuertos = regs.filter(r => r.estado === 'Nacido muerto' || (r.tipo_parto === 'Muerto al parto' && r.estado !== 'Vivo')).length;
+        const periparto = regs.filter(r => r.estado === 'Muerto al periparto').length;
+        const totalPerinatal = abortos + nacidosMuertos + periparto;
+        const partosNormales = regs.filter(r => (r.tipo_parto || 'Normal') === 'Normal').length;
+        const partosAsistidos = regs.filter(r => r.tipo_parto === 'Asistido').length;
+        const partosMuertos = regs.filter(r => r.tipo_parto === 'Muerto al parto').length;
+
+        const perdidasPerinatales = {
+            totalPerinatal,
+            abortos,
+            nacidosMuertos,
+            periparto,
+            partosNormales,
+            partosAsistidos,
+            partosMuertos
+        };
+
+        const diagnostico = _infdetDiagnostico({ total, totalCrianza, vivos, muertos, tasaMort, avgIg, avgIgMadre, enfermos, tasaMorb, tasaOmbligo, machos, hembras, totalVacas: vacas.length, vivosVacas, totalVaquil: vaquillonas.length, vivosVaquil, causasMuerte, perdidasPerinatales, productorSel });
+
+        // Cargar logo de la marca (ternerito)
+        const logo = await _infdetCargarLogo();
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p','mm','a4');
+        const PW=210, PH=297;
+        const AZUL=[26,35,126], AZUL_CLARO=[232,234,246], GRIS=[100,116,139];
+        const VERDE=[22,163,74], NARANJA=[217,119,6], ROJO=[220,38,38];
+
+        // ── ENCABEZADO CON LOGO DE MARCA ──
+        const HEADER_H = 30;
+        doc.setFillColor(...AZUL); doc.rect(0,0,PW,HEADER_H,'F');
+
+        let textStartX = 14;
+        if (logo && logo.dataUrl) {
+            const logoH = 22;
+            const ratio = (logo.w && logo.h) ? (logo.w / logo.h) : 1.51;
+            const logoW = Math.min(logoH * ratio, 36);
+            doc.addImage(logo.dataUrl, 'PNG', 12, (HEADER_H - logoH) / 2, logoW, logoH);
+            textStartX = 12 + logoW + 5;
+        }
+
+        doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(14);
+        doc.text('VETFIELD PRO - Informe Ejecutivo de Guachera', textStartX, 12);
+        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(225,235,255);
+        doc.text('Productor: ' + productorSel, textStartX, 19.5);
+        doc.text('Período: ' + _infdetFmt(desde) + '  -  ' + _infdetFmt(hasta), textStartX, 25.5);
+
+        const hoyStr = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+        doc.text('Emitido: ' + hoyStr, PW-12, 19.5, {align:'right'});
+        const prof=(function(){ try{const s=typeof AuthManager!=='undefined'?AuthManager.getSession():null; if(s&&(s.name||s.nombre)) return (s.name||s.nombre).trim();}catch(_){} return ''; })();
+        if(prof) doc.text('Veterinario: ' + prof, PW-12, 25.5, {align:'right'});
+
+        // ── TÍTULO GENERAL DEL PERÍODO ──
+        let y = HEADER_H + 5;
+        doc.setFillColor(...AZUL_CLARO); doc.roundedRect(12,y,PW-24,8,2,2,'F');
+        doc.setTextColor(...AZUL); doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+        doc.text('RESUMEN GENERAL DE INDICADORES PRODUCTIVOS Y SANITARIOS', PW/2, y+5.5, {align:'center'});
+
+        // ── LEYENDA EXPLICATIVA DE COLORES (Debajo del título) ──
+        const legendItems = [
+            { color: VERDE, label: 'Verde: Datos correctos' },
+            { color: NARANJA, label: 'Naranja: Moderado / Seguimiento' },
+            { color: ROJO, label: 'Rojo: Atención requerida' },
+            { color: AZUL, label: 'Azul: Datos generales' },
+        ];
+
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(6.8);
+        const dotR = 1.3;
+        const textOffset = 3.5;
+        const gap = 6;
+
+        let totalLegW = 0;
+        const widths = legendItems.map(item => {
+            const w = textOffset + doc.getTextWidth(item.label);
+            totalLegW += w;
+            return w;
+        });
+        totalLegW += (legendItems.length - 1) * gap;
+
+        let curX = (PW - totalLegW) / 2;
+        const legendY = y + 13;
+
+        legendItems.forEach((item, idx) => {
+            doc.setFillColor(...item.color);
+            doc.circle(curX + dotR, legendY - 0.8, dotR, 'F');
+            doc.setTextColor(80, 95, 115);
+            doc.text(item.label, curX + textOffset, legendY);
+            curX += widths[idx] + gap;
+        });
+
+        // ── TARJETAS KPI (Con los mismos colores y umbrales del Dashboard) ──
+        y = legendY + 5;
+
+        // Umbrales del Dashboard (sincronizados con configuración de usuario o valores estándar)
+        let thMortMid = 3, thMortHigh = 5;
+        let thIgHigh = 22, thIgMid = 18;
+        try {
+            const savedTh = JSON.parse(localStorage.getItem('vetfield_kpi_thresholds') || '{}');
+            if (savedTh.mortMid !== undefined) thMortMid = Number(savedTh.mortMid);
+            if (savedTh.mortHigh !== undefined) thMortHigh = Number(savedTh.mortHigh);
+            if (savedTh.igHigh !== undefined) thIgHigh = Number(savedTh.igHigh);
+            if (savedTh.igMid !== undefined) thIgMid = Number(savedTh.igMid);
+        } catch(_) {}
+
+        // Configuración de color y etiqueta para I.G. Calostro
+        let igLabel = 'I.G. Calostro (Ternero)';
+        let igValor = 'Sin datos';
+        let igSub = '';
+        let igColor = GRIS;
+
+        if (avgIg !== null) {
+            igLabel = 'I.G. Calostro (Ternero)';
+            igValor = avgIg.toFixed(1) + '% Brix';
+            igColor = avgIg >= thIgHigh ? VERDE : (avgIg >= thIgMid ? NARANJA : ROJO);
+            if (avgIgMadre !== null) {
+                igSub = 'Madre: ' + avgIgMadre.toFixed(1) + '% · ' + (avgIg >= thIgHigh ? 'Óptimo' : (avgIg >= thIgMid ? 'Aceptable' : 'Bajo'));
+            } else {
+                igSub = avgIg >= thIgHigh ? `Óptimo (>= ${thIgHigh}%)` : (avgIg >= thIgMid ? `Aceptable (${thIgMid}-${thIgHigh}%)` : `Bajo (< ${thIgMid}%)`);
+            }
+        } else if (avgIgMadre !== null) {
+            igLabel = 'I.G. Calostro (Madre)';
+            igValor = avgIgMadre.toFixed(1) + '% Brix';
+            igColor = avgIgMadre >= thIgHigh ? VERDE : (avgIgMadre >= thIgMid ? NARANJA : ROJO);
+            igSub = avgIgMadre >= thIgHigh ? `Óptimo (>= ${thIgHigh}%)` : (avgIgMadre >= thIgMid ? `Aceptable (${thIgMid}-${thIgHigh}%)` : `Bajo (< ${thIgMid}%)`);
+        } else {
+            igSub = 'Sin mediciones';
+        }
+
+        const colorMort = tasaMort <= thMortMid ? VERDE : (tasaMort <= thMortHigh ? NARANJA : ROJO);
+        const subMort = tasaMort <= thMortMid ? `Óptimo (<= ${thMortMid}%)` : (tasaMort <= thMortHigh ? `Moderado (${thMortMid}-${thMortHigh}%)` : `Alto (> ${thMortHigh}%)`);
+
+        // Subtítulo descriptivo de Desempeño por Tipo de Madre
+        const subTipoMadre = (vacas.length > 0 || vaquillonas.length > 0)
+            ? `V: ${vivosVacas} viv / ${muertosVacas} fall · Vq: ${vivosVaquil} viv / ${muertosVaquil} fall`
+            : 'Sin datos registrados';
+
+        const colorOmbl = tasaOmbligo === null ? GRIS : (tasaOmbligo <= 5 ? VERDE : (tasaOmbligo <= 15 ? NARANJA : ROJO));
+        const subOmbl = tasaOmbligo !== null ? (tasaOmbligo <= 5 ? 'Bajo riesgo (<= 5%)' : (tasaOmbligo <= 15 ? 'Revisar cura' : 'Reforzar cura (> 15%)')) : 'Sin datos';
+
+        const kpis=[
+            {label:'Total Registros', valor:String(total), sub:totalCrianza+' en crianza - '+perinatales+' perinatales', color:AZUL},
+            {label:'Mortandad', valor:tasaMort.toFixed(1)+'%', sub:subMort, color:colorMort},
+            {label:igLabel, valor:igValor, sub:igSub, color:igColor},
+            {label:'Desempeño Tipo Madre', valor:'Vaca: ' + vacas.length + '   Vaquillona: ' + vaquillonas.length, sub:subTipoMadre, color:AZUL},
+            {label:'Ombligos Afectados', valor:tasaOmbligo!==null?tasaOmbligo.toFixed(1)+'%':'Sin datos', sub:subOmbl, color:colorOmbl},
+            {label:'Distribución por Sexo', valor:'Macho: ' + machos + '   Hembra: ' + hembras, sub:total>0 ? (((machos/total)*100).toFixed(0)+'% Machos · '+((hembras/total)*100).toFixed(0)+'% Hembras') : '', color:AZUL},
+        ];
+        const colW=(PW-28)/3, rowH=26;
+        kpis.forEach((kpi,i)=>{
+            const col=i%3, row=Math.floor(i/3);
+            const cx=12+col*(colW+2), cy=y+row*(rowH+2.5);
+            doc.setFillColor(245,247,250); doc.roundedRect(cx,cy,colW,rowH,3,3,'F');
+            doc.setFillColor(...kpi.color); doc.roundedRect(cx,cy,4,rowH,2,2,'F'); doc.rect(cx+2,cy,2,rowH,'F');
+            doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRIS);
+            doc.text(kpi.label.toUpperCase(), cx+7, cy+6.5);
+            doc.setFont('helvetica','bold'); 
+            doc.setFontSize(kpi.valor.length > 20 ? 9 : (kpi.valor.length > 15 ? 9.5 : (kpi.valor.length > 8 ? 10.5 : 12.5))); 
+            doc.setTextColor(...kpi.color);
+            doc.text(kpi.valor, cx+7, cy+16);
+            doc.setFont('helvetica','normal'); doc.setFontSize(6.3); doc.setTextColor(...GRIS);
+            doc.text(kpi.sub, cx+7, cy+22.5);
+        });
+
+        // ── DIAGNÓSTICO Y EVALUACIÓN ──
+        y = y + 2 * (rowH + 2.5) + 5;
+        doc.setFillColor(...AZUL); doc.roundedRect(12, y, PW - 24, 7.5, 2, 2, 'F');
+        doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+        doc.text('DIAGNÓSTICO Y EVALUACIÓN DEL PERÍODO', 14, y + 5.2);
+        y += 12; // Margen superior para despegar el primer texto de la barra de título
+
+        const itemsDiag = Array.isArray(diagnostico) ? diagnostico : [{ titulo: 'Diagnóstico', texto: String(diagnostico) }];
+        const LINE_HEIGHT_DIAG = 4.5; // Interlineado cómodo dentro del párrafo
+        const PARAGRAPH_SPACING = 2.6; // Separación notable entre cada bloque temático
+
+        itemsDiag.forEach(item => {
+            const titulo = (typeof item === 'object' && item.titulo) ? item.titulo : '';
+            const texto = (typeof item === 'object' && item.texto) ? item.texto : String(item);
+            
+            // Viñeta azul estilizada
+            doc.setFillColor(...AZUL);
+            doc.circle(15, y - 0.9, 1.1, 'F');
+
+            // Prefijo de categoría en negrita azul
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8.5);
+            doc.setTextColor(...AZUL);
+            const prefix = titulo ? (titulo + ': ') : '';
+            const prefixW = prefix ? doc.getTextWidth(prefix) : 0;
+            if (prefix) {
+                doc.text(prefix, 18, y);
+            }
+
+            // Cuerpo del texto en gris carbón
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.5);
+            doc.setTextColor(45, 52, 65);
+
+            const maxW = PW - 32; // Ancho máximo disponible (hasta margen 192 mm)
+            const words = texto.split(' ');
+            let line1Words = [];
+            let remainingWords = [];
+
+            // Palabras que caben en la 1° línea acompañando al título en negrita
+            const firstLineW = maxW - prefixW;
+            for (let i = 0; i < words.length; i++) {
+                const w = words[i];
+                const testLine = line1Words.length === 0 ? w : line1Words.join(' ') + ' ' + w;
+                if (doc.getTextWidth(testLine) <= firstLineW) {
+                    line1Words.push(w);
+                } else {
+                    remainingWords = words.slice(i);
+                    break;
+                }
+            }
+
+            if (line1Words.length > 0) {
+                doc.text(line1Words.join(' '), 18 + prefixW, y);
+            }
+
+            // Líneas subsiguientes con sangría uniforme a 18 mm y espaciado de línea exacto
+            if (remainingWords.length > 0) {
+                const otherLines = doc.splitTextToSize(remainingWords.join(' '), maxW);
+                otherLines.forEach(l => {
+                    y += LINE_HEIGHT_DIAG;
+                    doc.text(l, 18, y);
+                });
+            }
+
+            // Espacio al siguiente punto de evaluación
+            y += LINE_HEIGHT_DIAG + PARAGRAPH_SPACING;
+        });
+
+        // ── RECOMENDACIONES TÉCNICAS (Opcionales según preferencia del usuario) ──
+        const incluirRecs = document.getElementById('infdet-incluir-recs') ? document.getElementById('infdet-incluir-recs').checked : true;
+        if (incluirRecs) {
+            const recs = _infdetRecomendaciones({ tasaMort, avgIg, avgIgMadre, tasaMorb, tasaOmbligo, total, causasMuerte, perdidasPerinatales });
+            if (recs.length > 0 && y < PH - 38) {
+                y += 2.5;
+                doc.setFillColor(...AZUL_CLARO); doc.roundedRect(12, y, PW - 24, 7.5, 2, 2, 'F');
+                doc.setTextColor(...AZUL); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+                doc.text('PAUTAS DE MANEJO Y RECOMENDACIONES TÉCNICAS', 14, y + 5.2);
+                y += 11.5;
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+                recs.forEach(rec => {
+                    if (y > PH - 25) return;
+                    doc.setTextColor(50, 60, 75);
+                    const bl = doc.splitTextToSize('•   ' + rec, PW - 32);
+                    bl.forEach((line, li) => {
+                        doc.text(line, 16, y + li * 4.6);
+                    });
+                    y += bl.length * 4.6 + 2.6;
+                });
+            }
+        }
+
+        // ── PIE DE PÁGINA ──
+        doc.setDrawColor(200,200,200); doc.line(12,PH-18,PW-12,PH-18);
+        doc.setFont('helvetica','italic'); doc.setFontSize(7); doc.setTextColor(...GRIS);
+        doc.text('Informe técnico generado por VETFIELD PRO. Uso exclusivo del veterinario actuante y el productor.', PW/2, PH-13, {align:'center'});
+        if(prof) doc.text('Vet. responsable: ' + prof, 14, PH-9);
+        doc.text('Emitido: ' + hoyStr, PW-12, PH-9, {align:'right'});
+
+        doc.save('InformeEjecutivo_' + productorSel.replace(/\s+/g,'_') + '_' + desde + '_' + hasta + '.pdf');
+        cerrarModalInformeDetallado();
+        showToast('Informe ejecutivo descargado correctamente.');
+    } catch(err) {
+        console.error('Error al generar informe detallado:', err);
+        showToast('Hubo un error al generar el PDF. Por favor reintenta.');
+    } finally {
+        if (btnGen) {
+            btnGen.disabled = false;
+            btnGen.style.opacity = '1';
+        }
+    }
+}
+window.generarInformeDetallado = generarInformeDetallado;
+
+function _infdetFmt(iso) {
+    if(!iso) return '';
+    const parts=iso.split('-');
+    return parts[2]+'/'+parts[1]+'/'+parts[0];
+}
+
+function _infdetGetCategory(r) {
+    if (!r) return 'Otra Causa';
+    if (typeof getCategoryForRecord === 'function') {
+        try { return getCategoryForRecord(r); } catch(_) {}
+    }
+    const cat = (r.causa_categoria || '').trim();
+    const esp = (r.causa_especifica || '').trim();
+    const causa = (r.causa || '').trim();
+
+    const matchCanonical = str => {
+        if (!str) return null;
+        const s = str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        if (/digestiv|metab/i.test(s)) return 'Problemas Digestivos y Metabólicos';
+        if (/infecci|enfermedad/i.test(s)) return 'Enfermedades e Infecciones';
+        if (/factor|extern|manejo/i.test(s)) return 'Factores Externos y de Manejo';
+        if (/^otra(?:\s+causa)?$/i.test(s)) return 'Otra Causa';
+        return null;
+    };
+
+    if (causa && causa.includes(' - ')) {
+        const m = matchCanonical(causa.split(' - ')[0].trim());
+        if (m) return m;
+    }
+    if (cat) {
+        const m = matchCanonical(cat);
+        if (m) return m;
+    }
+    if (esp) {
+        const m = matchCanonical(esp);
+        if (m) return m;
+    }
+    if (causa) {
+        const m = matchCanonical(causa);
+        if (m) return m;
+    }
+    const full = (cat + ' ' + esp + ' ' + causa + ' ' + (r.diagnostico || '')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (/digestiv|metab|diarrea|empacho|cagadera|curso|torsion|abomaso|ulcera|intoxicaci|acidosis|timpanismo|hinchad|empaste/i.test(full)) {
+        return 'Problemas Digestivos y Metabólicos';
+    }
+    if (/infecci|enfermedad|neumon|pulmon|salmonel|rotavirus|rota\b|coronavirus|corona\b|colibacilosis|escherichia|e\.?\s*coli|onfalitis|ombligo|cripto|bacteri|viral|virus|septicemia|mancha|clostridi/i.test(full)) {
+        return 'Enfermedades e Infecciones';
+    }
+    if (/factor|extern|manejo|estres|calor|falsa\s*via|broncoaspiraci|trauma|golpe|fractura|hipotermia|frio|ahogad|aplastad|accidente/i.test(full)) {
+        return 'Factores Externos y de Manejo';
+    }
+    if (cat && !/sin\s+cat/i.test(cat)) return cat;
+    return 'Otra Causa';
+}
+
+function _infdetGetSpecificDisease(r) {
+    if (!r) return null;
+    if (typeof getSpecificDisease === 'function') {
+        try { return getSpecificDisease(r); } catch(_) {}
+    }
+    const rawCausa = (r.causa || '').trim();
+    const rawEsp = (r.causa_especifica || '').trim();
+    if (rawCausa && rawCausa.includes(' - ')) {
+        const parts = rawCausa.split(' - ');
+        if (parts.length >= 2) {
+            const after = parts.slice(1).join(' - ').trim();
+            if (after && !/digestiv|metab|infecci|extern|manejo/i.test(after)) return after;
+        }
+    }
+    if (rawEsp && !/digestiv|metab|infecci|extern|manejo/i.test(rawEsp)) return rawEsp;
+    return null;
+}
+
+function _infdetDiagnostico({ total, totalCrianza, vivos, muertos, tasaMort, avgIg, avgIgMadre, enfermos, tasaMorb, tasaOmbligo, machos, hembras, totalVacas, vivosVacas, totalVaquil, vivosVaquil, causasMuerte, perdidasPerinatales, productorSel }) {
+    if(total===0) {
+        return [{
+            titulo: 'Población del Período',
+            texto: 'No se registraron terneros para el productor ' + productorSel + ' en el período seleccionado. Se recomienda verificar que los datos hayan sido cargados correctamente.'
+        }];
+    }
+    
+    const items = [];
+
+    // 1. Población e Ingreso a Crianza (con detalle de machos y hembras)
+    const textoSexo = (machos !== undefined && hembras !== undefined && (machos > 0 || hembras > 0))
+        ? ` (${machos} macho${machos !== 1 ? 's' : ''} y ${hembras} hembra${hembras !== 1 ? 's' : ''})`
+        : '';
+
+    items.push({
+        titulo: 'Población y Crianza',
+        texto: `Durante el período analizado, el establecimiento del productor ${productorSel} registró un total de ${total} ternero${total !== 1 ? 's' : ''}${textoSexo}, de los cuales ${totalCrianza} ingresaron a la etapa de crianza.`
+    });
+
+    // 2. Pérdidas Gestacionales y Perinatales (abortos, nacidos muertos, periparto y dificultad de parto)
+    if (perdidasPerinatales && perdidasPerinatales.totalPerinatal > 0) {
+        const pDetalle = [];
+        if (perdidasPerinatales.abortos > 0) pDetalle.push(`${perdidasPerinatales.abortos} aborto${perdidasPerinatales.abortos !== 1 ? 's' : ''} (gestación)`);
+        if (perdidasPerinatales.nacidosMuertos > 0) pDetalle.push(`${perdidasPerinatales.nacidosMuertos} nacido${perdidasPerinatales.nacidosMuertos !== 1 ? 's' : ''} muerto${perdidasPerinatales.nacidosMuertos !== 1 ? 's' : ''} (al parto)`);
+        if (perdidasPerinatales.periparto > 0) pDetalle.push(`${perdidasPerinatales.periparto} en periparto (< 24 hs)`);
+
+        let textoPerinatal = `Se contabilizaron ${perdidasPerinatales.totalPerinatal} pérdidas prenatales y perinatales en total: ${pDetalle.join(', ')}.`;
+        
+        const pPartos = [];
+        if (perdidasPerinatales.partosNormales > 0) pPartos.push(`${perdidasPerinatales.partosNormales} normales`);
+        if (perdidasPerinatales.partosAsistidos > 0) pPartos.push(`${perdidasPerinatales.partosAsistidos} asistidos`);
+        if (perdidasPerinatales.partosMuertos > 0) pPartos.push(`${perdidasPerinatales.partosMuertos} muertos al parto`);
+
+        if (pPartos.length > 0) {
+            textoPerinatal += ` En relación con el tipo y dificultad de parto, se relevaron: ${pPartos.join(', ')}.`;
+        }
+        items.push({
+            titulo: 'Pérdidas Gestacionales y Perinatales',
+            texto: textoPerinatal
+        });
+    } else {
+        let textoPerinatal = 'No se registraron abortos ni pérdidas gestacionales o perinatales durante el período analizado.';
+        const pPartos = [];
+        if (perdidasPerinatales && perdidasPerinatales.partosNormales > 0) pPartos.push(`${perdidasPerinatales.partosNormales} normales`);
+        if (perdidasPerinatales && perdidasPerinatales.partosAsistidos > 0) pPartos.push(`${perdidasPerinatales.partosAsistidos} asistidos`);
+        if (pPartos.length > 0) {
+            textoPerinatal += ` Dinámica de partos observada: ${pPartos.join(', ')}.`;
+        }
+        items.push({
+            titulo: 'Pérdidas Gestacionales y Perinatales',
+            texto: textoPerinatal
+        });
+    }
+
+    // 3. Mortalidad y Supervivencia
+    let pMort = '';
+    if(tasaMort<=3) pMort = `La tasa de mortandad fue de ${tasaMort.toFixed(1)}%, ubicándose dentro de valores óptimos (<= 3%), reflejo de un sólido manejo sanitario y nutricional.`;
+    else if(tasaMort<=6) pMort = `La tasa de mortandad fue de ${tasaMort.toFixed(1)}%, situándose en parámetros moderados (3-6%). Se sugiere mantener el seguimiento de los protocolos de calostrado y ambiente.`;
+    else pMort = `La tasa de mortandad registrada fue de ${tasaMort.toFixed(1)}%. Se sugiere coordinar un análisis exhaustivo de los factores de manejo para optimizar los índices de supervivencia en crianza.`;
+    items.push({
+        titulo: 'Mortalidad y Supervivencia',
+        texto: pMort
+    });
+
+    // 4. Causas de Muerte — Frecuencia por Diagnóstico (en el medio del informe)
+    if (causasMuerte && causasMuerte.totalMuertos > 0) {
+        const sortedCausas = Object.entries(causasMuerte.causasCount || {})
+            .filter(([_, cnt]) => cnt > 0)
+            .sort((a, b) => b[1] - a[1]);
+
+        if (sortedCausas.length > 0) {
+            const detalleCausas = sortedCausas
+                .map(([cat, cnt]) => `${cat} (${cnt} caso${cnt !== 1 ? 's' : ''}, ${((cnt / causasMuerte.totalMuertos) * 100).toFixed(1)}%)`)
+                .join(', ');
+
+            let textoCausas = `Respecto a la frecuencia de causas de muerte registradas, los diagnósticos principales correspondieron a: ${detalleCausas}.`;
+
+            const sortedSub = Object.entries(causasMuerte.subcausasCount || {})
+                .filter(([_, cnt]) => cnt > 0)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3);
+
+            if (sortedSub.length > 0) {
+                const detalleSub = sortedSub.map(([enf, cnt]) => `${enf} (${cnt})`).join(', ');
+                textoCausas += ` Con afecciones específicas identificadas en: ${detalleSub}.`;
+            }
+
+            items.push({
+                titulo: 'Causas de Muerte',
+                texto: textoCausas
+            });
+        } else {
+            items.push({
+                titulo: 'Causas de Muerte',
+                texto: `Se contabilizaron ${causasMuerte.totalMuertos} bajas en crianza durante el período, sin causas de muerte o diagnósticos específicos detallados.`
+            });
+        }
+    } else if (totalCrianza > 0) {
+        items.push({
+            titulo: 'Causas de Muerte',
+            texto: 'No se registraron bajas por enfermedad ni causas de muerte en la etapa de crianza durante el período analizado.'
+        });
+    }
+
+    // 5. Calostrado e Inmunidad
+    let pCalostro = '';
+    if(avgIg!==null){
+        if(avgIg>=22) pCalostro += `El I.G. promedio en terneros (calostrado) fue de ${avgIg.toFixed(1)}% Brix, indicando una transferencia pasiva óptima de inmunoglobulinas. `;
+        else if(avgIg>=18) pCalostro += `El I.G. promedio en terneros (calostrado) fue de ${avgIg.toFixed(1)}% Brix, nivel aceptable con oportunidad de ajuste en el protocolo de suministro. `;
+        else pCalostro += `El I.G. promedio en terneros (calostrado) fue de ${avgIg.toFixed(1)}% Brix. Se aconseja reforzar el volumen y prontitud del primer calostro para asegurar la protección inmunitaria. `;
+    }
+    if(avgIgMadre!==null){
+        pCalostro += `Por su parte, el calostro de las madres al parto promedió ${avgIgMadre.toFixed(1)}% Brix${avgIgMadre>=22 ? ' (calidad calostral óptima).' : ' (se recomienda revisar la nutrición preparto de la vaca).'}`;
+    }
+    if(pCalostro.trim()) {
+        items.push({
+            titulo: 'Calostrado e Inmunidad',
+            texto: pCalostro.trim()
+        });
+    }
+
+    // 6. Desempeño Materno y Sanidad
+    let pMadreSalud = '';
+    if(totalVacas !== undefined && (totalVacas > 0 || totalVaquil > 0)){
+        pMadreSalud += `Sobre el desempeño por tipo de madre, se contabilizaron ${totalVacas} terneros nacidos de vacas (${vivosVacas} vivos) y ${totalVaquil} de vaquillonas (${vivosVaquil} vivos). `;
+    }
+    if(tasaOmbligo!==null){
+        if(tasaOmbligo<=5) pMadreSalud += `La salud de ombligos resultó satisfactoria (${tasaOmbligo.toFixed(1)}% afectados).`;
+        else pMadreSalud += `Se observó un ${tasaOmbligo.toFixed(1)}% de ombligos con clasificación Regular o Mala, recomendándose reforzar la antisepsia umbilical al parto.`;
+    }
+    if(pMadreSalud.trim()) {
+        items.push({
+            titulo: 'Desempeño Materno y Sanidad',
+            texto: pMadreSalud.trim()
+        });
+    }
+
+    return items;
+}
+
+function _infdetRecomendaciones({ tasaMort, avgIg, avgIgMadre, tasaMorb, tasaOmbligo, total, causasMuerte, perdidasPerinatales }) {
+    const r=[];
+    if(total===0) return r;
+    if(perdidasPerinatales && perdidasPerinatales.abortos >= 3) {
+        r.push('Sanidad reproductiva: ante la ocurrencia de abortos, coordinar serología y muestreo fetal para descartar patógenos reproductivos (Brucelosis, Neospora, Leptospirosis).');
+    } else if(perdidasPerinatales && (perdidasPerinatales.nacidosMuertos > 1 || perdidasPerinatales.periparto > 2)) {
+        r.push('Manejo de preparto y maternidad: intensificar monitoreo en corral de partos y asistencia obstétrica temprana para reducir pérdidas perinatales.');
+    }
+    if(tasaMort>3) r.push('Revisar causas de muerte y coordinar ajustes de manejo preventivo en los primeros días de vida.');
+    if(causasMuerte && causasMuerte.causasCount) {
+        if((causasMuerte.causasCount['Problemas Digestivos y Metabólicos'] || 0) > 0) {
+            r.push('Manejo nutricional y digestivo: revisar protocolos de preparación de sustituto/leche, temperatura de suministro (38-39°C) y consistencia.');
+        }
+        if((causasMuerte.causasCount['Enfermedades e Infecciones'] || 0) > 0) {
+            r.push('Sanidad e infecciones: reforzar aislamiento temprano de terneros con signología clínica y desinfección rigurosa de corrales y utensilios.');
+        }
+    }
+    if(avgIg!==null && avgIg<22) r.push('Protocolo de calostrado en terneros: asegurar suministro de 4 L de calostro de calidad en las primeras 4 a 6 horas de vida.');
+    if(avgIgMadre!==null && avgIgMadre<22) r.push('Calostro materno: medir calostro con refractómetro al ordeñe y priorizar calostros superiores a 22% Brix.');
+    else if(avgIg!==null && avgIg<18) r.push('Considerar banco de calostro o calostro de calidad garantizada para optimizar la transferencia pasiva.');
+    if(tasaMorb>10) r.push('Revisar diagnóstico de casos activos y continuar con el plan terapéutico individualizado.');
+    if(tasaOmbligo!==null && tasaOmbligo>5) r.push('Reforzar antisepsia umbilical con tintura de yodo al nacimiento y seguimiento en la primera semana.');
+    if(tasaMort<=3 && (avgIg===null||avgIg>=22) && tasaMorb<=10) r.push('Mantener los protocolos actuales que están demostrando excelentes resultados.');
+    return r.slice(0, 4);
+}

@@ -92,6 +92,10 @@ CREATE TABLE IF NOT EXISTS `registros` (
   `causa`           TEXT          DEFAULT NULL,
   `causa_categoria` VARCHAR(100)  DEFAULT NULL,
   `causa_especifica` VARCHAR(100)  DEFAULT NULL,
+  `seguimiento_peso` TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '1 = seguimiento de peso activado para este ternero',
+  `peso_7dias`      DECIMAL(6,2)  DEFAULT NULL                        COMMENT 'Peso (kg) registrado dentro de los primeros 7 días de vida',
+  `peso_30dias`     DECIMAL(6,2)  DEFAULT NULL                        COMMENT 'Peso (kg) a los 30 días de vida',
+  `peso_60dias`     DECIMAL(6,2)  DEFAULT NULL                        COMMENT 'Peso (kg) a los 60 días de vida',
   `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_user_fecha`           (`user_id`, `fecha`),
@@ -105,6 +109,10 @@ CREATE TABLE IF NOT EXISTS `registros` (
 -- ALTER TABLE `registros` ADD COLUMN IF NOT EXISTS `litros_calostro_madre` DECIMAL(5,2) DEFAULT NULL AFTER `rp_madre`;
 -- ALTER TABLE `registros` ADD COLUMN IF NOT EXISTS `causa_categoria` VARCHAR(100) DEFAULT NULL AFTER `causa`;
 -- ALTER TABLE `registros` ADD COLUMN IF NOT EXISTS `causa_especifica` VARCHAR(100) DEFAULT NULL AFTER `causa_categoria`;
+-- ALTER TABLE `registros` ADD COLUMN IF NOT EXISTS `seguimiento_peso` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = seguimiento de peso activado' AFTER `causa_especifica`;
+-- ALTER TABLE `registros` ADD COLUMN IF NOT EXISTS `peso_7dias` DECIMAL(6,2) DEFAULT NULL COMMENT 'Peso kg primeros 7 días' AFTER `seguimiento_peso`;
+-- ALTER TABLE `registros` ADD COLUMN IF NOT EXISTS `peso_30dias` DECIMAL(6,2) DEFAULT NULL COMMENT 'Peso kg a los 30 días' AFTER `peso_7dias`;
+-- ALTER TABLE `registros` ADD COLUMN IF NOT EXISTS `peso_60dias` DECIMAL(6,2) DEFAULT NULL COMMENT 'Peso kg a los 60 días' AFTER `peso_30dias`;
 
 
 -- ─── TABLA: productores ──────────────────────────────────────

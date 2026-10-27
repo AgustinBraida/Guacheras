@@ -602,6 +602,9 @@ const VOICE_FIELDS_CONFIG = [
     { key: 'detalle_salud', label: 'Detalle Salud / Enfermedad', type: 'text' },
     { key: 'causa_categoria', label: 'Categoría Causa (si Murió)', type: 'select', opts: ['', 'Enfermedades e Infecciones', 'Problemas Digestivos y Metabólicos', 'Factores Externos y de Manejo', 'Otra Causa'] },
     { key: 'causa_especifica', label: 'Causa Específica (si Murió)', type: 'text' },
+    { key: 'peso_7dias', label: 'Peso 7 días (kg)', type: 'number' },
+    { key: 'peso_30dias', label: 'Peso 30 días (kg)', type: 'number' },
+    { key: 'peso_60dias', label: 'Peso 60 días (kg)', type: 'number' },
 ];
 
 function voice_renderSummary(data) {
@@ -653,6 +656,8 @@ async function voice_confirmSave() {
         rec.detalle_salud = null;
         rec.causa = (rec.causa_categoria && rec.causa_especifica) ? `${rec.causa_categoria} - ${rec.causa_especifica}` : (rec.causa_categoria || rec.causa_especifica || '');
     }
+    // Activar seguimiento de peso si algún campo viene cargado
+    rec.seguimiento_peso = (rec.peso_7dias || rec.peso_30dias || rec.peso_60dias) ? 1 : 0;
     const btn = document.getElementById('voice-btn-confirm');
     if (btn) { btn.disabled = true; btn.innerHTML = 'Guardando…'; }
     if (navigator.onLine) {

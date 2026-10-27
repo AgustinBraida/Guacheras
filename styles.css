@@ -15,6 +15,7 @@
     --input-bg: #f8fafc;
     --input-border: #e2e8f0;
     --border-color: #e2e8f0;
+    --bg-subtle: #f8fafc;
     --nav-bg: rgba(255, 255, 255, 0.95);
     --header-bg: rgba(245, 246, 250, 0.9);
     --td-bg: #ffffff;
@@ -33,6 +34,7 @@ html.dark {
     --input-bg: #1e293b;
     --input-border: #475569;
     --border-color: #334155;
+    --bg-subtle: #1e293b;
     --nav-bg: rgba(15, 23, 42, 0.97);
     --header-bg: rgba(15, 23, 42, 0.95);
     --td-bg: #1e293b;
@@ -3292,7 +3294,7 @@ html.dark .modal-section-card .section-label {
 }
 
 /* Altura y estilo uniforme de etiquetas para alinear todos los campos en el mismo eje Y */
-.modal-card-grid label {
+.modal-card-grid label:not(.peso-toggle-card):not(.peso-lock-label) {
     font-size: 0.8rem !important;
     font-weight: 600 !important;
     color: var(--text-main) !important;
@@ -3808,4 +3810,432 @@ html.dark .profile-lugar-row {
     #importExcelModal .modal-content {
         max-height: calc(90vh - 80px - env(safe-area-inset-bottom)) !important;
     }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ⚖️ SWITCH CARD: Seguimiento de Peso
+   ══════════════════════════════════════════════════════════════ */
+.peso-toggle-card,
+label.peso-toggle-card,
+.modal-card-grid label.peso-toggle-card {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    padding: 12px 14px !important;
+    background: var(--input-bg, #f8fafc) !important;
+    border: 1.5px solid var(--border-color, #e2e8f0) !important;
+    border-radius: 14px !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    transition: all 0.25s ease !important;
+    margin-top: 14px !important;
+    margin-bottom: 8px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    height: auto !important;
+    min-height: 52px !important;
+    max-height: none !important;
+    line-height: normal !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+}
+
+.peso-toggle-card:hover {
+    border-color: var(--primary-light, #3949ab) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+html.dark .peso-toggle-card,
+html.dark label.peso-toggle-card,
+html.dark .modal-card-grid label.peso-toggle-card {
+    background: rgba(30, 41, 59, 0.6) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+html.dark .peso-toggle-card:hover {
+    background: rgba(30, 41, 59, 0.85) !important;
+    border-color: rgba(99, 102, 241, 0.4) !important;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35) !important;
+}
+
+.peso-toggle-card.active,
+.peso-toggle-card:has(input:checked) {
+    border-color: var(--primary, #1a237e) !important;
+    background: rgba(26, 35, 126, 0.05) !important;
+    box-shadow: 0 3px 12px rgba(26, 35, 126, 0.08) !important;
+}
+
+html.dark .peso-toggle-card.active,
+html.dark .peso-toggle-card:has(input:checked) {
+    border-color: #6366f1 !important;
+    background: rgba(99, 102, 241, 0.12) !important;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2) !important;
+}
+
+.peso-toggle-info {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+
+.peso-toggle-icon {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 10px !important;
+    background: rgba(26, 35, 126, 0.08) !important;
+    color: var(--primary, #1a237e) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    transition: all 0.25s ease !important;
+}
+
+html.dark .peso-toggle-icon {
+    background: rgba(99, 102, 241, 0.15) !important;
+    color: #a5b4fc !important;
+}
+
+.peso-toggle-card.active .peso-toggle-icon,
+.peso-toggle-card:has(input:checked) .peso-toggle-icon {
+    background: var(--primary, #1a237e) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(26, 35, 126, 0.25) !important;
+}
+
+html.dark .peso-toggle-card.active .peso-toggle-icon,
+html.dark .peso-toggle-card:has(input:checked) .peso-toggle-icon {
+    background: #6366f1 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35) !important;
+}
+
+.peso-toggle-texts {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    min-width: 0 !important;
+}
+
+.peso-toggle-title {
+    font-size: 0.92rem !important;
+    font-weight: 600 !important;
+    color: var(--text-main) !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+    display: block !important;
+}
+
+.peso-toggle-sub {
+    font-size: 0.74rem !important;
+    color: var(--text-secondary) !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    display: block !important;
+}
+
+/* ── Switch Slider (iOS / Material Style) ── */
+.peso-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.peso-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+    margin: 0;
+}
+
+.peso-switch-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background-color: #cbd5e1;
+    border-radius: 999px;
+    transition: background-color 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.dark .peso-switch-slider {
+    background-color: #475569;
+}
+
+.peso-switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+.peso-toggle-card.active .peso-switch-slider,
+.peso-switch input:checked + .peso-switch-slider {
+    background-color: var(--primary, #1a237e);
+}
+
+html.dark .peso-toggle-card.active .peso-switch-slider,
+html.dark .peso-switch input:checked + .peso-switch-slider {
+    background-color: #6366f1;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+}
+
+.peso-toggle-card.active .peso-switch-slider:before,
+.peso-switch input:checked + .peso-switch-slider:before {
+    transform: translateX(20px);
+}
+
+/* ── Panel de Pesos Desplegable ── */
+#f_peso_section,
+#edit_peso_section {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px dashed var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+    animation: fadeInPeso 0.25s ease;
+}
+
+html.dark #f_peso_section,
+html.dark #edit_peso_section {
+    background: rgba(15, 23, 42, 0.4);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.peso-fields-container {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+}
+
+.peso-fields-container .form-group {
+    margin-bottom: 0 !important;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.peso-fields-container input {
+    display: block !important;
+    width: 100% !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    line-height: 42px !important;
+    padding: 0 0.85rem !important;
+    font-size: 0.92rem !important;
+    border-radius: 10px !important;
+    border: 1.5px solid #cbd5e1;
+    background: #ffffff;
+    color: var(--text-main);
+    box-sizing: border-box !important;
+}
+
+html.dark .peso-fields-container input {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+@keyframes fadeInPeso {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ── Encabezado y Botón de Bloqueo/Desbloqueo de Pesos ── */
+.peso-input-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    min-height: 34px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+
+.peso-input-header label {
+    margin-bottom: 0 !important;
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--text-main);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: default;
+}
+
+.peso-lock-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 16px;
+    border-radius: 9px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+    user-select: none;
+    line-height: 1.2;
+    outline: none;
+}
+
+/* Botón en estado BLOQUEADO (muestra candado cerrado, destacado como botón principal) */
+.peso-lock-btn.locked {
+    background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    color: #ffffff !important;
+    border: 1px solid #1d4ed8;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+.peso-lock-btn.locked:hover {
+    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+    color: #ffffff !important;
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);
+}
+
+.peso-lock-btn.locked:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(37, 99, 235, 0.3);
+}
+
+html.dark .peso-lock-btn.locked {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    color: #ffffff !important;
+    border: 1px solid #60a5fa;
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.45);
+}
+
+html.dark .peso-lock-btn.locked:hover {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    color: #ffffff !important;
+    transform: translateY(-1.5px);
+    box-shadow: 0 5px 16px rgba(59, 130, 246, 0.6);
+}
+
+html.dark .peso-lock-btn.locked:active {
+    transform: translateY(0);
+}
+
+/* Botón en estado DESBLOQUEADO (muestra candado abierto, botón secundario para volver a bloquear) */
+.peso-lock-btn.unlocked {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1.5px solid #cbd5e1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.peso-lock-btn.unlocked:hover {
+    background: #fee2e2;
+    color: #dc2626;
+    border-color: #fca5a5;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.15);
+}
+
+html.dark .peso-lock-btn.unlocked {
+    background: rgba(30, 41, 59, 0.9);
+    color: #cbd5e1;
+    border: 1.5px solid #475569;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .peso-lock-btn.unlocked:hover {
+    background: rgba(239, 68, 68, 0.18);
+    color: #fca5a5;
+    border-color: #ef4444;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(239, 68, 68, 0.3);
+}
+
+/* ── Campos de entrada: Bloqueado (Oscuro) vs Desbloqueado (Claro/Activo) ── */
+
+/* Estado Bloqueado: Más oscuro, opaco, con sombra interior */
+.peso-field-locked,
+input.peso-field-locked,
+input[type="number"].peso-field-locked {
+    background-color: #e2e8f0 !important;
+    border-color: #cbd5e1 !important;
+    color: #94a3b8 !important;
+    cursor: not-allowed !important;
+    opacity: 0.75 !important;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+    transition: all 0.25s ease !important;
+}
+
+html.dark .peso-field-locked,
+html.dark input.peso-field-locked,
+html.dark input[type="number"].peso-field-locked {
+    background-color: #0b1120 !important; /* Notablemente más oscuro y profundo */
+    border-color: rgba(255, 255, 255, 0.06) !important;
+    color: #475569 !important;
+    cursor: not-allowed !important;
+    opacity: 0.7 !important;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+}
+
+.peso-field-locked::placeholder,
+input.peso-field-locked::placeholder {
+    color: #94a3b8 !important;
+    font-size: 0.85rem !important;
+    font-style: italic;
+}
+
+html.dark .peso-field-locked::placeholder,
+html.dark input.peso-field-locked::placeholder {
+    color: #475569 !important;
+}
+
+/* Estado Desbloqueado: Claro, nítido y listo para editar */
+.peso-field-unlocked,
+input.peso-field-unlocked,
+input[type="number"].peso-field-unlocked {
+    background-color: #ffffff !important;
+    border-color: var(--primary, #1a237e) !important;
+    color: var(--text-main, #0f172a) !important;
+    cursor: text !important;
+    opacity: 1 !important;
+    box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.1), 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.25s ease !important;
+}
+
+html.dark .peso-field-unlocked,
+html.dark input.peso-field-unlocked,
+html.dark input[type="number"].peso-field-unlocked {
+    background-color: #1e293b !important; /* Claro y contrastado contra el fondo oscuro */
+    border-color: #6366f1 !important;
+    color: #f8fafc !important;
+    cursor: text !important;
+    opacity: 1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.peso-field-unlocked:focus,
+input.peso-field-unlocked:focus {
+    border-color: #22c55e !important;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.28) !important;
 }

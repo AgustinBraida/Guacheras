@@ -961,10 +961,39 @@ html.dark .inf-btn-cancel:hover {
     color: #ffffff;
 }
 
-/* Modal de carga en modo oscuro con borde definido */
-html.dark #modal-upload-informe .modal-content {
+/* Modal de carga e informe detallado en modo oscuro con borde definido */
+html.dark #modal-upload-informe .modal-content,
+html.dark #modal-informe-detallado .modal-content {
     background: #191c28;
     border: 1.5px solid #334155;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
 }
+
+/* Opción Recomendaciones Técnicas en Modal Informe Detallado */
+.infdet-recs-toggle {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 0.75rem 1rem;
+    background: var(--bg-subtle, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.infdet-recs-toggle:hover {
+    background: #f1f5f9;
+}
+
+html.dark .infdet-recs-toggle {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+html.dark .infdet-recs-toggle:hover {
+    background: #253349;
+    border-color: #475569;
+}
+
 
