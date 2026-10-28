@@ -113,10 +113,22 @@ switch ($type) {
 
         if (in_array($status, ['authorized', 'pending'], true)) {
             $plan = $PLAN_MAP[$plan_id] ?? null;
+
+            // Respaldo por código de referencia (external_reference)
+            if (!$plan && !empty($preapproval['external_reference'])) {
+                $ref = $preapproval['external_reference'];
+                if (stripos($ref, 'premium') !== false) {
+                    $plan = 'premium';
+                } elseif (stripos($ref, 'pro') !== false) {
+                    $plan = 'pro';
+                }
+            }
+
             if ($plan && $email) {
                 set_user_plan_by_email($email, $plan, $mp_sub_id);
             } else {
-                error_log("[webhook_mp] Plan no mapeado para plan_id={$plan_id} o email vacío.");
+                $ext_ref = $preapproval['external_reference'] ?? 'ninguno';
+                error_log("[webhook_mp] Plan no mapeado para plan_id={$plan_id} (ref={$ext_ref}) o email vacío.");
             }
         }
 
@@ -156,6 +168,14 @@ switch ($type) {
         $mp_sub_id = $preapproval['id'] ?? $preapproval_id;
 
         $plan = $PLAN_MAP[$plan_id] ?? null;
+        if (!$plan && !empty($preapproval['external_reference'])) {
+            $ref = $preapproval['external_reference'];
+            if (stripos($ref, 'premium') !== false) {
+                $plan = 'premium';
+            } elseif (stripos($ref, 'pro') !== false) {
+                $plan = 'pro';
+            }
+        }
         if ($plan && $email) {
             set_user_plan_by_email($email, $plan, $mp_sub_id);
             error_log("[webhook_mp] Renovación procesada: email={$email} plan={$plan}");
